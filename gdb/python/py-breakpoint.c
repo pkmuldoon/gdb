@@ -681,7 +681,7 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 	case bp_breakpoint:
 	  {
 	    event_location_up location
-	      = string_to_event_location_basic (&copy, current_language);
+	      = string_to_event_location (&copy, current_language);
 	    create_breakpoint (python_gdbarch,
 			       location.get (), NULL, -1, NULL,
 			       0,
