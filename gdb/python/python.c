@@ -642,8 +642,113 @@ gdbpy_solib_name (PyObject *self, PyObject *args)
   return str_obj;
 }
 
-/* A Python function which is a wrapper for decode_line_1.  */
+static PyObject *
+gdbpy_search_symbols (PyObject *self, PyObject *args, PyObject *kw)
+{
+  /* A simple type to ensure clean up of a vector of allocated strings
+     when a C interface demands a const char *array[] type
+     interface.  */
+  struct symtab_list_type
+  {
+    ~symtab_list_type ()
+    {
+      for (const char *elem: vec)
+	{
+	  xfree ((void *) elem);
+	}
+    }
+    std::vector<const char *> vec;
+  };
 
+  char *arg = NULL;
+  struct symbol_search *symbols, *temp;
+  unsigned long count = 0;
+  PyObject *symtab_list = NULL;
+  enum search_domain domain = VARIABLES_DOMAIN;
+  static const char *keywords[] = {"regex","domain", "symtabs", NULL};
+  symtab_list_type symtab_paths;
+
+  if (!gdb_PyArg_ParseTupleAndKeywords(args, kw, "s|iO", keywords,
+				       &arg, &domain, &symtab_list))
+    return NULL;
+
+  if (symtab_list)
+    {
+      gdbpy_ref<> iter (PyObject_GetIter (symtab_list));
+
+      if (iter == NULL)
+	return NULL;
+
+      while (true)
+	{
+	  gdbpy_ref<> next (PyIter_Next (iter.get ()));
+	  gdb::unique_xmalloc_ptr<char> s;
+
+	  if (next == NULL)
+	    {
+	      if (PyErr_Occurred ())
+		return NULL;
+	      break;
+	    }
+
+	  gdbpy_ref<> obj_name (PyObject_GetAttrString (next.get (), "filename"));
+
+	  /* Is the object file still valid?  */
+	  if (obj_name == Py_None)
+	    continue;
+
+	  s = python_string_to_target_string (obj_name.get ());
+	  /* Make sure we have a definite place to store the value of
+	     s before we release it.  */
+	  symtab_paths.vec.push_back (nullptr);
+	  symtab_paths.vec.back () = s.release ();
+	}
+    }
+
+  if (symtab_list)
+    {
+      const char **files = symtab_paths.vec.data();
+      search_symbols (arg, domain, symtab_paths.vec.size (), files,
+		      &symbols);
+    }
+  else
+    search_symbols (arg, domain, 0, NULL, &symbols);
+
+  temp = symbols;
+
+  /* Count the number of symbols so we can correctly size the
+     tuple.  */
+  while (temp != NULL)
+  {
+    /* Count only full symbols.  */
+    if (temp->symbol != NULL)
+      count++;
+    temp = temp->next;
+  }
+
+  gdbpy_ref<> return_tuple (PyTuple_New (count));
+  count = 0;
+
+  while (symbols != NULL)
+  {
+    /* Skip mini-symbols.  */
+    if (symbols->symbol != NULL)
+      {
+	PyObject *sym_obj = symbol_to_symbol_object (symbols->symbol);
+
+	if (!sym_obj)
+	  return NULL;
+
+	PyTuple_SET_ITEM (return_tuple.get (), count, sym_obj);
+	count++;
+      }
+    symbols = symbols->next;
+  }
+  return return_tuple.release();
+}
+
+
+/* A Python function which is a wrapper for decode_line_1.  */
 static PyObject *
 gdbpy_decode_line (PyObject *self, PyObject *args)
 {
@@ -1888,6 +1993,10 @@ as its build id." },
   { "solib_name", gdbpy_solib_name, METH_VARARGS,
     "solib_name (Long) -> String.\n\
 Return the name of the shared library holding a given address, or None." },
+  { "search_symbols", (PyCFunction) gdbpy_search_symbols,
+    METH_VARARGS | METH_KEYWORDS,
+    "search_symbols (String) -> Tuple.\n\
+Return a tuple containing gdb.Symbols objects that match the given regex or None." },
   { "decode_line", gdbpy_decode_line, METH_VARARGS,
     "decode_line (String) -> Tuple.  Decode a string argument the way\n\
 that 'break' or 'edit' does.  Return a tuple containing two elements.\n\

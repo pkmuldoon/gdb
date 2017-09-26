@@ -1,0 +1,40 @@
+# Copyright (C) 2017 Free Software Foundation, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# This file is part of the GDB testsuite.  It tests the mechanism
+# exposing values to Python.
+
+load_lib gdb-python.exp
+
+standard_testfile
+
+if { [prepare_for_testing "failed to prepare" ${testfile} ${srcfile}] } {
+    return -1
+}
+
+# Skip all tests if Python scripting is not enabled.
+if { [skip_python_tests] } { continue }
+
+if ![runto_main] then {
+    fail "can't run to main"
+    return 0
+}
+
+global hex decimal
+gdb_breakpoint [gdb_get_line_number "Break innermost."]
+gdb_continue_to_breakpoint "Break innermost."
+gdb_py_test_silent_cmd "py sl = gdb.search_symbols(\"\",domain=gdb.SYMBOL_FUNCTIONS_DOMAIN)" "Get symbol" 0
+gdb_test "py print sl\[0\]" "blah" "check block not None"
+
