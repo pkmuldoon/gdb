@@ -642,6 +642,138 @@ gdbpy_solib_name (PyObject *self, PyObject *args)
   return str_obj;
 }
 
+static PyObject *
+gdbpy_rbreak  (PyObject *self, PyObject *args, PyObject *kw)
+{
+  /* A simple type to ensure clean up of a vector of allocated strings
+     when a C interface demands a const char *array[] type
+     interface.  */
+  struct symtab_list_type
+  {
+    ~symtab_list_type ()
+    {
+      for (const char *elem: vec)
+	{
+	  xfree ((void *) elem);
+	}
+    }
+    std::vector<const char *> vec;
+  };
+
+  char *regex = NULL;
+  struct symbol_search *symbols, *temp;
+  unsigned long count = 0;
+  PyObject *symtab_list = NULL;
+  int minisyms_p, throttle = 0;
+  enum search_domain domain = VARIABLES_DOMAIN;          
+  static const char *keywords[] = {"regex","minisyms", "throttle","symtabs", NULL};
+  symtab_list_type symtab_paths;
+
+  if (!gdb_PyArg_ParseTupleAndKeywords(args, kw, "s|O!iO", keywords,
+				       &regex, &minisyms_p, &throttle, &symtab_list))
+    return NULL;
+
+  if (symtab_list)
+    {
+      gdbpy_ref<> iter (PyObject_GetIter (symtab_list));
+
+      if (iter == NULL)
+	return NULL;
+
+      while (true)
+	{
+	  gdbpy_ref<> next (PyIter_Next (iter.get ()));
+	  gdb::unique_xmalloc_ptr<char> s;
+
+	  if (next == NULL)
+	    {
+	      if (PyErr_Occurred ())
+		return NULL;
+	      break;
+	    }
+
+	  gdbpy_ref<> obj_name (PyObject_GetAttrString (next.get (), "filename"));
+
+	  /* Is the object file still valid?  */
+	  if (obj_name == Py_None)
+	    continue;
+
+	  s = python_string_to_target_string (obj_name.get ());
+	  /* Make sure we have a definite place to store the value of
+	     s before we release it.  */
+	  symtab_paths.vec.push_back (nullptr);
+	  symtab_paths.vec.back () = s.release ();
+	}
+    }
+
+  if (symtab_list)
+    {
+      const char **files = symtab_paths.vec.data();
+      search_symbols (regex, domain, symtab_paths.vec.size (), files,
+		      &symbols);
+    }
+  else
+    search_symbols (regex, domain, 0, NULL, &symbols);
+
+  temp = symbols;
+
+  /* Count the number of symbols so we can correctly size the
+     tuple.  */
+  while (temp != NULL)
+  {
+    if (minisyms_p)
+    {
+	if (temp->msymbol.minsym != NULL)
+	  count++;
+    }
+    else
+      if (temp->symbol != NULL)
+	count++;
+    temp = temp->next;
+  }
+
+  /* Implement throttling here. */
+  gdbpy_ref<> return_tuple (PyTuple_New (count));
+  count = 0;
+
+  while (symbols != NULL)
+  {
+    /* Skip mini-symbols.  */
+    std::string string;
+    int len = 0;
+    
+    if (minisyms_p == 0)
+      if (symbols->msymbol.minsym != NULL)
+	continue;
+
+    if (symbols->msymbol.minsym == NULL)
+      {
+	struct symtab *symtab = symbol_symtab (symbols->symbol);
+	const char *fullname = symtab_to_fullname (symtab);
+	
+	string = fullname;
+	string += ":";
+	string += SYMBOL_LINKAGE_NAME (symbols->symbol);
+      }
+    else
+      {
+	string = MSYMBOL_LINKAGE_NAME (symbols->msymbol.minsym);
+      }
+
+
+    gdbpy_ref<> argList (Py_BuildValue("(s)", string.c_str()));
+    gdbpy_ref<> obj (PyObject_CallObject ((PyObject *) &breakpoint_object_type, argList.get()));
+    if (obj == NULL)
+      return NULL;
+    
+    PyTuple_SET_ITEM (return_tuple.get (), count, obj.get());
+    count++;
+      
+    symbols = symbols->next;
+  }
+  return return_tuple.release();
+}
+
 /* A Python function which is a wrapper for decode_line_1.  */
 
 static PyObject *
@@ -1912,6 +2044,10 @@ Return the name of the current target charset." },
   { "target_wide_charset", gdbpy_target_wide_charset, METH_NOARGS,
     "target_wide_charset () -> string.\n\
 Return the name of the current target wide charset." },
+  { "rbreak", (PyCFunction) gdbpy_rbreak,
+    METH_VARARGS | METH_KEYWORDS,
+    "search_symbols (String) -> Tuple.\n\
+Return a tuple containing gdb.Symbols objects that match the given regex or None." },
 
   { "string_to_argv", gdbpy_string_to_argv, METH_VARARGS,
     "string_to_argv (String) -> Array.\n\
