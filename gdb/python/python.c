@@ -664,14 +664,23 @@ gdbpy_rbreak  (PyObject *self, PyObject *args, PyObject *kw)
   struct symbol_search *symbols, *temp;
   unsigned long count = 0;
   PyObject *symtab_list = NULL;
+  PyObject *minisyms_p_obj = NULL;
   int minisyms_p, throttle = 0;
-  enum search_domain domain = VARIABLES_DOMAIN;          
-  static const char *keywords[] = {"regex","minisyms", "throttle","symtabs", NULL};
+  enum search_domain domain = FUNCTIONS_DOMAIN;          
+  static const char *keywords[] = {"regex","minisyms", "throttle", "symtabs", NULL};
   symtab_list_type symtab_paths;
 
   if (!gdb_PyArg_ParseTupleAndKeywords(args, kw, "s|O!iO", keywords,
-				       &regex, &minisyms_p, &throttle, &symtab_list))
+				       &regex, &PyBool_Type, &minisyms_p_obj, &throttle, &symtab_list))
     return NULL;
+
+  if (minisyms_p_obj)
+    {
+      int cmp = PyObject_IsTrue (minisyms_p_obj);
+      if (cmp < 0)
+	return NULL;
+      minisyms_p = cmp;
+    }
 
   if (symtab_list)
     {
@@ -721,6 +730,7 @@ gdbpy_rbreak  (PyObject *self, PyObject *args, PyObject *kw)
      tuple.  */
   while (temp != NULL)
   {
+    /* Are we including mini symbols?  */
     if (minisyms_p)
     {
 	if (temp->msymbol.minsym != NULL)
@@ -732,19 +742,22 @@ gdbpy_rbreak  (PyObject *self, PyObject *args, PyObject *kw)
     temp = temp->next;
   }
 
-  /* Implement throttling here. */
+  /* TODO: Implement throttling here. */
   gdbpy_ref<> return_tuple (PyTuple_New (count));
   count = 0;
 
   while (symbols != NULL)
   {
-    /* Skip mini-symbols.  */
     std::string string;
     int len = 0;
-    
+
+    /* Are we skipping mini-symbols?  */
     if (minisyms_p == 0)
       if (symbols->msymbol.minsym != NULL)
-	continue;
+	{
+	  symbols = symbols->next;
+	  continue;
+	}
 
     if (symbols->msymbol.minsym == NULL)
       {
@@ -760,9 +773,10 @@ gdbpy_rbreak  (PyObject *self, PyObject *args, PyObject *kw)
 	string = MSYMBOL_LINKAGE_NAME (symbols->msymbol.minsym);
       }
 
-
     gdbpy_ref<> argList (Py_BuildValue("(s)", string.c_str()));
     gdbpy_ref<> obj (PyObject_CallObject ((PyObject *) &breakpoint_object_type, argList.get()));
+
+    /* Should we exit if one breakpoint fails?  */
     if (obj == NULL)
       return NULL;
     
