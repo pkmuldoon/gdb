@@ -751,13 +751,13 @@ gdbpy_rbreak  (PyObject *self, PyObject *args, PyObject *kw)
 	  if (p.msymbol.minsym != NULL)
 	    count++;
 	}
-      else
-	if (p.symbol != NULL)
-	  count++;
+
+      if (p.symbol != NULL)
+	count++;
     }
 
   /* Check throttle bounds and exit if in excess. */
-  if (count > throttle)
+  if (throttle != 0 && count > throttle)
     {
       PyErr_SetString (PyExc_RuntimeError,
 		       _("Number of breakpoints exceeds throttled maximum."));

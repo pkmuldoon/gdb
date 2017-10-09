@@ -1,0 +1,61 @@
+# Copyright (C) 2017 Free Software Foundation, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# This file is part of the GDB testsuite.  It tests the mechanism
+# exposing values to Python.
+
+load_lib gdb-python.exp
+
+standard_testfile py-rbreak.c py-rbreak-func2.c
+
+if {[prepare_for_testing "failed to prepare" ${testfile} [list $srcfile $srcfile2]] } {
+
+    return 1
+}
+
+# Skip all tests if Python scripting is not enabled.
+if { [skip_python_tests] } { continue }
+
+if ![runto_main] then {
+    fail "can't run to main"
+    return 0
+}
+
+global hex decimal
+gdb_py_test_silent_cmd "py sl = gdb.rbreak(\"\",minisyms=False)" \
+    "Get all function breakpoints" 0
+gdb_test "py print(len(sl))" "11" "check block not None"
+gdb_py_test_silent_cmd "py sl = gdb.rbreak(\"main\.\*\",minisyms=False)" \
+    "Get main function breakpoint" 0
+gdb_test "py print(len(sl))" "1" "check block not None"
+gdb_py_test_silent_cmd "py sl = gdb.rbreak(\"func\.\*\",minisyms=False,throttle=10)" \
+    "Get main function breakpoint" 0
+gdb_test "py print(len(sl))" "9" "check block not None"
+gdb_test "py gdb.rbreak(\"func\.\*\",minisyms=False,throttle=1)" \
+    "Number of breakpoints exceeds throttled maximum.*"
+gdb_py_test_silent_cmd "py sl = gdb.rbreak(\"func1\",minisyms=True)" \
+    "Get main function breakpoint" 0
+gdb_test "py print(len(sl))" "2" "check block not None"
+gdb_py_test_silent_cmd "python sym1 = gdb.lookup_symbol(\"func1\")" \
+    "Find a symbol in objfile" 1
+gdb_py_test_silent_cmd "python sym2 = gdb.lookup_symbol(\"efunc1\")" \
+    "Find a symbol in objfile" 1
+gdb_py_test_silent_cmd "python symtab1 = sym1\[0\].symtab" \
+    "Get backing symbol table" 1
+gdb_py_test_silent_cmd "python symtab2 = sym2\[0\].symtab" \
+    "Get backing symbol table" 1
+gdb_py_test_silent_cmd "py sl = gdb.rbreak(\"func\.\*\",minisyms=False,throttle=10,symtabs=\[symtab2\])" \
+    "Get main function breakpoint" 0
+gdb_test "py print(len(sl))" "3" "check block not None"
