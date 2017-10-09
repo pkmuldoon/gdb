@@ -661,7 +661,7 @@ gdbpy_rbreak  (PyObject *self, PyObject *args, PyObject *kw)
   };
 
   char *regex = NULL;
-  struct symbol_search *symbols, *temp;
+  std::vector<symbol_search> symbols;
   unsigned long count = 0;
   PyObject *symtab_list = NULL;
   PyObject *minisyms_p_obj = NULL;
@@ -671,7 +671,9 @@ gdbpy_rbreak  (PyObject *self, PyObject *args, PyObject *kw)
   symtab_list_type symtab_paths;
 
   if (!gdb_PyArg_ParseTupleAndKeywords(args, kw, "s|O!iO", keywords,
-				       &regex, &PyBool_Type, &minisyms_p_obj, &throttle, &symtab_list))
+				       &regex, &PyBool_Type,
+				       &minisyms_p_obj, &throttle,
+				       &symtab_list))
     return NULL;
 
   if (minisyms_p_obj)
@@ -682,6 +684,17 @@ gdbpy_rbreak  (PyObject *self, PyObject *args, PyObject *kw)
       minisyms_p = cmp;
     }
 
+  /* The "symtabs" keyword is any Python iterable object that returns
+     a gdb.Symtab on each iteration.  If specified, iterate the
+     gdb.Symtabs and extract their full path. As
+     python_string_to_target_string returns a
+     gdb::unique_xmalloc_ptr<char> and these are stored in a vector
+     for our purpose, we cannot coerce the vector of
+     gdb::unique_xmalloc_ptr<char> pointers into const char **p[]
+     array with std::vector.data() call.  So for now, copy the value
+     from the unique_xmalloc_ptr and place in a simple type
+     symtab_list_type (which holds the vector and a destructor that
+     frees the contents of each element.  */
   if (symtab_list)
     {
       gdbpy_ref<> iter (PyObject_GetIter (symtab_list));
@@ -703,11 +716,15 @@ gdbpy_rbreak  (PyObject *self, PyObject *args, PyObject *kw)
 
 	  gdbpy_ref<> obj_name (PyObject_GetAttrString (next.get (), "filename"));
 
+	  if (obj_name == NULL)
+	    return NULL;
+
 	  /* Is the object file still valid?  */
 	  if (obj_name == Py_None)
 	    continue;
 
 	  s = python_string_to_target_string (obj_name.get ());
+
 	  /* Make sure we have a definite place to store the value of
 	     s before we release it.  */
 	  symtab_paths.vec.push_back (nullptr);
@@ -718,72 +735,73 @@ gdbpy_rbreak  (PyObject *self, PyObject *args, PyObject *kw)
   if (symtab_list)
     {
       const char **files = symtab_paths.vec.data();
-      search_symbols (regex, domain, symtab_paths.vec.size (), files,
-		      &symbols);
+
+      symbols = search_symbols (regex, domain, symtab_paths.vec.size (), files);
     }
   else
-    search_symbols (regex, domain, 0, NULL, &symbols);
+    symbols = search_symbols (regex, domain, 0, NULL);
 
-  temp = symbols;
-
-  /* Count the number of symbols so we can correctly size the
-     tuple.  */
-  while (temp != NULL)
-  {
-    /* Are we including mini symbols?  */
-    if (minisyms_p)
+  /* Count the number of symbols (both symbols, and optionally mini
+     symbols, so we can correctly size the tuple.  */
+  for (const symbol_search &p : symbols)
     {
-	if (temp->msymbol.minsym != NULL)
+      /* Are we including mini symbols?  */
+      if (minisyms_p)
+	{
+	  if (p.msymbol.minsym != NULL)
+	    count++;
+	}
+      else
+	if (p.symbol != NULL)
 	  count++;
     }
-    else
-      if (temp->symbol != NULL)
-	count++;
-    temp = temp->next;
-  }
 
-  /* TODO: Implement throttling here. */
+  /* Check throttle bounds and exit if in excess. */
+  if (count > throttle)
+    {
+      PyErr_SetString (PyExc_RuntimeError,
+		       _("Number of breakpoints exceeds throttled maximum."));
+      return NULL;
+    }
+
   gdbpy_ref<> return_tuple (PyTuple_New (count));
   count = 0;
 
-  while (symbols != NULL)
-  {
-    std::string string;
-    int len = 0;
+  for (const symbol_search &p : symbols)
+    {
+      std::string symbol_name;
+      int len = 0;
 
-    /* Are we skipping mini-symbols?  */
-    if (minisyms_p == 0)
-      if (symbols->msymbol.minsym != NULL)
-	{
-	  symbols = symbols->next;
+      /* Are we skipping mini-symbols?  */
+      if (minisyms_p == 0)
+	if (p.msymbol.minsym != NULL)
 	  continue;
-	}
 
-    if (symbols->msymbol.minsym == NULL)
+    if (p.msymbol.minsym == NULL)
       {
-	struct symtab *symtab = symbol_symtab (symbols->symbol);
+	struct symtab *symtab = symbol_symtab (p.symbol);
 	const char *fullname = symtab_to_fullname (symtab);
 	
-	string = fullname;
-	string += ":";
-	string += SYMBOL_LINKAGE_NAME (symbols->symbol);
+	symbol_name = fullname;
+	symbol_name  += ":";
+	symbol_name  += SYMBOL_LINKAGE_NAME (p.symbol);
       }
     else
       {
-	string = MSYMBOL_LINKAGE_NAME (symbols->msymbol.minsym);
+	symbol_name = MSYMBOL_LINKAGE_NAME (p.msymbol.minsym);
       }
 
-    gdbpy_ref<> argList (Py_BuildValue("(s)", string.c_str()));
+    gdbpy_ref<> argList (Py_BuildValue("(s)", symbol_name.c_str()));
     gdbpy_ref<> obj (PyObject_CallObject ((PyObject *) &breakpoint_object_type, argList.get()));
 
-    /* Should we exit if one breakpoint fails?  */
+    /* Be tolerant of individual breakpoint failures.  */
     if (obj == NULL)
-      return NULL;
-    
-    PyTuple_SET_ITEM (return_tuple.get (), count, obj.get());
-    count++;
-      
-    symbols = symbols->next;
+      gdbpy_print_stack ();
+    else
+      {
+	PyTuple_SET_ITEM (return_tuple.get (), count, obj.get());
+	count++;
+      }
   }
   return return_tuple.release();
 }
@@ -2062,7 +2080,6 @@ Return the name of the current target wide charset." },
     METH_VARARGS | METH_KEYWORDS,
     "search_symbols (String) -> Tuple.\n\
 Return a tuple containing gdb.Symbols objects that match the given regex or None." },
-
   { "string_to_argv", gdbpy_string_to_argv, METH_VARARGS,
     "string_to_argv (String) -> Array.\n\
 Parse String and return an argv-like array.\n\
