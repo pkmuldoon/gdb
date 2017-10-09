@@ -2674,6 +2674,9 @@ readonly_dynrelocs (struct elf_link_hash_entry *h, void *inf)
 
 	  info->flags |= DF_TEXTREL;
 
+	  info->callbacks->minfo (_("%B: dynamic relocation in read-only section `%A'\n"),
+				  p->sec->owner, p->sec);
+
 	  /* Not an error, just cut short the traversal.  */
 	  return FALSE;
 	}
@@ -2757,7 +2760,12 @@ tilegx_elf_size_dynamic_sections (bfd *output_bfd ATTRIBUTE_UNUSED,
 		  srel = elf_section_data (p->sec)->sreloc;
 		  srel->size += p->count * TILEGX_ELF_RELA_BYTES (htab);
 		  if ((p->sec->output_section->flags & SEC_READONLY) != 0)
-		    info->flags |= DF_TEXTREL;
+		    {
+		      info->flags |= DF_TEXTREL;
+
+		      info->callbacks->minfo (_("%B: dynamic relocation in read-only section `%A'\n"),
+					      p->sec->owner, p->sec);
+		    }
 		}
 	    }
 	}
@@ -4305,10 +4313,10 @@ tilegx_elf_finish_dynamic_sections (bfd *output_bfd,
 	     entry size.  */
 	  pad_size = PLT_ENTRY_SIZE - PLT_HEADER_SIZE - PLT_TAIL_SIZE;
 	  memset (splt->contents + splt->size - pad_size, 0, pad_size);
-	}
 
-      elf_section_data (splt->output_section)->this_hdr.sh_entsize
-	= PLT_ENTRY_SIZE;
+	  elf_section_data (splt->output_section)->this_hdr.sh_entsize
+	    = PLT_ENTRY_SIZE;
+	}
     }
 
   if (htab->elf.sgotplt)
@@ -4329,10 +4337,10 @@ tilegx_elf_finish_dynamic_sections (bfd *output_bfd,
 	  TILEGX_ELF_PUT_WORD (htab, output_bfd, (bfd_vma) 0,
 			       htab->elf.sgotplt->contents
 			       + GOT_ENTRY_SIZE (htab));
-	}
 
-      elf_section_data (htab->elf.sgotplt->output_section)->this_hdr.sh_entsize =
-	GOT_ENTRY_SIZE (htab);
+	  elf_section_data (htab->elf.sgotplt->output_section)->this_hdr.sh_entsize =
+	    GOT_ENTRY_SIZE (htab);
+	}
     }
 
   if (htab->elf.sgot)
@@ -4346,10 +4354,10 @@ tilegx_elf_finish_dynamic_sections (bfd *output_bfd,
 			 0);
 	  TILEGX_ELF_PUT_WORD (htab, output_bfd, val,
 			       htab->elf.sgot->contents);
-	}
 
-      elf_section_data (htab->elf.sgot->output_section)->this_hdr.sh_entsize =
-	GOT_ENTRY_SIZE (htab);
+	  elf_section_data (htab->elf.sgot->output_section)->this_hdr.sh_entsize =
+	    GOT_ENTRY_SIZE (htab);
+	}
     }
 
   return TRUE;

@@ -1,3 +1,83 @@
+2017-10-06  Alan Modra  <amodra@gmail.com>
+
+	* dwarf.c (process_debug_info): Consolidate header length checks.
+	(display_debug_pubnames_worker): Use "start" to read header.
+	Properly check header length and report errors earlier.
+	Simplify loop printing pubnames.
+	(get_line_filename_and_dirname): Catch small negative "length"
+	values.
+	(display_debug_aranges): Likewise.  Report header errors
+	earlier using standardized message.
+	(display_debug_names): Likewise.
+
+2017-10-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* readelf.c (decode_arm_unwind): Initialize res to TRUE.
+
+2017-10-05  Nick Clifton  <nickc@redhat.com>
+
+	PR 22260
+	* objcopy.c (strip_main): Add 'M' character to short options list
+	when calling getopt_long.
+
+2017-10-05  Nick Clifton  <nickc@redhat.com>
+
+	PR 22262
+	* readelf.c (dump_relocations): Do not truncate reloc names when
+	displaying output in wide mode.
+
+2017-10-05  Nick Clifton  <nickc@redhat.com>
+
+	* README-how-to-make-a-release: Merge steps 3, 4 and 5, and insert
+	the git tag operation at the correct location.
+
+2017-10-05  Alan Modra  <amodra@gmail.com>
+
+	PR 22239
+	* dwarf.c (read_cie): Don't compare "start" and "end" pointers
+	after adding a possibly wild length to "start", compare the length
+	to the difference of the pointers instead.  Remove now redundant
+	"negative" length test.
+
+2017-10-05  Tristan Gingold  <tgingold@free.fr>
+
+	* MAINTAINERS: Update email address.  Redirect release maintainer
+	to global maitainers.
+
+2017-10-01  Alan Modra  <amodra@gmail.com>
+
+	PR 22232
+	PR 22230
+	* objdump.c (load_specific_debug_section): Introduce a temp to
+	stop bfd_get_full_section_contents NULLing out section->start.
+
+2017-10-01  Alan Modra  <amodra@gmail.com>
+
+	PR 22230
+	* objdump.c (load_specific_debug_section): Allocate an extra byte
+	for a terminating NUL.
+
+2017-09-30  Alan Modra  <amodra@gmail.com>
+
+	PR 21978
+	* objdump.c: Formatting.
+	(show_line): Reset prev_line when function name changes.
+
+2017-09-27  Nick Clifton  <nickc@redhat.com>
+
+	PR 22219
+	* dwarf.c (process_debug_info): Add a check for a negative
+	cu_length field.
+
+2017-09-27  Alan Modra  <amodra@gmail.com>
+
+	PR 22216
+	* readelf.c (process_symbol_table): Check that DT_HASH symbol
+	chains are only visited once, and report an error if not.  Display
+	invalid symbol index if chain is out of range.  Use the same logic
+	when calculating histograms rather than the PR 17531 fix.  Delete
+	bogus check that chained index is less than number of buckets.
+
 2017-09-26  Nick Clifton  <nickc@redhat.com>
 
 	PR 22154

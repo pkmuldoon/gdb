@@ -150,44 +150,6 @@ make_cleanup_free_section_addr_info (struct section_addr_info *addrs)
   return make_cleanup (do_free_section_addr_info, addrs);
 }
 
-struct restore_integer_closure
-{
-  int *variable;
-  int value;
-};
-
-static void
-restore_integer (void *p)
-{
-  struct restore_integer_closure *closure
-    = (struct restore_integer_closure *) p;
-
-  *(closure->variable) = closure->value;
-}
-
-/* Remember the current value of *VARIABLE and make it restored when
-   the cleanup is run.  */
-
-struct cleanup *
-make_cleanup_restore_integer (int *variable)
-{
-  struct restore_integer_closure *c = XNEW (struct restore_integer_closure);
-
-  c->variable = variable;
-  c->value = *variable;
-
-  return make_cleanup_dtor (restore_integer, (void *) c, xfree);
-}
-
-/* Remember the current value of *VARIABLE and make it restored when
-   the cleanup is run.  */
-
-struct cleanup *
-make_cleanup_restore_uinteger (unsigned int *variable)
-{
-  return make_cleanup_restore_integer ((int *) variable);
-}
-
 /* Helper for make_cleanup_unpush_target.  */
 
 static void
@@ -221,22 +183,6 @@ struct cleanup *
 make_cleanup_value_free_to_mark (struct value *mark)
 {
   return make_cleanup (do_value_free_to_mark, mark);
-}
-
-/* Helper for make_cleanup_value_free.  */
-
-static void
-do_value_free (void *value)
-{
-  value_free ((struct value *) value);
-}
-
-/* Free VALUE.  */
-
-struct cleanup *
-make_cleanup_value_free (struct value *value)
-{
-  return make_cleanup (do_value_free, value);
 }
 
 /* This function is useful for cleanups.
@@ -430,8 +376,7 @@ internal_vproblem (struct internal_problem *problem,
   static int dejavu;
   int quit_p;
   int dump_core_p;
-  char *reason;
-  struct cleanup *cleanup = make_cleanup (null_cleanup, NULL);
+  std::string reason;
 
   /* Don't allow infinite error/warning recursion.  */
   {
@@ -464,21 +409,17 @@ internal_vproblem (struct internal_problem *problem,
      style similar to a compiler error message.  Include extra detail
      so that the user knows that they are living on the edge.  */
   {
-    char *msg;
-
-    msg = xstrvprintf (fmt, ap);
-    reason = xstrprintf ("%s:%d: %s: %s\n"
-			 "A problem internal to GDB has been detected,\n"
-			 "further debugging may prove unreliable.",
-			 file, line, problem->name, msg);
-    xfree (msg);
-    make_cleanup (xfree, reason);
+    std::string msg = string_vprintf (fmt, ap);
+    reason = string_printf ("%s:%d: %s: %s\n"
+			    "A problem internal to GDB has been detected,\n"
+			    "further debugging may prove unreliable.",
+			    file, line, problem->name, msg.c_str ());
   }
 
   /* Fall back to abort_with_message if gdb_stderr is not set up.  */
   if (current_ui == NULL)
     {
-      fputs (reason, stderr);
+      fputs (reason.c_str (), stderr);
       abort_with_message ("\n");
     }
 
@@ -496,7 +437,7 @@ internal_vproblem (struct internal_problem *problem,
   if (problem->should_quit != internal_problem_ask
       || !confirm
       || !filtered_printing_initialized ())
-    fprintf_unfiltered (gdb_stderr, "%s\n", reason);
+    fprintf_unfiltered (gdb_stderr, "%s\n", reason.c_str ());
 
   if (problem->should_quit == internal_problem_ask)
     {
@@ -506,7 +447,8 @@ internal_vproblem (struct internal_problem *problem,
       if (!confirm || !filtered_printing_initialized ())
 	quit_p = 1;
       else
-        quit_p = query (_("%s\nQuit this debugging session? "), reason);
+        quit_p = query (_("%s\nQuit this debugging session? "),
+			reason.c_str ());
     }
   else if (problem->should_quit == internal_problem_yes)
     quit_p = 1;
@@ -523,7 +465,7 @@ internal_vproblem (struct internal_problem *problem,
 
   if (problem->should_dump_core == internal_problem_ask)
     {
-      if (!can_dump_core_warn (LIMIT_MAX, reason))
+      if (!can_dump_core_warn (LIMIT_MAX, reason.c_str ()))
 	dump_core_p = 0;
       else if (!filtered_printing_initialized ())
 	dump_core_p = 1;
@@ -532,11 +474,12 @@ internal_vproblem (struct internal_problem *problem,
 	  /* Default (yes/batch case) is to dump core.  This leaves a GDB
 	     `dropping' so that it is easier to see that something went
 	     wrong in GDB.  */
-	  dump_core_p = query (_("%s\nCreate a core file of GDB? "), reason);
+	  dump_core_p = query (_("%s\nCreate a core file of GDB? "),
+			       reason.c_str ());
 	}
     }
   else if (problem->should_dump_core == internal_problem_yes)
-    dump_core_p = can_dump_core_warn (LIMIT_MAX, reason);
+    dump_core_p = can_dump_core_warn (LIMIT_MAX, reason.c_str ());
   else if (problem->should_dump_core == internal_problem_no)
     dump_core_p = 0;
   else
@@ -561,7 +504,6 @@ internal_vproblem (struct internal_problem *problem,
     }
 
   dejavu = 0;
-  do_cleanups (cleanup);
 }
 
 static struct internal_problem internal_error_problem = {
@@ -953,8 +895,6 @@ defaulted_query (const char *ctlstr, const char defchar, va_list args)
   int def_value;
   char def_answer, not_def_answer;
   const char *y_string, *n_string;
-  char *question, *prompt;
-  struct cleanup *old_chain;
 
   /* Set up according to which answer is the default.  */
   if (defchar == '\0')
@@ -1016,13 +956,12 @@ defaulted_query (const char *ctlstr, const char defchar, va_list args)
     }
 
   /* Format the question outside of the loop, to avoid reusing args.  */
-  question = xstrvprintf (ctlstr, args);
-  old_chain = make_cleanup (xfree, question);
-  prompt = xstrprintf (_("%s%s(%s or %s) %s"),
-		      annotation_level > 1 ? "\n\032\032pre-query\n" : "",
-		      question, y_string, n_string,
-		      annotation_level > 1 ? "\n\032\032query\n" : "");
-  make_cleanup (xfree, prompt);
+  std::string question = string_vprintf (ctlstr, args);
+  std::string prompt
+    = string_printf (_("%s%s(%s or %s) %s"),
+		     annotation_level > 1 ? "\n\032\032pre-query\n" : "",
+		     question.c_str (), y_string, n_string,
+		     annotation_level > 1 ? "\n\032\032query\n" : "");
 
   /* Used to add duration we waited for user to respond to
      prompt_for_continue_wait_time.  */
@@ -1036,7 +975,7 @@ defaulted_query (const char *ctlstr, const char defchar, va_list args)
       char *response, answer;
 
       gdb_flush (gdb_stdout);
-      response = gdb_readline_wrapper (prompt);
+      response = gdb_readline_wrapper (prompt.c_str ());
 
       if (response == NULL)	/* C-d  */
 	{
@@ -1076,7 +1015,6 @@ defaulted_query (const char *ctlstr, const char defchar, va_list args)
 
   if (annotation_level > 1)
     printf_filtered (("\n\032\032post-query\n"));
-  do_cleanups (old_chain);
   return retval;
 }
 
@@ -1464,42 +1402,23 @@ filtered_printing_initialized (void)
   return wrap_buffer != NULL;
 }
 
-/* Helper for make_cleanup_restore_page_info.  */
-
-static void
-do_restore_page_info_cleanup (void *arg)
+set_batch_flag_and_restore_page_info::set_batch_flag_and_restore_page_info ()
+  : m_save_lines_per_page (lines_per_page),
+    m_save_chars_per_line (chars_per_line),
+    m_save_batch_flag (batch_flag)
 {
-  set_screen_size ();
-  set_width ();
-}
-
-/* Provide cleanup for restoring the terminal size.  */
-
-struct cleanup *
-make_cleanup_restore_page_info (void)
-{
-  struct cleanup *back_to;
-
-  back_to = make_cleanup (do_restore_page_info_cleanup, NULL);
-  make_cleanup_restore_uinteger (&lines_per_page);
-  make_cleanup_restore_uinteger (&chars_per_line);
-
-  return back_to;
-}
-
-/* Temporarily set BATCH_FLAG and the associated unlimited terminal size.
-   Provide cleanup for restoring the original state.  */
-
-struct cleanup *
-set_batch_flag_and_make_cleanup_restore_page_info (void)
-{
-  struct cleanup *back_to = make_cleanup_restore_page_info ();
-  
-  make_cleanup_restore_integer (&batch_flag);
   batch_flag = 1;
   init_page_info ();
+}
 
-  return back_to;
+set_batch_flag_and_restore_page_info::~set_batch_flag_and_restore_page_info ()
+{
+  batch_flag = m_save_batch_flag;
+  chars_per_line = m_save_chars_per_line;
+  lines_per_page = m_save_lines_per_page;
+
+  set_screen_size ();
+  set_width ();
 }
 
 /* Set the screen size based on LINES_PER_PAGE and CHARS_PER_LINE.  */
@@ -2036,13 +1955,8 @@ static void
 vfprintf_maybe_filtered (struct ui_file *stream, const char *format,
 			 va_list args, int filter)
 {
-  char *linebuffer;
-  struct cleanup *old_cleanups;
-
-  linebuffer = xstrvprintf (format, args);
-  old_cleanups = make_cleanup (xfree, linebuffer);
-  fputs_maybe_filtered (linebuffer, stream, filter);
-  do_cleanups (old_cleanups);
+  std::string linebuffer = string_vprintf (format, args);
+  fputs_maybe_filtered (linebuffer.c_str (), stream, filter);
 }
 
 
@@ -2055,11 +1969,7 @@ vfprintf_filtered (struct ui_file *stream, const char *format, va_list args)
 void
 vfprintf_unfiltered (struct ui_file *stream, const char *format, va_list args)
 {
-  char *linebuffer;
-  struct cleanup *old_cleanups;
-
-  linebuffer = xstrvprintf (format, args);
-  old_cleanups = make_cleanup (xfree, linebuffer);
+  std::string linebuffer = string_vprintf (format, args);
   if (debug_timestamp && stream == gdb_stdlog)
     {
       using namespace std::chrono;
@@ -2069,18 +1979,18 @@ vfprintf_unfiltered (struct ui_file *stream, const char *format, va_list args)
       seconds s = duration_cast<seconds> (now.time_since_epoch ());
       microseconds us = duration_cast<microseconds> (now.time_since_epoch () - s);
 
-      len = strlen (linebuffer);
+      len = linebuffer.size ();
       need_nl = (len > 0 && linebuffer[len - 1] != '\n');
 
       std::string timestamp = string_printf ("%ld.%06ld %s%s",
 					     (long) s.count (),
 					     (long) us.count (),
-					     linebuffer, need_nl ? "\n": "");
+					     linebuffer.c_str (),
+					     need_nl ? "\n": "");
       fputs_unfiltered (timestamp.c_str (), stream);
     }
   else
-    fputs_unfiltered (linebuffer, stream);
-  do_cleanups (old_cleanups);
+    fputs_unfiltered (linebuffer.c_str (), stream);
 }
 
 void
@@ -2947,60 +2857,6 @@ make_bpstat_clear_actions_cleanup (void)
   return make_cleanup (do_bpstat_clear_actions_cleanup, NULL);
 }
 
-/* Check for GCC >= 4.x according to the symtab->producer string.  Return minor
-   version (x) of 4.x in such case.  If it is not GCC or it is GCC older than
-   4.x return -1.  If it is GCC 5.x or higher return INT_MAX.  */
-
-int
-producer_is_gcc_ge_4 (const char *producer)
-{
-  int major, minor;
-
-  if (! producer_is_gcc (producer, &major, &minor))
-    return -1;
-  if (major < 4)
-    return -1;
-  if (major > 4)
-    return INT_MAX;
-  return minor;
-}
-
-/* Returns nonzero if the given PRODUCER string is GCC and sets the MAJOR
-   and MINOR versions when not NULL.  Returns zero if the given PRODUCER
-   is NULL or it isn't GCC.  */
-
-int
-producer_is_gcc (const char *producer, int *major, int *minor)
-{
-  const char *cs;
-
-  if (producer != NULL && startswith (producer, "GNU "))
-    {
-      int maj, min;
-
-      if (major == NULL)
-	major = &maj;
-      if (minor == NULL)
-	minor = &min;
-
-      /* Skip any identifier after "GNU " - such as "C11" or "C++".
-	 A full producer string might look like:
-	 "GNU C 4.7.2"
-	 "GNU Fortran 4.8.2 20140120 (Red Hat 4.8.2-16) -mtune=generic ..."
-	 "GNU C++14 5.0.0 20150123 (experimental)"
-      */
-      cs = &producer[strlen ("GNU ")];
-      while (*cs && !isspace (*cs))
-        cs++;
-      if (*cs && isspace (*cs))
-        cs++;
-      if (sscanf (cs, "%d.%d", major, minor) == 2)
-	return 1;
-    }
-
-  /* Not recognized as GCC.  */
-  return 0;
-}
 
 /* Helper for make_cleanup_free_char_ptr_vec.  */
 

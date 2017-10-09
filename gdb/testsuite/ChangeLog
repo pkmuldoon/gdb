@@ -1,3 +1,64 @@
+2017-10-09  Pedro Alves  <palves@redhat.com>
+
+	* gdb.base/print-file-var-main.c: Fix get_version_2 value check
+	logic.  Move STOP marker after the value checks.
+	* gdb.base/print-file-var.exp (continue to STOP marker): Tighten
+	regexp.
+
+2017-10-06  Sandra Loosemore  <sandra@codesourcery.com>
+
+	* gdb.mi/mi-threads-interrupt.exp: Skip test if nointerrupts.
+
+2017-10-05  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* gdb.base/dfp-exprs.exp: Update tests to larger range of supported
+	integer-to-dfp conversion.
+	* gdb.base/dfp-test.exp: Likewise.
+
+2017-10-04  Pedro Alves  <palves@redhat.com>
+
+	* gdb.multi/hangout.c: Include <unistd.h>.
+	(hangout_loop): New function.
+	(main): Call alarm.  Call hangout_loop in a loop.
+	* gdb.multi/hello.c: Include <unistd.h>.
+	(hello_loop): New function.
+	(main): Call alarm.  Call hangout_loop in a loop.
+	* gdb.multi/multi-arch.exp: Test running to a breakpoint one
+	inferior with the other selected.
+
+2017-10-04  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdb.mi/list-thread-groups-available.exp: New file.
+	* gdb.mi/list-thread-groups-available.c: New file.
+
+2017-10-04  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* gdb.base/set-cwd.exp: Make it available on
+	native-extended-gdbserver.
+
+2017-10-04  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* gdb.base/set-cwd.c: New file.
+	* gdb.base/set-cwd.exp: Likewise.
+
+2017-10-02  Tom Tromey  <tom@tromey.com>
+
+	PR rust/22236:
+	* gdb.rust/simple.rs (main): New variable "fslice".
+	* gdb.rust/simple.exp: Add slice tests.  Update string tests.
+
+2017-10-02  Tom Tromey  <tom@tromey.com>
+
+	* gdb.rust/simple.exp: Test ptype of a slice.
+
+2017-10-02  Tom Tromey  <tom@tromey.com>
+
+	* gdb.rust/simple.exp: Test index of slice.
+
+2017-09-27  Tom Tromey  <tom@tromey.com>
+
+	* gdb.base/macscp.exp: Add __VA_OPT__ tests.
+
 2017-09-26  Thomas Preud'homme  <thomas.preudhomme@arm.com>
 	    Pedro Alves  <palves@redhat.com>
 

@@ -1234,6 +1234,16 @@ _bfd_elf_merge_symbol (bfd *abfd,
       olddyn = (oldsec->symbol->flags & BSF_DYNAMIC) != 0;
     }
 
+  /* Handle a case where plugin_notice won't be called and thus won't
+     set the non_ir_ref flags on the first pass over symbols.  */
+  if (oldbfd != NULL
+      && (oldbfd->flags & BFD_PLUGIN) != (abfd->flags & BFD_PLUGIN)
+      && newdyn != olddyn)
+    {
+      h->root.non_ir_ref_dynamic = TRUE;
+      hi->root.non_ir_ref_dynamic = TRUE;
+    }
+
   /* NEWDEF and OLDDEF indicate whether the new or old symbol,
      respectively, appear to be a definition rather than reference.  */
 
@@ -10434,7 +10444,7 @@ elf_link_input_bfd (struct elf_final_link_info *flinfo, bfd *input_bfd)
 		    (_("error: %B: size of section %A is not "
 		       "multiple of address size"),
 		     input_bfd, o);
-		  bfd_set_error (bfd_error_on_input);
+		  bfd_set_error (bfd_error_bad_value);
 		  return FALSE;
 		}
 	      o->flags |= SEC_ELF_REVERSE_COPY;

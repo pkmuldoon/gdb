@@ -68,8 +68,6 @@ static void until_next_command (int);
 
 static void until_command (char *, int);
 
-static void path_info (char *, int);
-
 static void path_command (char *, int);
 
 static void unset_command (char *, int);
@@ -77,12 +75,6 @@ static void unset_command (char *, int);
 static void info_float_command (char *, int);
 
 static void disconnect_command (char *, int);
-
-static void unset_environment_command (char *, int);
-
-static void set_environment_command (char *, int);
-
-static void environment_info (char *, int);
 
 static void info_program_command (char *, int);
 
@@ -110,6 +102,10 @@ static void run_command (char *, int);
    means no args.  */
 
 static char *inferior_args_scratch;
+
+/* Scratch area where the new cwd will be stored by 'set cwd'.  */
+
+static char *inferior_cwd_scratch;
 
 /* Scratch area where 'set inferior-tty' will store user-provided value.
    We'll immediate copy it into per-inferior storage.  */
@@ -244,6 +240,60 @@ show_args_command (struct ui_file *file, int from_tty,
   /* Note that we ignore the passed-in value in favor of computing it
      directly.  */
   deprecated_show_value_hack (file, from_tty, c, get_inferior_args ());
+}
+
+/* See common/common-inferior.h.  */
+
+void
+set_inferior_cwd (const char *cwd)
+{
+  struct inferior *inf = current_inferior ();
+
+  gdb_assert (inf != NULL);
+
+  if (cwd == NULL)
+    inf->cwd.reset ();
+  else
+    inf->cwd.reset (xstrdup (cwd));
+}
+
+/* See common/common-inferior.h.  */
+
+const char *
+get_inferior_cwd ()
+{
+  return current_inferior ()->cwd.get ();
+}
+
+/* Handle the 'set cwd' command.  */
+
+static void
+set_cwd_command (char *args, int from_tty, struct cmd_list_element *c)
+{
+  if (*inferior_cwd_scratch == '\0')
+    set_inferior_cwd (NULL);
+  else
+    set_inferior_cwd (inferior_cwd_scratch);
+}
+
+/* Handle the 'show cwd' command.  */
+
+static void
+show_cwd_command (struct ui_file *file, int from_tty,
+		  struct cmd_list_element *c, const char *value)
+{
+  const char *cwd = get_inferior_cwd ();
+
+  if (cwd == NULL)
+    fprintf_filtered (gdb_stdout,
+		      _("\
+You have not set the inferior's current working directory.\n\
+The inferior will inherit GDB's cwd if native debugging, or the remote\n\
+server's cwd if remote debugging.\n"));
+  else
+    fprintf_filtered (gdb_stdout,
+		      _("Current working directory that will be used "
+			"when starting the inferior is \"%s\".\n"), cwd);
 }
 
 
@@ -2148,7 +2198,7 @@ info_program_command (char *args, int from_tty)
 }
 
 static void
-environment_info (char *var, int from_tty)
+environment_info (const char *var, int from_tty)
 {
   if (var)
     {
@@ -2181,9 +2231,9 @@ environment_info (char *var, int from_tty)
 }
 
 static void
-set_environment_command (char *arg, int from_tty)
+set_environment_command (const char *arg, int from_tty)
 {
-  char *p, *val, *var;
+  const char *p, *val;
   int nullset = 0;
 
   if (arg == 0)
@@ -2230,21 +2280,20 @@ set_environment_command (char *arg, int from_tty)
   while (p != arg && (p[-1] == ' ' || p[-1] == '\t'))
     p--;
 
-  var = savestring (arg, p - arg);
+  std::string var (arg, p - arg);
   if (nullset)
     {
       printf_filtered (_("Setting environment variable "
 			 "\"%s\" to null value.\n"),
-		       var);
-      current_inferior ()->environment.set (var, "");
+		       var.c_str ());
+      current_inferior ()->environment.set (var.c_str (), "");
     }
   else
-    current_inferior ()->environment.set (var, val);
-  xfree (var);
+    current_inferior ()->environment.set (var.c_str (), val);
 }
 
 static void
-unset_environment_command (char *var, int from_tty)
+unset_environment_command (const char *var, int from_tty)
 {
   if (var == 0)
     {
@@ -2262,7 +2311,7 @@ unset_environment_command (char *var, int from_tty)
 static const char path_var_name[] = "PATH";
 
 static void
-path_info (char *args, int from_tty)
+path_info (const char *args, int from_tty)
 {
   puts_filtered ("Executable and object file path: ");
   puts_filtered (current_inferior ()->environment.get (path_var_name));
@@ -3133,7 +3182,7 @@ unset_command (char *args, int from_tty)
 /* Implement `info proc' family of commands.  */
 
 static void
-info_proc_cmd_1 (char *args, enum info_proc_what what, int from_tty)
+info_proc_cmd_1 (const char *args, enum info_proc_what what, int from_tty)
 {
   struct gdbarch *gdbarch = get_current_arch ();
 
@@ -3157,7 +3206,7 @@ info_proc_cmd (char *args, int from_tty)
 /* Implement `info proc mappings'.  */
 
 static void
-info_proc_cmd_mappings (char *args, int from_tty)
+info_proc_cmd_mappings (const char *args, int from_tty)
 {
   info_proc_cmd_1 (args, IP_MAPPINGS, from_tty);
 }
@@ -3165,7 +3214,7 @@ info_proc_cmd_mappings (char *args, int from_tty)
 /* Implement `info proc stat'.  */
 
 static void
-info_proc_cmd_stat (char *args, int from_tty)
+info_proc_cmd_stat (const char *args, int from_tty)
 {
   info_proc_cmd_1 (args, IP_STAT, from_tty);
 }
@@ -3173,7 +3222,7 @@ info_proc_cmd_stat (char *args, int from_tty)
 /* Implement `info proc status'.  */
 
 static void
-info_proc_cmd_status (char *args, int from_tty)
+info_proc_cmd_status (const char *args, int from_tty)
 {
   info_proc_cmd_1 (args, IP_STATUS, from_tty);
 }
@@ -3181,7 +3230,7 @@ info_proc_cmd_status (char *args, int from_tty)
 /* Implement `info proc cwd'.  */
 
 static void
-info_proc_cmd_cwd (char *args, int from_tty)
+info_proc_cmd_cwd (const char *args, int from_tty)
 {
   info_proc_cmd_1 (args, IP_CWD, from_tty);
 }
@@ -3189,7 +3238,7 @@ info_proc_cmd_cwd (char *args, int from_tty)
 /* Implement `info proc cmdline'.  */
 
 static void
-info_proc_cmd_cmdline (char *args, int from_tty)
+info_proc_cmd_cmdline (const char *args, int from_tty)
 {
   info_proc_cmd_1 (args, IP_CMDLINE, from_tty);
 }
@@ -3197,7 +3246,7 @@ info_proc_cmd_cmdline (char *args, int from_tty)
 /* Implement `info proc exe'.  */
 
 static void
-info_proc_cmd_exe (char *args, int from_tty)
+info_proc_cmd_exe (const char *args, int from_tty)
 {
   info_proc_cmd_1 (args, IP_EXE, from_tty);
 }
@@ -3205,7 +3254,7 @@ info_proc_cmd_exe (char *args, int from_tty)
 /* Implement `info proc all'.  */
 
 static void
-info_proc_cmd_all (char *args, int from_tty)
+info_proc_cmd_all (const char *args, int from_tty)
 {
   info_proc_cmd_1 (args, IP_ALL, from_tty);
 }
@@ -3257,6 +3306,25 @@ Show argument list to give program being debugged when it is started."), _("\
 Follow this command with any number of args, to be passed to the program."),
 				   set_args_command,
 				   show_args_command,
+				   &setlist, &showlist);
+  c = lookup_cmd (&cmd_name, setlist, "", -1, 1);
+  gdb_assert (c != NULL);
+  set_cmd_completer (c, filename_completer);
+
+  cmd_name = "cwd";
+  add_setshow_string_noescape_cmd (cmd_name, class_run,
+				   &inferior_cwd_scratch, _("\
+Set the current working directory to be used when the inferior is started.\n\
+Changing this setting does not have any effect on inferiors that are\n\
+already running."),
+				   _("\
+Show the current working directory that is used when the inferior is started."),
+				   _("\
+Use this command to change the current working directory that will be used\n\
+when the inferior is started.  This setting does not affect GDB's current\n\
+working directory."),
+				   set_cwd_command,
+				   show_cwd_command,
 				   &setlist, &showlist);
   c = lookup_cmd (&cmd_name, setlist, "", -1, 1);
   gdb_assert (c != NULL);

@@ -182,6 +182,10 @@ static reloc_howto_type elf_howto_table[]=
 
 };
 
+#define X86_PCREL_TYPE_P(TYPE) ((TYPE) == R_386_PC32)
+
+#define X86_SIZE_TYPE_P(TYPE) ((TYPE) == R_386_SIZE32)
+
 #ifdef DEBUG_GEN_RELOC
 #define TRACE(str) \
   fprintf (stderr, "i386 bfd reloc lookup %d (%s)\n", code, str)
@@ -1105,10 +1109,7 @@ elf_i386_tls_transition (struct bfd_link_info *info, bfd *abfd,
 	{
 	  unsigned int new_to_type = to_type;
 
-	  if (bfd_link_executable (info)
-	      && h != NULL
-	      && h->dynindx == -1
-	      && (tls_type & GOT_TLS_IE))
+	  if (TLS_TRANSITION_IE_TO_LE_P (info, h, tls_type))
 	    new_to_type = R_386_TLS_LE_32;
 
 	  if (to_type == R_386_TLS_GD
@@ -1618,7 +1619,7 @@ elf_i386_check_relocs (bfd *abfd,
 	  if (h == NULL)
 	    continue;
 
-	  eh->has_got_reloc = 1;
+	  eh->zero_undefweak &= 0x2;
 	  h->needs_plt = 1;
 	  h->plt.refcount += 1;
 	  break;
@@ -1745,7 +1746,7 @@ elf_i386_check_relocs (bfd *abfd,
 	  if (r_type != R_386_TLS_IE)
 	    {
 	      if (eh != NULL)
-		eh->has_got_reloc = 1;
+		eh->zero_undefweak &= 0x2;
 	      break;
 	    }
 	  /* Fall through */
@@ -1753,7 +1754,7 @@ elf_i386_check_relocs (bfd *abfd,
 	case R_386_TLS_LE_32:
 	case R_386_TLS_LE:
 	  if (eh != NULL)
-	    eh->has_got_reloc = 1;
+	    eh->zero_undefweak &= 0x2;
 	  if (bfd_link_executable (info))
 	    break;
 	  info->flags |= DF_STATIC_TLS;
@@ -1762,7 +1763,7 @@ elf_i386_check_relocs (bfd *abfd,
 	case R_386_32:
 	case R_386_PC32:
 	  if (eh != NULL && (sec->flags & SEC_CODE) != 0)
-	    eh->has_non_got_reloc = 1;
+	    eh->zero_undefweak |= 0x2;
 do_relocation:
 	  /* We are called after all symbols have been resolved.  Only
 	     relocation against STT_GNU_IFUNC symbol must go through
@@ -1816,46 +1817,8 @@ do_relocation:
 
 	  size_reloc = FALSE;
 do_size:
-	  /* If we are creating a shared library, and this is a reloc
-	     against a global symbol, or a non PC relative reloc
-	     against a local symbol, then we need to copy the reloc
-	     into the shared library.  However, if we are linking with
-	     -Bsymbolic, we do not need to copy a reloc against a
-	     global symbol which is defined in an object we are
-	     including in the link (i.e., DEF_REGULAR is set).  At
-	     this point we have not seen all the input files, so it is
-	     possible that DEF_REGULAR is not set now but will be set
-	     later (it is never cleared).  In case of a weak definition,
-	     DEF_REGULAR may be cleared later by a strong definition in
-	     a shared library.  We account for that possibility below by
-	     storing information in the relocs_copied field of the hash
-	     table entry.  A similar situation occurs when creating
-	     shared libraries and symbol visibility changes render the
-	     symbol local.
-
-	     If on the other hand, we are creating an executable, we
-	     may need to keep relocations for symbols satisfied by a
-	     dynamic library if we manage to avoid copy relocs for the
-	     symbol.
-
-	     Generate dynamic pointer relocation against STT_GNU_IFUNC
-	     symbol in the non-code section.  */
-	  if ((bfd_link_pic (info)
-	       && (r_type != R_386_PC32
-		   || (h != NULL
-		       && (! (bfd_link_pie (info)
-			      || SYMBOLIC_BIND (info, h))
-			   || h->root.type == bfd_link_hash_defweak
-			   || !h->def_regular))))
-	      || (h != NULL
-		  && h->type == STT_GNU_IFUNC
-		  && r_type == R_386_32
-		  && (sec->flags & SEC_CODE) == 0)
-	      || (ELIMINATE_COPY_RELOCS
-		  && !bfd_link_pic (info)
-		  && h != NULL
-		  && (h->root.type == bfd_link_hash_defweak
-		      || !h->def_regular)))
+	  if (NEED_DYNAMIC_RELOCATION_P (info, h, sec, r_type,
+					 R_386_32))
 	    {
 	      struct elf_dyn_relocs *p;
 	      struct elf_dyn_relocs **head;
@@ -2427,9 +2390,7 @@ do_ifunc_pointer:
 				     + input_section->output_offset
 				     + offset);
 
-		  if (h->dynindx == -1
-		      || h->forced_local
-		      || bfd_link_executable (info))
+		  if (POINTER_LOCAL_IFUNC_P (info, h))
 		    {
 		      info->callbacks->minfo (_("Local IFUNC function `%s' in %B\n"),
 					      h->root.root.string,
@@ -2551,26 +2512,13 @@ r_386_got32:
 	  relative_reloc = FALSE;
 	  if (h != NULL)
 	    {
-	      bfd_boolean dyn;
-
 	      off = h->got.offset;
-	      dyn = htab->elf.dynamic_sections_created;
-	      if (! WILL_CALL_FINISH_DYNAMIC_SYMBOL (dyn,
-						     bfd_link_pic (info),
-						     h)
-		  || (bfd_link_pic (info)
-		      && SYMBOL_REFERENCES_LOCAL_P (info, h))
-		  || (ELF_ST_VISIBILITY (h->other)
-		      && h->root.type == bfd_link_hash_undefweak))
+	      if (RESOLVED_LOCALLY_P (info, h, htab))
 		{
-		  /* This is actually a static link, or it is a
-		     -Bsymbolic link and the symbol is defined
-		     locally, or the symbol was forced to be local
-		     because of a version file.  We must initialize
-		     this entry in the global offset table.  Since the
-		     offset must always be a multiple of 4, we use the
-		     least significant bit to record whether we have
-		     initialized it already.
+		  /* We must initialize this entry in the global offset
+		     table.  Since the offset must always be a multiple
+		     of 4, we use the least significant bit to record
+		     whether we have initialized it already.
 
 		     When doing a dynamic link, we create a .rel.got
 		     relocation entry to initialize the value.  This
@@ -2583,10 +2531,7 @@ r_386_got32:
 				  htab->elf.sgot->contents + off);
 		      h->got.offset |= 1;
 
-		      if (h->dynindx == -1
-			  && !h->forced_local
-			  && h->root.type != bfd_link_hash_undefweak
-			  && bfd_link_pic (info))
+		      if (GENERATE_RELATIVE_RELOC_P (info, h))
 			{
 			  /* PR ld/21402: If this symbol isn't dynamic
 			     in PIC, generate R_386_RELATIVE here.  */
@@ -2806,29 +2751,9 @@ disallow_got32:
 	      || is_vxworks_tls)
 	    break;
 
-	  /* Copy dynamic function pointer relocations.  Don't generate
-	     dynamic relocations against resolved undefined weak symbols
-	     in PIE, except for R_386_PC32.  */
-	  if ((bfd_link_pic (info)
-	       && (h == NULL
-		   || ((ELF_ST_VISIBILITY (h->other) == STV_DEFAULT
-			&& (!resolved_to_zero
-			    || r_type == R_386_PC32))
-		       || h->root.type != bfd_link_hash_undefweak))
-	       && ((r_type != R_386_PC32 && r_type != R_386_SIZE32)
-		   || !SYMBOL_CALLS_LOCAL (info, h)))
-	      || (ELIMINATE_COPY_RELOCS
-		  && !bfd_link_pic (info)
-		  && h != NULL
-		  && h->dynindx != -1
-		  && (!h->non_got_ref
-		      || eh->func_pointer_refcount > 0
-		      || (h->root.type == bfd_link_hash_undefweak
-			  && !resolved_to_zero))
-		  && ((h->def_dynamic && !h->def_regular)
-		      /* Undefined weak symbol is bound locally when
-			 PIC is false.  */
-		      || h->root.type == bfd_link_hash_undefweak)))
+	  if (GENERATE_DYNAMIC_RELOCATION_P (info, eh, r_type,
+					     FALSE, resolved_to_zero,
+					     (r_type == R_386_PC32)))
 	    {
 	      Elf_Internal_Rela outrel;
 	      bfd_boolean skip, relocate;
@@ -2853,12 +2778,7 @@ disallow_got32:
 
 	      if (skip)
 		memset (&outrel, 0, sizeof outrel);
-	      else if (h != NULL
-		       && h->dynindx != -1
-		       && (r_type == R_386_PC32
-			   || !(bfd_link_executable (info)
-				|| SYMBOLIC_BIND (info, h))
-			   || !h->def_regular))
+	      else if (COPY_INPUT_RELOC_P (info, h, r_type))
 		outrel.r_info = ELF32_R_INFO (h->dynindx, r_type);
 	      else
 		{
@@ -3657,18 +3577,7 @@ elf_i386_finish_dynamic_symbol (bfd *output_bfd,
 	  relplt = htab->elf.irelplt;
 	}
 
-      /* This symbol has an entry in the procedure linkage table.  Set
-	 it up.  */
-
-      if ((h->dynindx == -1
-	   && !local_undefweak
-	   && !((h->forced_local || bfd_link_executable (info))
-		&& h->def_regular
-		&& h->type == STT_GNU_IFUNC))
-	  || plt == NULL
-	  || gotplt == NULL
-	  || relplt == NULL)
-	abort ();
+      VERIFY_PLT_ENTRY (info, h, plt, gotplt, relplt, local_undefweak)
 
       /* Get the index in the procedure linkage table which
 	 corresponds to this symbol.  This is the index of this symbol
@@ -3787,11 +3696,7 @@ elf_i386_finish_dynamic_symbol (bfd *output_bfd,
 	  rel.r_offset = (gotplt->output_section->vma
 			  + gotplt->output_offset
 			  + got_offset);
-	  if (h->dynindx == -1
-	      || ((bfd_link_executable (info)
-		   || ELF_ST_VISIBILITY (h->other) != STV_DEFAULT)
-		  && h->def_regular
-		  && h->type == STT_GNU_IFUNC))
+	  if (PLT_LOCAL_IFUNC_P (info, h))
 	    {
 	      info->callbacks->minfo (_("Local IFUNC function `%s' in %B\n"),
 				      h->root.root.string,
@@ -4003,13 +3908,7 @@ do_glob_dat:
       asection *s;
 
       /* This symbol needs a copy reloc.  Set it up.  */
-
-      if (h->dynindx == -1
-	  || (h->root.type != bfd_link_hash_defined
-	      && h->root.type != bfd_link_hash_defweak)
-	  || htab->elf.srelbss == NULL
-	  || htab->elf.sreldynrelro == NULL)
-	abort ();
+      VERIFY_COPY_RELOC (h, htab)
 
       rel.r_offset = (h->root.u.def.value
 		      + h->root.u.def.section->output_section->vma

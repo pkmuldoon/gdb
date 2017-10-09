@@ -733,6 +733,7 @@ LIBINTL_DEP
 LIBINTL
 USE_NLS
 CCDEPMODE
+CONFIG_SRC_SUBDIR
 DEPDIR
 am__leading_dot
 CXX_DIALECT
@@ -5949,6 +5950,13 @@ DEPDIR="${am__leading_dot}deps"
 ac_config_commands="$ac_config_commands depdir"
 
 
+# Create sub-directories for objects and depedencies.
+CONFIG_SRC_SUBDIR="arch"
+
+
+ac_config_commands="$ac_config_commands gdbdepdir"
+
+
 depcc="$CC"   am_compiler_list=
 
 am_depcomp=$ac_aux_dir/depcomp
@@ -8746,7 +8754,7 @@ return waddstr ();
   return 0;
 }
 _ACEOF
-for ac_lib in '' ncurses cursesX curses; do
+for ac_lib in '' ncursesw ncurses cursesX curses; do
   if test -z "$ac_lib"; then
     ac_res="none required"
   else
@@ -8844,7 +8852,7 @@ return tgetent ();
   return 0;
 }
 _ACEOF
-for ac_lib in '' termcap tinfo curses ncurses; do
+for ac_lib in '' termcap tinfo curses ncursesw ncurses; do
   if test -z "$ac_lib"; then
     ac_res="none required"
   else
@@ -11595,7 +11603,7 @@ fi
 done
 
 
-for ac_header in curses.h cursesX.h ncurses.h ncurses/ncurses.h ncurses/term.h
+for ac_header in curses.h cursesX.h ncurses.h ncursesw/ncurses.h ncurses/ncurses.h ncurses/term.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -18006,6 +18014,7 @@ cat >>$CONFIG_STATUS <<_ACEOF || ac_write_fail=1
 # INIT-COMMANDS
 #
 ac_aux_dir=$ac_aux_dir DEPDIR=$DEPDIR
+ac_aux_dir=$ac_aux_dir DEPDIR=$DEPDIR CONFIG_SRC_SUBDIR="$CONFIG_SRC_SUBDIR"
 
 _ACEOF
 
@@ -18017,6 +18026,7 @@ do
   case $ac_config_target in
     "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h:config.in" ;;
     "depdir") CONFIG_COMMANDS="$CONFIG_COMMANDS depdir" ;;
+    "gdbdepdir") CONFIG_COMMANDS="$CONFIG_COMMANDS gdbdepdir" ;;
     "jit-reader.h") CONFIG_FILES="$CONFIG_FILES jit-reader.h:jit-reader.in" ;;
     "$ac_config_links_1") CONFIG_LINKS="$CONFIG_LINKS $ac_config_links_1" ;;
     "gcore") CONFIG_FILES="$CONFIG_FILES gcore" ;;
@@ -18640,6 +18650,11 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
   case $ac_file$ac_mode in
     "depdir":C) $SHELL $ac_aux_dir/mkinstalldirs $DEPDIR ;;
+    "gdbdepdir":C)
+  for subdir in ${CONFIG_SRC_SUBDIR}
+  do
+      $SHELL $ac_aux_dir/mkinstalldirs $subdir/$DEPDIR
+  done ;;
     "gcore":F) chmod +x gcore ;;
     "Makefile":F)
 case x$CONFIG_HEADERS in

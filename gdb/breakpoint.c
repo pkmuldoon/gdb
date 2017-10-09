@@ -94,12 +94,6 @@ enum exception_event_kind
 
 /* Prototypes for local functions.  */
 
-static void enable_delete_command (char *, int);
-
-static void enable_once_command (char *, int);
-
-static void enable_count_command (char *, int);
-
 static void disable_command (char *, int);
 
 static void enable_command (char *, int);
@@ -137,8 +131,6 @@ static void clear_command (char *, int);
 static void catch_command (char *, int);
 
 static int can_use_hardware_watchpoint (struct value *);
-
-static void break_command_1 (char *, int, int);
 
 static void mention (struct breakpoint *);
 
@@ -186,9 +178,6 @@ static void info_breakpoints_command (char *, int);
 
 static void info_watchpoints_command (char *, int);
 
-static int breakpoint_1 (char *, int, 
-			 int (*) (const struct breakpoint *));
-
 static int breakpoint_cond_eval (void *);
 
 static void cleanup_executing_breakpoints (void *);
@@ -203,8 +192,6 @@ static int remove_breakpoint_1 (struct bp_location *, enum remove_bp_reason);
 static enum print_stop_action print_bp_stop_message (bpstat bs);
 
 static int watchpoint_check (void *);
-
-static void maintenance_info_breakpoints (char *, int);
 
 static int hw_breakpoint_used_count (void);
 
@@ -222,10 +209,6 @@ static void enable_breakpoint_disp (struct breakpoint *, enum bpdisp,
 				    int count);
 
 static void stop_command (char *arg, int from_tty);
-
-static void stopin_command (char *arg, int from_tty);
-
-static void stopat_command (char *arg, int from_tty);
 
 static void tcatch_command (char *arg, int from_tty);
 
@@ -279,8 +262,6 @@ static int is_hardware_watchpoint (const struct breakpoint *bpt);
 static void insert_breakpoint_locations (void);
 
 static void info_tracepoints_command (char *, int);
-
-static void delete_trace_command (char *, int);
 
 static void enable_trace_command (char *, int);
 
@@ -6681,7 +6662,7 @@ pending_breakpoint_p (struct breakpoint *b)
    breakpoints listed.  */
 
 static int
-breakpoint_1 (char *args, int allflag, 
+breakpoint_1 (const char *args, int allflag, 
 	      int (*filter) (const struct breakpoint *))
 {
   struct breakpoint *b;
@@ -6866,7 +6847,7 @@ info_watchpoints_command (char *args, int from_tty)
 }
 
 static void
-maintenance_info_breakpoints (char *args, int from_tty)
+maintenance_info_breakpoints (const char *args, int from_tty)
 {
   breakpoint_1 (args, 1, NULL);
 
@@ -9679,7 +9660,7 @@ create_breakpoint (struct gdbarch *gdbarch,
    and BP_TEMPFLAG.  */
 
 static void
-break_command_1 (char *arg, int flag, int from_tty)
+break_command_1 (const char *arg, int flag, int from_tty)
 {
   int tempflag = flag & BP_TEMPFLAG;
   enum bptype type_wanted = (flag & BP_HARDWAREFLAG
@@ -9797,7 +9778,7 @@ Usage: stop in <function | address>\n\
 }
 
 static void
-stopin_command (char *arg, int from_tty)
+stopin_command (const char *arg, int from_tty)
 {
   int badInput = 0;
 
@@ -9805,7 +9786,7 @@ stopin_command (char *arg, int from_tty)
     badInput = 1;
   else if (*arg != '*')
     {
-      char *argptr = arg;
+      const char *argptr = arg;
       int hasColon = 0;
 
       /* Look for a ':'.  If this is a line number specification, then
@@ -9830,7 +9811,7 @@ stopin_command (char *arg, int from_tty)
 }
 
 static void
-stopat_command (char *arg, int from_tty)
+stopat_command (const char *arg, int from_tty)
 {
   int badInput = 0;
 
@@ -9838,7 +9819,7 @@ stopat_command (char *arg, int from_tty)
     badInput = 1;
   else
     {
-      char *argptr = arg;
+      const char *argptr = arg;
       int hasColon = 0;
 
       /* Look for a ':'.  If there is a '::' then get out, otherwise
@@ -9867,8 +9848,9 @@ stopat_command (char *arg, int from_tty)
    line.  */
 
 static void
-dprintf_command (char *arg, int from_tty)
+dprintf_command (char *arg_in, int from_tty)
 {
+  const char *arg = arg_in;
   event_location_up location = string_to_event_location (&arg, current_language);
 
   /* If non-NULL, ARG should have been advanced past the location;
@@ -10082,9 +10064,11 @@ find_breakpoint_range_end (struct symtab_and_line sal)
 /* Implement the "break-range" CLI command.  */
 
 static void
-break_range_command (char *arg, int from_tty)
+break_range_command (char *arg_in, int from_tty)
 {
-  char *arg_start, *addr_string_start;
+  const char *arg = arg_in;
+  const char *arg_start;
+  char *addr_string_start;
   struct linespec_result canonical_start, canonical_end;
   int bp_count, can_use_bp, length;
   CORE_ADDR end;
@@ -11189,7 +11173,7 @@ can_use_hardware_watchpoint (struct value *v)
 }
 
 void
-watch_command_wrapper (char *arg, int from_tty, int internal)
+watch_command_wrapper (const char *arg, int from_tty, int internal)
 {
   watch_command_1 (arg, hw_write, from_tty, 0, internal);
 }
@@ -11220,7 +11204,7 @@ watch_command (char *arg, int from_tty)
 }
 
 void
-rwatch_command_wrapper (char *arg, int from_tty, int internal)
+rwatch_command_wrapper (const char *arg, int from_tty, int internal)
 {
   watch_command_1 (arg, hw_read, from_tty, 0, internal);
 }
@@ -11232,7 +11216,7 @@ rwatch_command (char *arg, int from_tty)
 }
 
 void
-awatch_command_wrapper (char *arg, int from_tty, int internal)
+awatch_command_wrapper (const char *arg, int from_tty, int internal)
 {
   watch_command_1 (arg, hw_access, from_tty, 0, internal);
 }
@@ -11353,7 +11337,7 @@ until_break_fsm_async_reply_reason (struct thread_fsm *self)
 }
 
 void
-until_break_command (char *arg, int from_tty, int anywhere)
+until_break_command (const char *arg, int from_tty, int anywhere)
 {
   struct frame_info *frame;
   struct gdbarch *frame_gdbarch;
@@ -11577,7 +11561,7 @@ void
 init_ada_exception_breakpoint (struct breakpoint *b,
 			       struct gdbarch *gdbarch,
 			       struct symtab_and_line sal,
-			       char *addr_string,
+			       const char *addr_string,
 			       const struct breakpoint_ops *ops,
 			       int tempflag,
 			       int enabled,
@@ -13337,16 +13321,13 @@ strace_marker_create_sals_from_location (const struct event_location *location,
 {
   struct linespec_sals lsal;
   const char *arg_start, *arg;
-  char *str;
-  struct cleanup *cleanup;
 
   arg = arg_start = get_linespec_location (location);
   lsal.sals = decode_static_tracepoint_spec (&arg);
 
-  str = savestring (arg_start, arg - arg_start);
-  cleanup = make_cleanup (xfree, str);
-  canonical->location = new_linespec_location (&str);
-  do_cleanups (cleanup);
+  std::string str (arg_start, arg - arg_start);
+  const char *ptr = str.c_str ();
+  canonical->location = new_linespec_location (&ptr);
 
   lsal.canonical
     = xstrdup (event_location_to_string (canonical->location.get ()));
@@ -13570,7 +13551,7 @@ iterate_over_related_breakpoints (struct breakpoint *b,
   while (related != b);
 }
 
-void
+static void
 delete_command (char *arg, int from_tty)
 {
   struct breakpoint *b, *b_tmp;
@@ -14598,7 +14579,7 @@ enable_command (char *args, int from_tty)
 }
 
 static void
-enable_once_command (char *args, int from_tty)
+enable_once_command (const char *args, int from_tty)
 {
   map_breakpoint_numbers
     (args, [&] (breakpoint *b)
@@ -14612,7 +14593,7 @@ enable_once_command (char *args, int from_tty)
 }
 
 static void
-enable_count_command (char *args, int from_tty)
+enable_count_command (const char *args, int from_tty)
 {
   int count;
 
@@ -14633,7 +14614,7 @@ enable_count_command (char *args, int from_tty)
 }
 
 static void
-enable_delete_command (char *args, int from_tty)
+enable_delete_command (const char *args, int from_tty)
 {
   map_breakpoint_numbers
     (args, [&] (breakpoint *b)
@@ -14786,8 +14767,9 @@ set_tracepoint_count (int num)
 }
 
 static void
-trace_command (char *arg, int from_tty)
+trace_command (char *arg_in, int from_tty)
 {
+  const char *arg = arg_in;
   struct breakpoint_ops *ops;
 
   event_location_up location = string_to_event_location (&arg,
@@ -14812,8 +14794,9 @@ trace_command (char *arg, int from_tty)
 }
 
 static void
-ftrace_command (char *arg, int from_tty)
+ftrace_command (char *arg_in, int from_tty)
 {
+  const char *arg = arg_in;
   event_location_up location = string_to_event_location (&arg,
 							 current_language);
   create_breakpoint (get_current_arch (),
@@ -14832,8 +14815,9 @@ ftrace_command (char *arg, int from_tty)
 /* strace command implementation.  Creates a static tracepoint.  */
 
 static void
-strace_command (char *arg, int from_tty)
+strace_command (char *arg_in, int from_tty)
 {
+  const char *arg = arg_in;
   struct breakpoint_ops *ops;
   event_location_up location;
   struct cleanup *back_to;
@@ -14891,7 +14875,8 @@ read_uploaded_action (void)
 struct tracepoint *
 create_tracepoint_from_upload (struct uploaded_tp *utp)
 {
-  char *addr_str, small_buf[100];
+  const char *addr_str;
+  char small_buf[100];
   struct tracepoint *tp;
 
   if (utp->at_string)
@@ -15012,7 +14997,7 @@ disable_trace_command (char *args, int from_tty)
 
 /* Remove a tracepoint (or all if no argument).  */
 static void
-delete_trace_command (char *arg, int from_tty)
+delete_trace_command (const char *arg, int from_tty)
 {
   struct breakpoint *b, *b_tmp;
 
@@ -15206,7 +15191,7 @@ print_recreate_thread (struct breakpoint *b, struct ui_file *fp)
    non-zero.  */
 
 static void
-save_breakpoints (char *filename, int from_tty,
+save_breakpoints (const char *filename, int from_tty,
 		  int (*filter) (const struct breakpoint *))
 {
   struct breakpoint *tp;
@@ -15324,7 +15309,7 @@ save_breakpoints (char *filename, int from_tty,
 /* The `save breakpoints' command.  */
 
 static void
-save_breakpoints_command (char *args, int from_tty)
+save_breakpoints_command (const char *args, int from_tty)
 {
   save_breakpoints (args, from_tty, NULL);
 }
@@ -15332,7 +15317,7 @@ save_breakpoints_command (char *args, int from_tty)
 /* The `save tracepoints' command.  */
 
 static void
-save_tracepoints_command (char *args, int from_tty)
+save_tracepoints_command (const char *args, int from_tty)
 {
   save_breakpoints (args, from_tty, is_tracepoint);
 }
@@ -15414,13 +15399,13 @@ add_catch_command (const char *name, const char *docstring,
 {
   struct cmd_list_element *command;
 
-  command = add_cmd (name, class_breakpoint, NULL, docstring,
+  command = add_cmd (name, class_breakpoint, docstring,
 		     &catch_cmdlist);
   set_cmd_sfunc (command, sfunc);
   set_cmd_context (command, user_data_catch);
   set_cmd_completer (command, completer);
 
-  command = add_cmd (name, class_breakpoint, NULL, docstring,
+  command = add_cmd (name, class_breakpoint, docstring,
 		     &tcatch_cmdlist);
   set_cmd_sfunc (command, sfunc);
   set_cmd_context (command, user_data_tcatch);

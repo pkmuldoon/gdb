@@ -88,10 +88,6 @@ static void show_print (char *, int);
 
 static void set_print (char *, int);
 
-static void set_radix (char *, int);
-
-static void show_radix (char *, int);
-
 static void set_input_radix (char *, int, struct cmd_list_element *);
 
 static void set_input_radix_1 (int, unsigned);
@@ -1476,12 +1472,10 @@ print_decimal_floating (const gdb_byte *valaddr, struct type *type,
 			struct ui_file *stream)
 {
   enum bfd_endian byte_order = gdbarch_byte_order (get_type_arch (type));
-  char decstr[MAX_DECIMAL_STRING];
   unsigned len = TYPE_LENGTH (type);
 
-  decimal_to_string (valaddr, len, byte_order, decstr);
-  fputs_filtered (decstr, stream);
-  return;
+  std::string str = decimal_to_string (valaddr, len, byte_order);
+  fputs_filtered (str.c_str (), stream);
 }
 
 void
@@ -3093,7 +3087,7 @@ set_output_radix_1 (int from_tty, unsigned radix)
    the 'set input-radix' command.  */
 
 static void
-set_radix (char *arg, int from_tty)
+set_radix (const char *arg, int from_tty)
 {
   unsigned radix;
 
@@ -3111,7 +3105,7 @@ set_radix (char *arg, int from_tty)
 /* Show both the input and output radices.  */
 
 static void
-show_radix (char *arg, int from_tty)
+show_radix (const char *arg, int from_tty)
 {
   if (from_tty)
     {

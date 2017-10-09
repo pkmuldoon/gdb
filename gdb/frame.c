@@ -1716,23 +1716,6 @@ select_frame (struct frame_info *fi)
     }
 }
 
-#if GDB_SELF_TEST
-struct frame_info *
-create_test_frame (struct regcache *regcache)
-{
-  struct frame_info *this_frame = XCNEW (struct frame_info);
-
-  sentinel_frame = create_sentinel_frame (NULL, regcache);
-  sentinel_frame->prev = this_frame;
-  sentinel_frame->prev_p = 1;;
-  this_frame->prev_arch.p = 1;
-  this_frame->prev_arch.arch = get_regcache_arch (regcache);
-  this_frame->next = sentinel_frame;
-
-  return this_frame;
-}
-#endif
-
 /* Create an arbitrary (i.e. address specified by user) or innermost frame.
    Always returns a non-NULL value.  */
 
@@ -2881,11 +2864,9 @@ frame_stop_reason_symbol_string (enum unwind_stop_reason reason)
 /* Clean up after a failed (wrong unwinder) attempt to unwind past
    FRAME.  */
 
-static void
-frame_cleanup_after_sniffer (void *arg)
+void
+frame_cleanup_after_sniffer (struct frame_info *frame)
 {
-  struct frame_info *frame = (struct frame_info *) arg;
-
   /* The sniffer should not allocate a prologue cache if it did not
      match this frame.  */
   gdb_assert (frame->prologue_cache == NULL);
@@ -2910,16 +2891,15 @@ frame_cleanup_after_sniffer (void *arg)
 }
 
 /* Set FRAME's unwinder temporarily, so that we can call a sniffer.
-   Return a cleanup which should be called if unwinding fails, and
-   discarded if it succeeds.  */
+   If sniffing fails, the caller should be sure to call
+   frame_cleanup_after_sniffer.  */
 
-struct cleanup *
+void
 frame_prepare_for_sniffer (struct frame_info *frame,
 			   const struct frame_unwind *unwind)
 {
   gdb_assert (frame->unwind == NULL);
   frame->unwind = unwind;
-  return make_cleanup (frame_cleanup_after_sniffer, frame);
 }
 
 static struct cmd_list_element *set_backtrace_cmdlist;

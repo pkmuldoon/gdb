@@ -83,8 +83,7 @@ _bfd_x86_elf_dtpoff_base (struct bfd_link_info *info)
    dynamic relocs.  */
 
 static bfd_boolean
-elf_x86_allocate_dynrelocs (struct elf_link_hash_entry *h,
-				 void *inf)
+elf_x86_allocate_dynrelocs (struct elf_link_hash_entry *h, void *inf)
 {
   struct bfd_link_info *info;
   struct elf_x86_link_hash_table *htab;
@@ -676,6 +675,7 @@ _bfd_x86_elf_link_hash_newfunc (struct bfd_hash_entry *entry,
       eh->plt_second.offset = (bfd_vma) -1;
       eh->plt_got.offset = (bfd_vma) -1;
       eh->tlsdesc_got = (bfd_vma) -1;
+      eh->zero_undefweak = 1;
     }
 
   return entry;
@@ -1407,8 +1407,7 @@ _bfd_x86_elf_copy_indirect_symbol (struct bfd_link_info *info,
      generate a R_386_COPY reloc.  */
   edir->gotoff_ref |= eind->gotoff_ref;
 
-  edir->has_got_reloc |= eind->has_got_reloc;
-  edir->has_non_got_reloc |= eind->has_non_got_reloc;
+  edir->zero_undefweak |= eind->zero_undefweak;
 
   if (ELIMINATE_COPY_RELOCS
       && ind->root.type != bfd_link_hash_indirect

@@ -56,6 +56,7 @@
 #include "stack.h"
 #include "gdb_bfd.h"
 #include "cli/cli-utils.h"
+#include "common/byte-vector.h"
 
 #include <sys/types.h>
 #include <fcntl.h>
@@ -87,19 +88,9 @@ static void load_command (char *, int);
 static void symbol_file_add_main_1 (const char *args, symfile_add_flags add_flags,
 				    objfile_flags flags);
 
-static void add_symbol_file_command (char *, int);
-
 static const struct sym_fns *find_sym_fns (bfd *);
 
 static void overlay_invalidate_all (void);
-
-static void overlay_auto_command (char *, int);
-
-static void overlay_manual_command (char *, int);
-
-static void overlay_off_command (char *, int);
-
-static void overlay_load_command (char *, int);
 
 static void overlay_command (char *, int);
 
@@ -1627,7 +1618,7 @@ find_separate_debug_file_by_debuglink (struct objfile *objfile)
    conventions (because it is confusing and inconvenient).  */
 
 void
-symbol_file_command (char *args, int from_tty)
+symbol_file_command (const char *args, int from_tty)
 {
   dont_repeat ();
 
@@ -1639,7 +1630,6 @@ symbol_file_command (char *args, int from_tty)
     {
       objfile_flags flags = OBJF_USERLOADED;
       symfile_add_flags add_flags = 0;
-      struct cleanup *cleanups;
       char *name = NULL;
 
       if (from_tty)
@@ -1953,16 +1943,14 @@ load_progress (ULONGEST bytes, void *untyped_arg)
 	 might add a verify_memory() method to the target vector and
 	 then use that.  remote.c could implement that method using
 	 the ``qCRC'' packet.  */
-      gdb_byte *check = (gdb_byte *) xmalloc (bytes);
-      struct cleanup *verify_cleanups = make_cleanup (xfree, check);
+      gdb::byte_vector check (bytes);
 
-      if (target_read_memory (args->lma, check, bytes) != 0)
+      if (target_read_memory (args->lma, check.data (), bytes) != 0)
 	error (_("Download verify read failed at %s"),
 	       paddress (target_gdbarch (), args->lma));
-      if (memcmp (args->buffer, check, bytes) != 0)
+      if (memcmp (args->buffer, check.data (), bytes) != 0)
 	error (_("Download verify compare failed at %s"),
 	       paddress (target_gdbarch (), args->lma));
-      do_cleanups (verify_cleanups);
     }
   totals->data_count += bytes;
   args->lma += bytes;
@@ -2198,7 +2186,7 @@ print_transfer_performance (struct ui_file *stream,
    value to use.  We are now discontinuing this type of ad hoc syntax.  */
 
 static void
-add_symbol_file_command (char *args, int from_tty)
+add_symbol_file_command (const char *args, int from_tty)
 {
   struct gdbarch *gdbarch = get_current_arch ();
   gdb::unique_xmalloc_ptr<char> filename;
@@ -2333,7 +2321,7 @@ add_symbol_file_command (char *args, int from_tty)
 /* This function removes a symbol file that was added via add-symbol-file.  */
 
 static void
-remove_symbol_file_command (char *args, int from_tty)
+remove_symbol_file_command (const char *args, int from_tty)
 {
   struct objfile *objf = NULL;
   struct program_space *pspace = current_program_space;
@@ -3233,7 +3221,7 @@ find_pc_mapped_section (CORE_ADDR pc)
    Print a list of mapped sections and their PC ranges.  */
 
 static void
-list_overlays_command (char *args, int from_tty)
+list_overlays_command (const char *args, int from_tty)
 {
   int nmapped = 0;
   struct objfile *objfile;
@@ -3275,7 +3263,7 @@ list_overlays_command (char *args, int from_tty)
    Mark the named section as mapped (ie. residing at its VMA address).  */
 
 static void
-map_overlay_command (char *args, int from_tty)
+map_overlay_command (const char *args, int from_tty)
 {
   struct objfile *objfile, *objfile2;
   struct obj_section *sec, *sec2;
@@ -3320,7 +3308,7 @@ map_overlay_command (char *args, int from_tty)
    (ie. resident in its LMA address range, rather than the VMA range).  */
 
 static void
-unmap_overlay_command (char *args, int from_tty)
+unmap_overlay_command (const char *args, int from_tty)
 {
   struct objfile *objfile;
   struct obj_section *sec = NULL;
@@ -3350,7 +3338,7 @@ unmap_overlay_command (char *args, int from_tty)
    Possibly this should be done via a set/show command.  */
 
 static void
-overlay_auto_command (char *args, int from_tty)
+overlay_auto_command (const char *args, int from_tty)
 {
   overlay_debugging = ovly_auto;
   enable_overlay_breakpoints ();
@@ -3363,7 +3351,7 @@ overlay_auto_command (char *args, int from_tty)
    Possibly this should be done via a set/show command.  */
 
 static void
-overlay_manual_command (char *args, int from_tty)
+overlay_manual_command (const char *args, int from_tty)
 {
   overlay_debugging = ovly_on;
   disable_overlay_breakpoints ();
@@ -3376,7 +3364,7 @@ overlay_manual_command (char *args, int from_tty)
    Possibly this should be done via a set/show command.  */
 
 static void
-overlay_off_command (char *args, int from_tty)
+overlay_off_command (const char *args, int from_tty)
 {
   overlay_debugging = ovly_off;
   disable_overlay_breakpoints ();
@@ -3385,7 +3373,7 @@ overlay_off_command (char *args, int from_tty)
 }
 
 static void
-overlay_load_command (char *args, int from_tty)
+overlay_load_command (const char *args, int from_tty)
 {
   struct gdbarch *gdbarch = get_current_arch ();
 

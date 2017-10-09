@@ -1,3 +1,70 @@
+2017-10-06  Yuanhui Zhang  <asmwarrior@gmail.com>
+
+	* win32-low.c: Include "common-inferior.h".
+
+2017-10-04  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* inferiors.c (set_inferior_cwd): New function.
+	* server.c (handle_general_set): Handle QSetWorkingDir packet.
+	(handle_query): Inform that QSetWorkingDir is supported.
+	* win32-low.c (create_process): Pass the inferior's cwd to
+	CreateProcess.
+
+2017-10-04  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* inferiors.c (current_inferior_cwd): New global variable.
+	(get_inferior_cwd): New function.
+	* inferiors.h (struct process_info) <cwd>: New field.
+
+2017-10-04  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* Makefile.in (SFILES): Add $(srcdir)/common/gdb_tilde_expand.c.
+	(OBS): Add gdb_tilde_expand.o.
+
+2017-10-02  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* lynx-i386-low.c (lynx_i386_arch_setup): Call init_target_desc.
+	* nto-x86-low.c (nto_x86_arch_setup): Likewise.
+
+2017-09-29  Pedro Alves  <palves@redhat.com>
+
+	* ax.c (gdb_parse_agent_expr): Constify.
+	* ax.h (gdb_parse_agent_expr): Constify.
+	* mem-break.c (add_breakpoint_condition, add_breakpoint_commands):
+	Constify.
+	* mem-break.h (add_breakpoint_condition, add_breakpoint_commands): Constify.
+	* remote-utils.c (hex_or_minus_one, read_ptid): Constify.
+	* remote-utils.h (read_ptid): Constify.
+	* server.c (handle_qxfer_exec_file, handle_query, handle_v_cont)
+	(process_point_options, process_serial_event): Constify.
+	* tracepoint.c (add_tracepoint_action, cmd_qtdp, cmd_qtdpsrc)
+	(cmd_qtdv, cmd_qtenable_disable, cmd_qtro, cmd_qtframe, cmd_qtp)
+	(cmd_qtbuffer): Constify.
+
+2017-09-29  Pedro Alves  <palves@redhat.com>
+
+	* proc-service.c (ps_pdread): Return PS_ERR if reading memory
+	fails.
+
+2017-09-29  Pedro Alves  <palves@redhat.com>
+
+	* linux-low.c (handle_extended_wait): Pass parent thread instead
+	of process to thread_db_notice_clone.
+	* linux-low.h (thread_db_notice_clone): Replace parent process
+	parameter with parent thread parameter.
+	* thread-db.c (find_one_thread): Add comment.
+	(thread_db_notice_clone): Replace parent process parameter with
+	parent thread parameter.  Temporarily switch to the parent thread.
+
+2017-09-26  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* gdbthread.h: Include "common-gdbthread.h".
+	* inferiors.c (switch_to_thread): Use "gdb_assert" instead of
+	"if" when validating the ptid.
+	* remote-utils.c: Include "gdbthread.h".
+	(prepare_resume_reply): Use "switch_to_thread".
+	* target.c (done_accessing_memory): Likewise.
+
 2017-09-25  Andreas Arnez  <arnez@linux.vnet.ibm.com>
 
 	* configure.srv (s390*-*-linux*): Add s390-gs-linux64.o and

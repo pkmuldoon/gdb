@@ -1,3 +1,55 @@
+2017-10-05  Nick Clifton  <nickc@redhat.com>
+
+	PR 22133
+	* config/tc-msp430.c (parse_exp): Skip an 'h' suffix to constant
+	expressions.
+	(msp430_srcoperand): Check that the entire text was parsed by
+	parse_exp.
+	(msp430_operands): Likewise.
+	* testsuite/gas/msp430/pr22133.s: New test file.
+	* testsuite/gas/msp430/pr22133.d: New test driver.
+	* testsuite/gas/msp430/pr22133.s: Expected error output.
+	* testsuite/gas/msp430/msp430.exp: Run the new test.
+
+2017-10-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/21167
+	* testsuite/gas/elf/elf.exp: Run group3.
+	* testsuite/gas/elf/group3.d: New file.
+	* testsuite/gas/elf/group3.s: Likewise.
+
+2017-10-05  Alan Modra  <amodra@gmail.com>
+
+	PR 21167
+	* config/obj-elf.c (struct group_list): Delete elt_count.
+	(groups): New static.
+	(build_group_lists): Don't count elements.
+	(elf_adjust_symtab): Use "groups" rather than auto "list".  Set up
+	pointer from group member to SHT_GROUP section.  Don't size
+	SHT_GROUP section or clean up here..
+	(elf_frob_file_after_relocs): ..do so here instead.
+	* testsuite/gas/arc/jli-1.d,
+	* testsuite/gas/elf/groupautob.d,
+	* testsuite/gas/mips/compact-eh-eb-2.d,
+	* testsuite/gas/mips/compact-eh-eb-5.d,
+	* testsuite/gas/mips/compact-eh-el-2.d,
+	* testsuite/gas/mips/compact-eh-el-5.d: Adjust.
+
+2017-10-01  Alexander Fedotov  <alfedotov@gmail.com>
+
+	* testsuite/gas/ppc/vle-mult-ld-st-insns.s: New file: Tests the
+	support for the VLE multiple load/store instructions.
+	* testsuite/gas/ppc/vle-mult-ld-st-insns.d: New file: Test
+	driver.
+	* testsuite/gas/ppc/ppc.exp: Run it.
+
+2017-09-27  Nick Clifton  <nickc@redhat.com>
+
+	PR 22179
+	* testsuite/gas/riscv/fmv.x.s: New file: Tests the support for the
+	renamed fmv.x.s and fmv.s.x instructions.
+	* testsuite/gas/riscv/fmv.x.d: New file: Test driver.
+
 2017-09-21  Maciej W. Rozycki  <macro@imgtec.com>
 
 	* testsuite/gas/mips/elf_mach_5900.d: New test.

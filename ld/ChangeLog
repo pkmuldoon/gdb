@@ -1,3 +1,73 @@
+2017-10-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR ld/22267
+	* ldlex.l (SYMBOLNAMECHAR1) New.
+	(DEFSYMEXP): Replace FILENAMECHAR1 with SYMBOLNAMECHAR1.
+	(EXPRESSION): Likewise.
+	* testsuite/ld-scripts/expr.exp: Run pr22267.
+	* testsuite/ld-scripts/pr22267.d: New file.
+	* testsuite/ld-scripts/pr22267.s: Likewise.
+	* testsuite/ld-scripts/pr22267.t: Likewise.
+
+2017-10-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/ld-elf/merge.d: Don't expect to fail for sparc.
+
+2017-10-05  Nick Clifton  <nickc@redhat.com>
+
+	* po/tr.po: Updated Turkish translation.
+
+2017-10-05  Nick Clifton  <nickc@redhat.com>
+
+	PR 22262
+	* testsuite/ld-powerpc/relocsort.d: Update expected output (for
+	longer reloc names).
+
+2017-10-05  Alan Modra  <amodra@gmail.com>
+
+	PR 21167
+	* testsuite/ld-elf/group9b.d: Adjust for relocs included in group.
+
+2017-10-03  Alan Modra  <amodra@gmail.com>
+
+	PR 21294
+	* NEWS: Note that defaulting to -z relro results in increased
+	memory and disk size.
+
+2017-10-03  Alan Modra  <amodra@gmail.com>
+
+	* ld.texinfo (-z relro): Expand description.
+	(DATA_SEGMENT_ALIGN): Note that -z relro is not effective when
+	running with system page size larger than commonpagesize.
+	(DATA_SEGMENT_RELRO_END): Be explicit about the alignment.
+
+2017-10-01  Alan Modra  <amodra@gmail.com>
+
+	PR 21970
+	* ldlang.c (lang_leave_overlay): Reset overlay_subalign.
+
+2017-09-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/21978
+	* testsuite/ld-elf/pr21978.od: New file.
+	* testsuite/ld-elf/pr21978a.c: Likewise.
+	* testsuite/ld-elf/pr21978b.c: Likewise.
+	* testsuite/ld-elf/shared.exp: Run PR binutils/21978 test.
+
+2017-09-28  Nick Clifton  <nickc@redhat.com>
+
+	PR 14918
+	* testsuite/ld-plugin/lto.exp (link_elf_tests): Skip the pr14918
+	test for ARM targets as they always link with libgcc.
+
+2017-09-28  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/ld-plugin/pr22220.h,
+	* testsuite/ld-plugin/pr22220lib.cc,
+	* testsuite/ld-plugin/pr22220lib.ver,
+	* testsuite/ld-plugin/pr22220main.cc: New test.
+	* testsuite/ld-plugin/lto.exp: Run it.
+
 2017-09-26  Maciej W. Rozycki  <macro@imgtec.com>
 
 	* testsuite/ld-undefined/undefined.exp: Correct the dyn reloc

@@ -793,7 +793,7 @@ gdbpy_rbreak  (PyObject *self, PyObject *args, PyObject *kw)
 static PyObject *
 gdbpy_decode_line (PyObject *self, PyObject *args)
 {
-  char *arg = NULL;
+  const char *arg = NULL;
   gdbpy_ref<> result;
   gdbpy_ref<> unparsed;
   event_location_up location;

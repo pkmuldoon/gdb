@@ -62,6 +62,8 @@
 #include <chrono>
 #include "progspace-and-thread.h"
 #include "common/rsp-low.h"
+#include <algorithm>
+#include <set>
 
 enum
   {
@@ -610,8 +612,7 @@ mi_cmd_thread_info (const char *command, char **argv, int argc)
 struct collect_cores_data
 {
   int pid;
-
-  VEC (int) *cores;
+  std::set<int> cores;
 };
 
 static int
@@ -624,27 +625,16 @@ collect_cores (struct thread_info *ti, void *xdata)
       int core = target_core_of_thread (ti->ptid);
 
       if (core != -1)
-	VEC_safe_push (int, data->cores, core);
+	data->cores.insert (core);
     }
 
   return 0;
 }
 
-static int *
-unique (int *b, int *e)
-{
-  int *d = b;
-
-  while (++b != e)
-    if (*d != *b)
-      *++d = *b;
-  return ++d;
-}
-
 struct print_one_inferior_data
 {
   int recurse;
-  VEC (int) *inferiors;
+  const std::set<int> *inferiors;
 };
 
 static int
@@ -654,10 +644,9 @@ print_one_inferior (struct inferior *inferior, void *xdata)
     = (struct print_one_inferior_data *) xdata;
   struct ui_out *uiout = current_uiout;
 
-  if (VEC_empty (int, top_data->inferiors)
-      || bsearch (&(inferior->pid), VEC_address (int, top_data->inferiors),
-		  VEC_length (int, top_data->inferiors), sizeof (int),
-		  compare_positive_ints))
+  if (top_data->inferiors->empty ()
+      || (top_data->inferiors->find (inferior->pid)
+	  != top_data->inferiors->end ()))
     {
       struct collect_cores_data data;
       ui_out_emit_tuple tuple_emitter (uiout, NULL);
@@ -676,28 +665,18 @@ print_one_inferior (struct inferior *inferior, void *xdata)
 			       inferior->pspace->pspace_exec_filename);
 	}
 
-      data.cores = 0;
       if (inferior->pid != 0)
 	{
 	  data.pid = inferior->pid;
 	  iterate_over_threads (collect_cores, &data);
 	}
 
-      if (!VEC_empty (int, data.cores))
+      if (!data.cores.empty ())
 	{
-	  int *b, *e;
 	  ui_out_emit_list list_emitter (uiout, "cores");
 
-	  qsort (VEC_address (int, data.cores),
-		 VEC_length (int, data.cores), sizeof (int),
-		 compare_positive_ints);
-
-	  b = VEC_address (int, data.cores);
-	  e = b + VEC_length (int, data.cores);
-	  e = unique (b, e);
-
-	  for (; b != e; ++b)
-	    uiout->field_int (NULL, *b);
+	  for (int b : data.cores)
+	    uiout->field_int (NULL, b);
 	}
 
       if (top_data->recurse)
@@ -720,14 +699,6 @@ output_cores (struct ui_out *uiout, const char *field_name, const char *xcores)
 
   for (p = strtok (p, ","); p;  p = strtok (NULL, ","))
     uiout->field_string (NULL, p);
-}
-
-static void
-free_vector_of_ints (void *xvector)
-{
-  VEC (int) **vector = (VEC (int) **) xvector;
-
-  VEC_free (int, *vector);
 }
 
 static void
@@ -761,7 +732,7 @@ free_splay_tree (void *xt)
 }
 
 static void
-list_available_thread_groups (VEC (int) *ids, int recurse)
+list_available_thread_groups (const std::set<int> &ids, int recurse)
 {
   struct osdata *data;
   struct osdata_item *item;
@@ -830,11 +801,8 @@ list_available_thread_groups (VEC (int) *ids, int recurse)
       /* At present, the target will return all available processes
 	 and if information about specific ones was required, we filter
 	 undesired processes here.  */
-      if (ids && bsearch (&pid_i, VEC_address (int, ids),
-			  VEC_length (int, ids),
-			  sizeof (int), compare_positive_ints) == NULL)
+      if (!ids.empty () && ids.find (pid_i) == ids.end ())
 	continue;
-
 
       ui_out_emit_tuple tuple_emitter (uiout, NULL);
 
@@ -881,10 +849,9 @@ void
 mi_cmd_list_thread_groups (const char *command, char **argv, int argc)
 {
   struct ui_out *uiout = current_uiout;
-  struct cleanup *back_to;
   int available = 0;
   int recurse = 0;
-  VEC (int) *ids = 0;
+  std::set<int> ids;
 
   enum opt
   {
@@ -936,23 +903,17 @@ mi_cmd_list_thread_groups (const char *command, char **argv, int argc)
 
       if (*end != '\0')
 	error (_("invalid syntax of group id '%s'"), argv[oind]);
-      VEC_safe_push (int, ids, inf);
+      ids.insert (inf);
     }
-  if (VEC_length (int, ids) > 1)
-    qsort (VEC_address (int, ids),
-	   VEC_length (int, ids),
-	   sizeof (int), compare_positive_ints);
-
-  back_to = make_cleanup (free_vector_of_ints, &ids);
 
   if (available)
     {
       list_available_thread_groups (ids, recurse);
     }
-  else if (VEC_length (int, ids) == 1)
+  else if (ids.size () == 1)
     {
       /* Local thread groups, single id.  */
-      int id = *VEC_address (int, ids);
+      int id = *(ids.begin ());
       struct inferior *inf = find_inferior_id (id);
 
       if (!inf)
@@ -965,7 +926,7 @@ mi_cmd_list_thread_groups (const char *command, char **argv, int argc)
       struct print_one_inferior_data data;
 
       data.recurse = recurse;
-      data.inferiors = ids;
+      data.inferiors = &ids;
 
       /* Local thread groups.  Either no explicit ids -- and we
 	 print everything, or several explicit ids.  In both cases,
@@ -975,8 +936,6 @@ mi_cmd_list_thread_groups (const char *command, char **argv, int argc)
       update_thread_list ();
       iterate_over_inferiors (print_one_inferior, &data);
     }
-
-  do_cleanups (back_to);
 }
 
 void
@@ -1547,12 +1506,8 @@ mi_cmd_data_read_memory_bytes (const char *command, char **argv, int argc)
 {
   struct gdbarch *gdbarch = get_current_arch ();
   struct ui_out *uiout = current_uiout;
-  struct cleanup *cleanups;
   CORE_ADDR addr;
   LONGEST length;
-  memory_read_result_s *read_result;
-  int ix;
-  VEC(memory_read_result_s) *result;
   long offset = 0;
   int unit_size = gdbarch_addressable_memory_unit_size (gdbarch);
   int oind = 0;
@@ -1589,40 +1544,26 @@ mi_cmd_data_read_memory_bytes (const char *command, char **argv, int argc)
   addr = parse_and_eval_address (argv[0]) + offset;
   length = atol (argv[1]);
 
-  result = read_memory_robust (current_target.beneath, addr, length);
+  std::vector<memory_read_result> result
+    = read_memory_robust (current_target.beneath, addr, length);
 
-  cleanups = make_cleanup (free_memory_read_result_vector, &result);
-
-  if (VEC_length (memory_read_result_s, result) == 0)
+  if (result.size () == 0)
     error (_("Unable to read memory."));
 
   ui_out_emit_list list_emitter (uiout, "memory");
-  for (ix = 0;
-       VEC_iterate (memory_read_result_s, result, ix, read_result);
-       ++ix)
+  for (const memory_read_result &read_result : result)
     {
       ui_out_emit_tuple tuple_emitter (uiout, NULL);
-      char *data, *p;
-      int i;
-      int alloc_len;
 
-      uiout->field_core_addr ("begin", gdbarch, read_result->begin);
-      uiout->field_core_addr ("offset", gdbarch, read_result->begin - addr);
-      uiout->field_core_addr ("end", gdbarch, read_result->end);
+      uiout->field_core_addr ("begin", gdbarch, read_result.begin);
+      uiout->field_core_addr ("offset", gdbarch, read_result.begin - addr);
+      uiout->field_core_addr ("end", gdbarch, read_result.end);
 
-      alloc_len = (read_result->end - read_result->begin) * 2 * unit_size + 1;
-      data = (char *) xmalloc (alloc_len);
-
-      for (i = 0, p = data;
-	   i < ((read_result->end - read_result->begin) * unit_size);
-	   ++i, p += 2)
-	{
-	  sprintf (p, "%02x", read_result->data[i]);
-	}
-      uiout->field_string ("contents", data);
-      xfree (data);
+      std::string data = bin2hex (read_result.data.get (),
+				  (read_result.end - read_result.begin)
+				  * unit_size);
+      uiout->field_string ("contents", data.c_str ());
     }
-  do_cleanups (cleanups);
 }
 
 /* Implementation of the -data-write_memory command.
@@ -1715,11 +1656,8 @@ mi_cmd_data_write_memory_bytes (const char *command, char **argv, int argc)
 {
   CORE_ADDR addr;
   char *cdata;
-  gdb_byte *data;
-  gdb_byte *databuf;
   size_t len_hex, len_bytes, len_units, i, steps, remaining_units;
   long int count_units;
-  struct cleanup *back_to;
   int unit_size;
 
   if (argc != 2 && argc != 3)
@@ -1743,8 +1681,7 @@ mi_cmd_data_write_memory_bytes (const char *command, char **argv, int argc)
   else
     count_units = len_units;
 
-  databuf = XNEWVEC (gdb_byte, len_bytes);
-  back_to = make_cleanup (xfree, databuf);
+  gdb::byte_vector databuf (len_bytes);
 
   for (i = 0; i < len_bytes; ++i)
     {
@@ -1754,34 +1691,32 @@ mi_cmd_data_write_memory_bytes (const char *command, char **argv, int argc)
       databuf[i] = (gdb_byte) x;
     }
 
+  gdb::byte_vector data;
   if (len_units < count_units)
     {
       /* Pattern is made of less units than count:
          repeat pattern to fill memory.  */
-      data = (gdb_byte *) xmalloc (count_units * unit_size);
-      make_cleanup (xfree, data);
+      data = gdb::byte_vector (count_units * unit_size);
 
       /* Number of times the pattern is entirely repeated.  */
       steps = count_units / len_units;
       /* Number of remaining addressable memory units.  */
       remaining_units = count_units % len_units;
       for (i = 0; i < steps; i++)
-        memcpy (data + i * len_bytes, databuf, len_bytes);
+        memcpy (&data[i * len_bytes], &databuf[0], len_bytes);
 
       if (remaining_units > 0)
-        memcpy (data + steps * len_bytes, databuf,
+        memcpy (&data[steps * len_bytes], &databuf[0],
 		remaining_units * unit_size);
     }
   else
     {
       /* Pattern is longer than or equal to count:
          just copy count addressable memory units.  */
-      data = databuf;
+      data = std::move (databuf);
     }
 
-  write_memory_with_notification (addr, data, count_units);
-
-  do_cleanups (back_to);
+  write_memory_with_notification (addr, data.data (), count_units);
 }
 
 void
@@ -1922,20 +1857,19 @@ mi_cmd_remove_inferior (const char *command, char **argv, int argc)
    Return <0 for error; >=0 for ok.
 
    args->action will tell mi_execute_command what action
-   to perfrom after the given command has executed (display/suppress
+   to perform after the given command has executed (display/suppress
    prompt, display error).  */
 
 static void
 captured_mi_execute_command (struct ui_out *uiout, struct mi_parse *context)
 {
   struct mi_interp *mi = (struct mi_interp *) command_interp ();
-  struct cleanup *cleanup;
 
   if (do_timings)
     current_command_ts = context->cmd_start;
 
-  current_token = xstrdup (context->token);
-  cleanup = make_cleanup (free_current_contents, &current_token);
+  scoped_restore save_token = make_scoped_restore (&current_token,
+						   context->token);
 
   running_result_record_printed = 0;
   mi_proceeded = 0;
@@ -2011,8 +1945,6 @@ captured_mi_execute_command (struct ui_out *uiout, struct mi_parse *context)
 	break;
       }
     }
-
-  do_cleanups (cleanup);
 }
 
 /* Print a gdb exception to the MI output stream.  */
@@ -2275,41 +2207,29 @@ mi_execute_cli_command (const char *cmd, int args_p, const char *args)
 {
   if (cmd != 0)
     {
-      struct cleanup *old_cleanups;
-      char *run;
+      std::string run = cmd;
 
       if (args_p)
-	run = xstrprintf ("%s %s", cmd, args);
-      else
-	run = xstrdup (cmd);
+	run = run + " " + args;
       if (mi_debug_p)
 	/* FIXME: gdb_???? */
 	fprintf_unfiltered (gdb_stdout, "cli=%s run=%s\n",
-			    cmd, run);
-      old_cleanups = make_cleanup (xfree, run);
-      execute_command (run, 0 /* from_tty */ );
-      do_cleanups (old_cleanups);
-      return;
+			    cmd, run.c_str ());
+      execute_command (&run[0], 0 /* from_tty */ );
     }
 }
 
 void
 mi_execute_async_cli_command (const char *cli_command, char **argv, int argc)
 {
-  struct cleanup *old_cleanups;
-  char *run;
+  std::string run = cli_command;
 
+  if (argc)
+    run = run + " " + *argv;
   if (mi_async_p ())
-    run = xstrprintf ("%s %s&", cli_command, argc ? *argv : "");
-  else
-    run = xstrprintf ("%s %s", cli_command, argc ? *argv : "");
-  old_cleanups = make_cleanup (xfree, run);
+    run += "&";
 
-  execute_command (run, 0 /* from_tty */ );
-
-  /* Do this before doing any printing.  It would appear that some
-     print code leaves garbage around in the buffer.  */
-  do_cleanups (old_cleanups);
+  execute_command (&run[0], 0 /* from_tty */ );
 }
 
 void
@@ -2810,15 +2730,10 @@ mi_cmd_trace_frame_collected (const char *command, char **argv, int argc)
 
   /* Trace state variables.  */
   {
-    struct cleanup *cleanups;
     int tvar;
-    char *tsvname;
     int i;
 
     ui_out_emit_list list_emitter (uiout, "tvars");
-
-    tsvname = NULL;
-    cleanups = make_cleanup (free_current_contents, &tsvname);
 
     for (i = 0; VEC_iterate (int, tinfo->tvars, i, tvar); i++)
       {
@@ -2830,10 +2745,7 @@ mi_cmd_trace_frame_collected (const char *command, char **argv, int argc)
 
 	if (tsv != NULL)
 	  {
-	    tsvname = (char *) xrealloc (tsvname, strlen (tsv->name) + 2);
-	    tsvname[0] = '$';
-	    strcpy (tsvname + 1, tsv->name);
-	    uiout->field_string ("name", tsvname);
+	    uiout->field_fmt ("name", "$%s", tsv->name);
 
 	    tsv->value_known = target_get_trace_state_variable_value (tsv->number,
 								      &tsv->value);
@@ -2845,8 +2757,6 @@ mi_cmd_trace_frame_collected (const char *command, char **argv, int argc)
 	    uiout->field_skip ("current");
 	  }
       }
-
-    do_cleanups (cleanups);
   }
 
   /* Memory.  */

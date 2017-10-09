@@ -165,18 +165,6 @@ char *trace_notes = NULL;
 
 char *trace_stop_notes = NULL;
 
-/* ======= Important command functions: ======= */
-static void actions_command (char *, int);
-static void tstart_command (char *, int);
-static void tstop_command (char *, int);
-static void tstatus_command (char *, int);
-static void tfind_pc_command (char *, int);
-static void tfind_tracepoint_command (char *, int);
-static void tfind_line_command (char *, int);
-static void tfind_range_command (char *, int);
-static void tfind_outside_command (char *, int);
-static void tdump_command (char *, int);
-
 /* support routines */
 
 struct collection_list;
@@ -383,10 +371,9 @@ validate_trace_state_variable_name (const char *name)
 static void
 trace_variable_command (char *args, int from_tty)
 {
-  struct cleanup *old_chain;
   LONGEST initval = 0;
   struct trace_state_variable *tsv;
-  char *name, *p;
+  char *name_start, *p;
 
   if (!args || !*args)
     error_no_arg (_("Syntax is $NAME [ = EXPR ]"));
@@ -397,23 +384,22 @@ trace_variable_command (char *args, int from_tty)
   if (*p++ != '$')
     error (_("Name of trace variable should start with '$'"));
 
-  name = p;
+  name_start = p;
   while (isalnum (*p) || *p == '_')
     p++;
-  name = savestring (name, p - name);
-  old_chain = make_cleanup (xfree, name);
+  std::string name (name_start, p - name_start);
 
   p = skip_spaces (p);
   if (*p != '=' && *p != '\0')
     error (_("Syntax must be $NAME [ = EXPR ]"));
 
-  validate_trace_state_variable_name (name);
+  validate_trace_state_variable_name (name.c_str ());
 
   if (*p == '=')
     initval = value_as_long (parse_and_eval (++p));
 
   /* If the variable already exists, just change its initial value.  */
-  tsv = find_trace_state_variable (name);
+  tsv = find_trace_state_variable (name.c_str ());
   if (tsv)
     {
       if (tsv->initial_value != initval)
@@ -424,12 +410,11 @@ trace_variable_command (char *args, int from_tty)
       printf_filtered (_("Trace state variable $%s "
 			 "now has initial value %s.\n"),
 		       tsv->name, plongest (tsv->initial_value));
-      do_cleanups (old_chain);
       return;
     }
 
   /* Create a new variable.  */
-  tsv = create_trace_state_variable (name);
+  tsv = create_trace_state_variable (name.c_str ());
   tsv->initial_value = initval;
 
   observer_notify_tsv_created (tsv);
@@ -437,12 +422,10 @@ trace_variable_command (char *args, int from_tty)
   printf_filtered (_("Trace state variable $%s "
 		     "created, with initial value %s.\n"),
 		   tsv->name, plongest (tsv->initial_value));
-
-  do_cleanups (old_chain);
 }
 
 static void
-delete_trace_variable_command (char *args, int from_tty)
+delete_trace_variable_command (const char *args, int from_tty)
 {
   if (args == NULL)
     {
@@ -675,7 +658,6 @@ void
 validate_actionline (const char *line, struct breakpoint *b)
 {
   struct cmd_list_element *c;
-  struct cleanup *old_chain = NULL;
   const char *tmp_p;
   const char *p;
   struct bp_location *loc;
@@ -1011,8 +993,6 @@ collection_list::collect_symbol (struct symbol *sym,
   /* Expressions are the most general case.  */
   if (treat_as_expr)
     {
-      struct cleanup *old_chain1 = NULL;
-
       agent_expr_up aexpr = gen_trace_for_var (scope, gdbarch,
 					       sym, trace_string);
 
@@ -1395,7 +1375,6 @@ encode_actions_1 (struct command_line *action,
 	      else
 		{
 		  unsigned long addr;
-		  struct cleanup *old_chain1 = NULL;
 
 		  expression_up exp = parse_exp_1 (&action_exp, tloc->address,
 						   block_for_pc (tloc->address),
@@ -1490,8 +1469,6 @@ encode_actions_1 (struct command_line *action,
 	      action_exp = skip_spaces (action_exp);
 
 		{
-		  struct cleanup *old_chain1 = NULL;
-
 		  expression_up exp = parse_exp_1 (&action_exp, tloc->address,
 						   block_for_pc (tloc->address),
 						   1);
@@ -2362,21 +2339,21 @@ tfind_command (char *args, int from_tty)
 
 /* tfind end */
 static void
-tfind_end_command (char *args, int from_tty)
+tfind_end_command (const char *args, int from_tty)
 {
   tfind_command_1 ("-1", from_tty);
 }
 
 /* tfind start */
 static void
-tfind_start_command (char *args, int from_tty)
+tfind_start_command (const char *args, int from_tty)
 {
   tfind_command_1 ("0", from_tty);
 }
 
 /* tfind pc command */
 static void
-tfind_pc_command (char *args, int from_tty)
+tfind_pc_command (const char *args, int from_tty)
 {
   CORE_ADDR pc;
 
@@ -2392,7 +2369,7 @@ tfind_pc_command (char *args, int from_tty)
 
 /* tfind tracepoint command */
 static void
-tfind_tracepoint_command (char *args, int from_tty)
+tfind_tracepoint_command (const char *args, int from_tty)
 {
   int tdp;
   struct tracepoint *tp;
@@ -2428,7 +2405,7 @@ tfind_tracepoint_command (char *args, int from_tty)
    corresponding to a source line OTHER THAN THE CURRENT ONE.  */
 
 static void
-tfind_line_command (char *args, int from_tty)
+tfind_line_command (const char *args, int from_tty)
 {
   check_trace_running (current_trace_status ());
 
@@ -2486,10 +2463,10 @@ tfind_line_command (char *args, int from_tty)
 
 /* tfind range command */
 static void
-tfind_range_command (char *args, int from_tty)
+tfind_range_command (const char *args, int from_tty)
 {
   static CORE_ADDR start, stop;
-  char *tmp;
+  const char *tmp;
 
   check_trace_running (current_trace_status ());
 
@@ -2501,9 +2478,10 @@ tfind_range_command (char *args, int from_tty)
 
   if (0 != (tmp = strchr (args, ',')))
     {
-      *tmp++ = '\0';	/* Terminate start address.  */
+      std::string start_addr (args, tmp);
+      ++tmp;
       tmp = skip_spaces (tmp);
-      start = parse_and_eval_address (args);
+      start = parse_and_eval_address (start_addr.c_str ());
       stop = parse_and_eval_address (tmp);
     }
   else
@@ -2517,10 +2495,10 @@ tfind_range_command (char *args, int from_tty)
 
 /* tfind outside command */
 static void
-tfind_outside_command (char *args, int from_tty)
+tfind_outside_command (const char *args, int from_tty)
 {
   CORE_ADDR start, stop;
-  char *tmp;
+  const char *tmp;
 
   if (current_trace_status ()->running
       && current_trace_status ()->filename == NULL)
@@ -2534,9 +2512,10 @@ tfind_outside_command (char *args, int from_tty)
 
   if (0 != (tmp = strchr (args, ',')))
     {
-      *tmp++ = '\0';	/* Terminate start address.  */
+      std::string start_addr (args, tmp);
+      ++tmp;
       tmp = skip_spaces (tmp);
-      start = parse_and_eval_address (args);
+      start = parse_and_eval_address (start_addr.c_str ());
       stop = parse_and_eval_address (tmp);
     }
   else
@@ -2550,17 +2529,18 @@ tfind_outside_command (char *args, int from_tty)
 
 /* info scope command: list the locals for a scope.  */
 static void
-info_scope_command (char *args, int from_tty)
+info_scope_command (char *args_in, int from_tty)
 {
   struct symbol *sym;
   struct bound_minimal_symbol msym;
   const struct block *block;
   const char *symname;
-  char *save_args = args;
+  const char *save_args = args_in;
   struct block_iterator iter;
   int j, count = 0;
   struct gdbarch *gdbarch;
   int regno;
+  const char *args = args_in;
 
   if (args == 0 || *args == 0)
     error (_("requires an argument (function, "
@@ -3319,7 +3299,7 @@ static struct trace_state_variable *
 create_tsv_from_upload (struct uploaded_tsv *utsv)
 {
   const char *namebase;
-  char *buf;
+  std::string buf;
   int try_num = 0;
   struct trace_state_variable *tsv;
   struct cleanup *old_chain;
@@ -3327,32 +3307,25 @@ create_tsv_from_upload (struct uploaded_tsv *utsv)
   if (utsv->name)
     {
       namebase = utsv->name;
-      buf = xstrprintf ("%s", namebase);
+      buf = namebase;
     }
   else
     {
       namebase = "__tsv";
-      buf = xstrprintf ("%s_%d", namebase, try_num++);
+      buf = string_printf ("%s_%d", namebase, try_num++);
     }
 
   /* Fish for a name that is not in use.  */
   /* (should check against all internal vars?)  */
-  while (find_trace_state_variable (buf))
-    {
-      xfree (buf);
-      buf = xstrprintf ("%s_%d", namebase, try_num++);
-    }
-
-  old_chain = make_cleanup (xfree, buf);
+  while (find_trace_state_variable (buf.c_str ()))
+    buf = string_printf ("%s_%d", namebase, try_num++);
 
   /* We have an available name, create the variable.  */
-  tsv = create_trace_state_variable (buf);
+  tsv = create_trace_state_variable (buf.c_str ());
   tsv->initial_value = utsv->initial_value;
   tsv->builtin = utsv->builtin;
 
   observer_notify_tsv_created (tsv);
-
-  do_cleanups (old_chain);
 
   return tsv;
 }
@@ -3414,9 +3387,9 @@ merge_uploaded_trace_state_variables (struct uploaded_tsv **uploaded_tsvs)
    the remote protocol and the trace file reader.  */
 
 void
-parse_trace_status (char *line, struct trace_status *ts)
+parse_trace_status (const char *line, struct trace_status *ts)
 {
-  char *p = line, *p1, *p2, *p3, *p_temp;
+  const char *p = line, *p1, *p2, *p3, *p_temp;
   int end;
   ULONGEST val;
 
@@ -3574,7 +3547,7 @@ Status line: '%s'\n"), p, line);
 }
 
 void
-parse_tracepoint_status (char *p, struct breakpoint *bp,
+parse_tracepoint_status (const char *p, struct breakpoint *bp,
 			 struct uploaded_tp *utp)
 {
   ULONGEST uval;
@@ -3597,14 +3570,15 @@ parse_tracepoint_status (char *p, struct breakpoint *bp,
    an "uploaded tracepoint".  */
 
 void
-parse_tracepoint_definition (char *line, struct uploaded_tp **utpp)
+parse_tracepoint_definition (const char *line, struct uploaded_tp **utpp)
 {
-  char *p;
+  const char *p;
   char piece;
   ULONGEST num, addr, step, pass, orig_size, xlen, start;
   int enabled, end;
   enum bptype type;
-  char *cond, *srctype, *buf;
+  const char *srctype;
+  char *cond, *buf;
   struct uploaded_tp *utp = NULL;
 
   p = line;
@@ -3712,9 +3686,10 @@ parse_tracepoint_definition (char *line, struct uploaded_tp **utpp)
    uploaded object.  */
 
 void
-parse_tsv_definition (char *line, struct uploaded_tsv **utsvp)
+parse_tsv_definition (const char *line, struct uploaded_tsv **utsvp)
 {
-  char *p, *buf;
+  const char *p;
+  char *buf;
   ULONGEST num, initval, builtin;
   int end;
   struct uploaded_tsv *utsv = NULL;
@@ -3758,10 +3733,10 @@ free_current_marker (void *arg)
    the parsed marker definition.  */
 
 void
-parse_static_tracepoint_marker_definition (char *line, char **pp,
+parse_static_tracepoint_marker_definition (const char *line, const char **pp,
 					   struct static_tracepoint_marker *marker)
 {
-  char *p, *endp;
+  const char *p, *endp;
   ULONGEST addr;
   int end;
 
@@ -4203,7 +4178,7 @@ _initialize_tracepoint (void)
   add_info ("scope", info_scope_command,
 	    _("List the variables local to a scope"));
 
-  add_cmd ("tracepoints", class_trace, NULL,
+  add_cmd ("tracepoints", class_trace,
 	   _("Tracing of program execution without stopping the program."),
 	   &cmdlist);
 

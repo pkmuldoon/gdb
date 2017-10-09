@@ -1314,7 +1314,7 @@ info_symbol_command (char *arg, int from_tty)
 	    = lookup_minimal_symbol_by_pc_section (sect_addr, osect).minsym))
       {
 	const char *obj_name, *mapped, *sec_name, *msym_name;
-	char *loc_string;
+	const char *loc_string;
 	struct cleanup *old_chain;
 
 	matches = 1;
@@ -1325,14 +1325,14 @@ info_symbol_command (char *arg, int from_tty)
 
 	/* Don't print the offset if it is zero.
 	   We assume there's no need to handle i18n of "sym + offset".  */
+	std::string string_holder;
 	if (offset)
-	  loc_string = xstrprintf ("%s + %u", msym_name, offset);
+	  {
+	    string_holder = string_printf ("%s + %u", msym_name, offset);
+	    loc_string = string_holder.c_str ();
+	  }
 	else
-	  loc_string = xstrprintf ("%s", msym_name);
-
-	/* Use a cleanup to free loc_string in case the user quits
-	   a pagination request inside printf_filtered.  */
-	old_chain = make_cleanup (xfree, loc_string);
+	  loc_string = msym_name;
 
 	gdb_assert (osect->objfile && objfile_name (osect->objfile));
 	obj_name = objfile_name (osect->objfile);
@@ -1370,8 +1370,6 @@ info_symbol_command (char *arg, int from_tty)
 	    else
 	      printf_filtered (_("%s in section %s\n"),
 			       loc_string, sec_name);
-
-	do_cleanups (old_chain);
       }
   }
   if (matches == 0)
@@ -1606,7 +1604,6 @@ static void
 x_command (char *exp, int from_tty)
 {
   struct format_data fmt;
-  struct cleanup *old_chain;
   struct value *val;
 
   fmt.format = last_format ? last_format : 'x';
@@ -1795,7 +1792,7 @@ delete_display (struct display *display)
    ARGS.  DATA is passed unmodified to FUNCTION.  */
 
 static void
-map_display_numbers (char *args,
+map_display_numbers (const char *args,
 		     void (*function) (struct display *,
 				       void *),
 		     void *data)
@@ -1840,7 +1837,7 @@ do_delete_display (struct display *d, void *data)
 /* "undisplay" command.  */
 
 static void
-undisplay_command (char *args, int from_tty)
+undisplay_command (const char *args, int from_tty)
 {
   if (args == NULL)
     {
@@ -2085,7 +2082,7 @@ do_enable_disable_display (struct display *d, void *data)
    commands.  ENABLE decides what to do.  */
 
 static void
-enable_disable_display_command (char *args, int from_tty, int enable)
+enable_disable_display_command (const char *args, int from_tty, int enable)
 {
   if (args == NULL)
     {
@@ -2102,7 +2099,7 @@ enable_disable_display_command (char *args, int from_tty, int enable)
 /* The "enable display" command.  */
 
 static void
-enable_display_command (char *args, int from_tty)
+enable_display_command (const char *args, int from_tty)
 {
   enable_disable_display_command (args, from_tty, 1);
 }
@@ -2110,7 +2107,7 @@ enable_display_command (char *args, int from_tty)
 /* The "disable display" command.  */
 
 static void
-disable_display_command (char *args, int from_tty)
+disable_display_command (const char *args, int from_tty)
 {
   enable_disable_display_command (args, from_tty, 0);
 }
@@ -2310,7 +2307,6 @@ printf_decfloat (struct ui_file *stream, const char *format,
   int dfp_len = 16;
   gdb_byte dec[16];
   struct type *dfp_type = NULL;
-  char decstr[MAX_DECIMAL_STRING];
 
   /* Points to the end of the string so that we can go back
      and check for DFP length modifiers.  */
@@ -2358,10 +2354,9 @@ printf_decfloat (struct ui_file *stream, const char *format,
 
   dfp_ptr = (gdb_byte *) value_contents (dfp_value);
 
-  decimal_to_string (dfp_ptr, dfp_len, byte_order, decstr);
-
-  /* Print the DFP value.  */
-  fprintf_filtered (stream, "%s", decstr);
+  /* Convert the value to a string and print it.  */
+  std::string str = decimal_to_string (dfp_ptr, dfp_len, byte_order);
+  fputs_filtered (str.c_str (), stream);
 #endif
 }
 

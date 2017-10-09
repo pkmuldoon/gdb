@@ -527,6 +527,7 @@ SUBDIR_PYTHON_CFLAGS =
 
 SUBDIR_UNITTESTS_SRCS = \
 	unittests/array-view-selftests.c \
+	unittests/common-utils-selftests.c \
 	unittests/environ-selftests.c \
 	unittests/function-view-selftests.c \
 	unittests/offset-type-selftests.c \
@@ -537,6 +538,7 @@ SUBDIR_UNITTESTS_SRCS = \
 
 SUBDIR_UNITTESTS_OBS = \
 	array-view-selftests.o \
+	common-utils-selftests.o \
 	environ-selftests.o \
 	function-view-selftests.o \
 	offset-type-selftests.o \
@@ -632,6 +634,7 @@ CONFIG_ALL = @CONFIG_ALL@
 CONFIG_CLEAN = @CONFIG_CLEAN@
 CONFIG_INSTALL = @CONFIG_INSTALL@
 CONFIG_UNINSTALL = @CONFIG_UNINSTALL@
+CONFIG_SRC_SUBDIR = @CONFIG_SRC_SUBDIR@
 HAVE_NATIVE_GCORE_TARGET = @HAVE_NATIVE_GCORE_TARGET@
 
 # -I. for config files.
@@ -756,7 +759,6 @@ TARGET_OBS = @TARGET_OBS@
 # (used with --enable-targets=all --enable-64-bit-bfd).
 ALL_64_TARGET_OBS = \
 	aarch64-fbsd-tdep.o \
-	aarch64-insn.o \
 	aarch64-linux-tdep.o \
 	aarch64-newlib-tdep.o \
 	aarch64-tdep.o \
@@ -766,7 +768,6 @@ ALL_64_TARGET_OBS = \
 	alpha-nbsd-tdep.o \
 	alpha-obsd-tdep.o \
 	alpha-tdep.o \
-	amd64.o \
 	amd64-darwin-tdep.o \
 	amd64-dicos-tdep.o \
 	amd64-fbsd-tdep.o \
@@ -776,6 +777,8 @@ ALL_64_TARGET_OBS = \
 	amd64-sol2-tdep.o \
 	amd64-tdep.o \
 	amd64-windows-tdep.o \
+	arch/aarch64-insn.o \
+	arch/amd64.o \
 	ia64-linux-tdep.o \
 	ia64-tdep.o \
 	ia64-vms-tdep.o \
@@ -790,10 +793,11 @@ ALL_64_TARGET_OBS = \
 # All other target-dependent objects files (used with --enable-targets=all).
 ALL_TARGET_OBS = \
 	arc-tdep.o \
-	arm.o \
+	arch/arm.o \
+	arch/arm-get-next-pcs.o \
+	arch/arm-linux.o \
+	arch/i386.o \
 	arm-bsd-tdep.o \
-	arm-get-next-pcs.o \
-	arm-linux.o \
 	arm-linux-tdep.o \
 	arm-nbsd-tdep.o \
 	arm-obsd-tdep.o \
@@ -818,7 +822,6 @@ ALL_TARGET_OBS = \
 	hppa-nbsd-tdep.o \
 	hppa-obsd-tdep.o \
 	hppa-tdep.o \
-	i386.o \
 	i386-bsd-tdep.o \
 	i386-cygwin-tdep.o \
 	i386-darwin-tdep.o \
@@ -1170,6 +1173,7 @@ SFILES = \
 	parse.c \
 	printcmd.c \
 	probe.c \
+	producer.c \
 	proc-service.list \
 	progspace.c \
 	progspace-and-thread.c \
@@ -1245,6 +1249,7 @@ SFILES = \
 	common/filestuff.c \
 	common/format.c \
 	common/job-control.c \
+	common/gdb_tilde_expand.c \
 	common/gdb_vecs.c \
 	common/new-op.c \
 	common/print-utils.c \
@@ -1529,6 +1534,7 @@ HFILES_NO_SRCDIR = \
 	common/fileio.h \
 	common/format.h \
 	common/gdb_assert.h \
+	common/gdb_tilde_expand.h \
 	common/gdb_locale.h \
 	common/gdb_setjmp.h \
 	common/gdb_signals.h \
@@ -1734,6 +1740,7 @@ COMMON_OBS = $(DEPFILES) $(CONFIG_OBS) $(YYOBJ) \
 	frame-unwind.o \
 	gcore.o \
 	gdb_bfd.o \
+	gdb_tilde_expand.o \
 	gdb-dlfcn.o \
 	gdb_obstack.o \
 	gdb_regex.o \
@@ -1792,6 +1799,7 @@ COMMON_OBS = $(DEPFILES) $(CONFIG_OBS) $(YYOBJ) \
 	print-utils.o \
 	printcmd.o \
 	probe.o \
+	producer.o \
 	progspace.o \
 	progspace-and-thread.o \
 	prologue-value.o \
@@ -1840,7 +1848,6 @@ COMMON_OBS = $(DEPFILES) $(CONFIG_OBS) $(YYOBJ) \
 	ui-out.o \
 	user-regs.o \
 	utils.o \
-	utils-selftests.o \
 	valarith.o \
 	valops.o \
 	valprint.o \
@@ -1919,10 +1926,6 @@ all: gdb$(EXEEXT) $(CONFIG_ALL)
 	$(POSTCOMPILE)
 
 # Rules for compiling .c files in the various source subdirectories.
-%.o: ${srcdir}/arch/%.c
-	$(COMPILE) $<
-	$(POSTCOMPILE)
-
 %.o: $(srcdir)/cli/%.c
 	$(COMPILE) $<
 	$(POSTCOMPILE)
@@ -2298,6 +2301,10 @@ clean mostlyclean: $(CONFIG_CLEAN)
 	rm -f test-cp-name-parser$(EXEEXT)
 	rm -f xml-builtin.c stamp-xml
 	rm -f $(DEPDIR)/*
+	for i in $(CONFIG_SRC_SUBDIR); do \
+		rm -f $$i/*.o;	\
+		rm -f $$i/$(DEPDIR)/*; \
+	done
 
 # This used to depend on c-exp.c m2-exp.c TAGS
 # I believe this is wrong; the makefile standards for distclean just
@@ -2316,6 +2323,9 @@ distclean: clean
 	rm -f config.log config.cache
 	rm -f Makefile
 	rm -rf $(DEPDIR)
+	for i in $(CONFIG_SRC_SUBDIR); do \
+		rmdir $$i/$(DEPDIR); \
+	done
 
 maintainer-clean: local-maintainer-clean do-maintainer-clean distclean
 realclean: maintainer-clean
@@ -2942,9 +2952,9 @@ ifeq ($(DEPMODE),depmode=gcc3)
 # into place if the compile succeeds.  We need this because gcc does
 # not atomically write the dependency output file.
 override COMPILE.post = -c -o $@ -MT $@ -MMD -MP \
-	-MF $(DEPDIR)/$(basename $(@F)).Tpo
-override POSTCOMPILE = @mv $(DEPDIR)/$(basename $(@F)).Tpo \
-	$(DEPDIR)/$(basename $(@F)).Po
+	-MF $(@D)/$(DEPDIR)/$(@F).Tpo
+override POSTCOMPILE = @mv $(@D)/$(DEPDIR)/$(@F).Tpo \
+	$(@D)/$(DEPDIR)/$(@F).Po
 else
 override COMPILE.pre = source='$<' object='$@' libtool=no \
 	DEPDIR=$(DEPDIR) $(DEPMODE) $(depcomp) $(CC)
