@@ -2094,10 +2094,9 @@ Return the name of the current target charset." },
   { "target_wide_charset", gdbpy_target_wide_charset, METH_NOARGS,
     "target_wide_charset () -> string.\n\
 Return the name of the current target wide charset." },
-  { "rbreak", (PyCFunction) gdbpy_rbreak,
-    METH_VARARGS | METH_KEYWORDS,
-    "search_symbols (String) -> Tuple.\n\
-Return a tuple containing gdb.Symbols objects that match the given regex or None." },
+  { "rbreak", (PyCFunction) gdbpy_rbreak, METH_VARARGS | METH_KEYWORDS,
+    "rbreak (Regex) -> Tuple.\n\
+Return a Tuple containing gdb.Breakpoint objects that match the given Regex." },
   { "string_to_argv", gdbpy_string_to_argv, METH_VARARGS,
     "string_to_argv (String) -> Array.\n\
 Parse String and return an argv-like array.\n\
