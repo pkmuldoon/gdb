@@ -643,7 +643,7 @@ gdbpy_solib_name (PyObject *self, PyObject *args)
 }
 
 /* Implementation of Python rbreak command.  Take a REGEX and
-   optionally a MIMISYMS, THROTTLE and SYMTABS keyword and return a
+   optionally a MINISYMS, THROTTLE and SYMTABS keyword and return a
    Python tuple that contains newly set breakpoints that match that
    criteria.  REGEX refers to a GDB format standard regex pattern of
    symbols names to search; MINISYMS is an optional boolean (default
@@ -697,14 +697,14 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
     }
 
   /* The "symtabs" keyword is any Python iterable object that returns
-     a gdb.Symtab on each iteration.  If specified, iterate the
-     through provided gdb.Symtabs and extract their full path.  As
+     a gdb.Symtab on each iteration.  If specified, iterate through
+     the provided gdb.Symtabs and extract their full path.  As
      python_string_to_target_string returns a
      gdb::unique_xmalloc_ptr<char> and a vector containing these types
      cannot be coerced to a const char **p[] via the vector.data call,
-     copy the value from the unique_xmalloc_ptr and place in a simple
-     type symtab_list_type (which holds the vector and a destructor
-     that frees the contents of newly allocated strings.  */
+     release the value from the unique_xmalloc_ptr and place it in a
+     simple type symtab_list_type (which holds the vector and a
+     destructor that frees the contents of the allocated strings.  */
   if (symtab_list != NULL)
     {
       gdbpy_ref<> iter (PyObject_GetIter (symtab_list));
@@ -723,7 +723,8 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
 	      break;
 	    }
 
-	  gdbpy_ref<> obj_name (PyObject_GetAttrString (next.get (), "filename"));
+	  gdbpy_ref<> obj_name (PyObject_GetAttrString (next.get (),
+							"filename"));
 
 	  if (obj_name == NULL)
 	    return NULL;
@@ -738,8 +739,8 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
 	  if (filename == NULL)
 	    return NULL;
 
-	  /* Make sure we have a definite place to store the value of
-	     s before we release it.  */
+	  /* Make sure there is a definite place to store the value of
+	     s before it is released.  */
 	  symtab_paths.vec.push_back (nullptr);
 	  symtab_paths.vec.back () = filename.release ();
 	}
@@ -770,7 +771,7 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
 	count++;
     }
 
-  /* Check throttle bounds and exit if in excess. */
+  /* Check throttle bounds and exit if in excess.  */
   if (throttle != 0 && count > throttle)
     {
       PyErr_SetString (PyExc_RuntimeError,
