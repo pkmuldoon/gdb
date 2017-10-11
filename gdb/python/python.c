@@ -676,16 +676,18 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
   unsigned long count = 0;
   PyObject *symtab_list = NULL;
   PyObject *minisyms_p_obj = NULL;
-  int minisyms_p = 0, throttle = 0;
+  int minisyms_p = 0;
+  unsigned int throttle = 0;
   static const char *keywords[] = {"regex","minisyms", "throttle", "symtabs", NULL};
   symtab_list_type symtab_paths;
 
-  if (!gdb_PyArg_ParseTupleAndKeywords (args, kw, "s|O!iO", keywords,
+  if (!gdb_PyArg_ParseTupleAndKeywords (args, kw, "s|O!IO", keywords,
 					&regex, &PyBool_Type,
 					&minisyms_p_obj, &throttle,
 					&symtab_list))
     return NULL;
 
+  /* Parse minisyms keyword.  */
   if (minisyms_p_obj != NULL)
     {
       int cmp = PyObject_IsTrue (minisyms_p_obj);
