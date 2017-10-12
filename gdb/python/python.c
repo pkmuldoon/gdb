@@ -643,7 +643,7 @@ gdbpy_solib_name (PyObject *self, PyObject *args)
 }
 
 /* Implementation of Python rbreak command.  Take a REGEX and
-   optionally a MINISYMS, THROTTLE and SYMTABS keyword and return a
+   optionally a MINSYMS, THROTTLE and SYMTABS keyword and return a
    Python tuple that contains newly set breakpoints that match that
    criteria.  REGEX refers to a GDB format standard regex pattern of
    symbols names to search; MINISYMS is an optional boolean (default
@@ -675,25 +675,25 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
   std::vector<symbol_search> symbols;
   unsigned long count = 0;
   PyObject *symtab_list = NULL;
-  PyObject *minisyms_p_obj = NULL;
-  int minisyms_p = 0;
+  PyObject *minsyms_p_obj = NULL;
+  int minsyms_p = 0;
   unsigned int throttle = 0;
-  static const char *keywords[] = {"regex","minisyms", "throttle", "symtabs", NULL};
+  static const char *keywords[] = {"regex","minsyms", "throttle", "symtabs", NULL};
   symtab_list_type symtab_paths;
 
   if (!gdb_PyArg_ParseTupleAndKeywords (args, kw, "s|O!IO", keywords,
 					&regex, &PyBool_Type,
-					&minisyms_p_obj, &throttle,
+					&minsyms_p_obj, &throttle,
 					&symtab_list))
     return NULL;
 
-  /* Parse minisyms keyword.  */
-  if (minisyms_p_obj != NULL)
+  /* Parse minsyms keyword.  */
+  if (minsyms_p_obj != NULL)
     {
-      int cmp = PyObject_IsTrue (minisyms_p_obj);
+      int cmp = PyObject_IsTrue (minsyms_p_obj);
       if (cmp < 0)
 	return NULL;
-      minisyms_p = cmp;
+      minsyms_p = cmp;
     }
 
   /* The "symtabs" keyword is any Python iterable object that returns
@@ -756,12 +756,12 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
   else
     symbols = search_symbols (regex, FUNCTIONS_DOMAIN, 0, NULL);
 
-  /* Count the number of symbols (both symbols and optionally mini
+  /* Count the number of symbols (both symbols and optionally minimal
      symbols) so we can correctly size the tuple.  */
   for (const symbol_search &p : symbols)
     {
-      /* Mini symbols included?  */
-      if (minisyms_p)
+      /* Minimal symbols included?  */
+      if (minsyms_p)
 	{
 	  if (p.msymbol.minsym != NULL)
 	    count++;
@@ -793,8 +793,8 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
     {
       std::string symbol_name;
 
-      /* Skipping mini-symbols?  */
-      if (minisyms_p == 0)
+      /* Skipping minimal symbols?  */
+      if (minsyms_p == 0)
 	if (p.msymbol.minsym != NULL)
 	  continue;
 
