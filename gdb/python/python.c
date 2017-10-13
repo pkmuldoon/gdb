@@ -820,7 +820,7 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
 	gdbpy_print_stack ();
       else
 	{
-	  PyTuple_SET_ITEM (return_tuple.get (), count, obj.get ());
+	  PyTuple_SET_ITEM (return_tuple.get (), count, obj.release ());
 	  count++;
 	}
     }
