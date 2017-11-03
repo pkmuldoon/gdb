@@ -244,12 +244,12 @@ were no breakpoints.  This peculiarity was subsequently fixed, and now
 @end defun
 
 @defun gdb.rbreak (regex @r{[}, minsyms @r{[}, throttle, @r{[}, symtabs @r{]]]})
-Return a Python tuple holding a collection of newly set
+Return a Python list holding a collection of newly set
 @code{gdb.Breakpoint} objects matching function names defined by the
-@var{regex} pattern.  If the @var{minsyms} keyword is @code{True},
-all system functions (those not explicitly defined in the inferior)
-will also be included in the match.  The @var{throttle} keyword takes
-an integer that defines the maximum number of pattern matches for
+@var{regex} pattern.  If the @var{minsyms} keyword is @code{True}, all
+system functions (those not explicitly defined in the inferior) will
+also be included in the match.  The @var{throttle} keyword takes an
+integer that defines the maximum number of pattern matches for
 functions matched by the @var{regex} pattern.  If the number of
 matches exceeds the integer value of @var{throttle}, a
 @code{RuntimeError} will be raised and no breakpoints will be created.

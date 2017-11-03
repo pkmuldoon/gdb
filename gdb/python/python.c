@@ -644,7 +644,7 @@ gdbpy_solib_name (PyObject *self, PyObject *args)
 
 /* Implementation of Python rbreak command.  Take a REGEX and
    optionally a MINSYMS, THROTTLE and SYMTABS keyword and return a
-   Python tuple that contains newly set breakpoints that match that
+   Python list that contains newly set breakpoints that match that
    criteria.  REGEX refers to a GDB format standard regex pattern of
    symbols names to search; MINISYMS is an optional boolean (default
    False) that indicates if the function should search GDB's minimal
@@ -2097,7 +2097,7 @@ Return the name of the current target charset." },
     "target_wide_charset () -> string.\n\
 Return the name of the current target wide charset." },
   { "rbreak", (PyCFunction) gdbpy_rbreak, METH_VARARGS | METH_KEYWORDS,
-    "rbreak (Regex) -> Tuple.\n\
+    "rbreak (Regex) -> List.\n\
 Return a Tuple containing gdb.Breakpoint objects that match the given Regex." },
   { "string_to_argv", gdbpy_string_to_argv, METH_VARARGS,
     "string_to_argv (String) -> Array.\n\
