@@ -758,7 +758,7 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
     symbols = search_symbols (regex, FUNCTIONS_DOMAIN, 0, NULL);
 
   /* Count the number of symbols (both symbols and optionally minimal
-     symbols) so we can correctly size the tuple.  */
+     symbols) so we can correctly check the throttle limit.  */
   for (const symbol_search &p : symbols)
     {
       /* Minimal symbols included?  */
