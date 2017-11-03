@@ -652,7 +652,7 @@ gdbpy_solib_name (PyObject *self, PyObject *args)
    indicates the maximum amount of breakpoints allowable before the
    function exits (note, if the throttle bound is passed, no
    breakpoints will be set and a runtime error returned); SYMTABS is
-   an optional iterator that contains a set of gdb.Symtabs to
+   an optional Python iterable that contains a set of gdb.Symtabs to
    constrain the search within.  */
 
 static PyObject *
@@ -678,7 +678,8 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
   PyObject *minsyms_p_obj = NULL;
   int minsyms_p = 0;
   unsigned int throttle = 0;
-  static const char *keywords[] = {"regex","minsyms", "throttle", "symtabs", NULL};
+  static const char *keywords[] = {"regex","minsyms", "throttle",
+				   "symtabs", NULL};
   symtab_list_type symtab_paths;
 
   if (!gdb_PyArg_ParseTupleAndKeywords (args, kw, "s|O!IO", keywords,
@@ -779,12 +780,10 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
       return NULL;
     }
 
-  gdbpy_ref<> return_tuple (PyTuple_New (count));
+  gdbpy_ref<> return_list (PyList_New (0));
 
-  if (return_tuple == NULL)
+  if (return_list == NULL)
     return NULL;
-
-  count = 0;
 
   /* Construct full path names for symbols and call the Python
      breakpoint constructor on the resulting names.  Be tolerant of
@@ -820,11 +819,11 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
 	gdbpy_print_stack ();
       else
 	{
-	  PyTuple_SET_ITEM (return_tuple.get (), count, obj.release ());
-	  count++;
+	  if (PyList_Append (return_list.get (), obj.get ()) == -1)
+	    return NULL;
 	}
     }
-  return return_tuple.release ();
+  return return_list.release ();
 }
 
 /* A Python function which is a wrapper for decode_line_1.  */

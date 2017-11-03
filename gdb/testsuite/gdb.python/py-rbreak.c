@@ -15,42 +15,50 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-int func1 ()
+int
+func1 ()
 {
   return 1;
 }
 
-int func2 ()
+int
+func2 ()
 {
   return 2;
 }
 
-int func3 ()
+int
+func3 ()
 {
   return 3;
 }
 
-int func4 ()
+int
+func4 ()
 {
   return 4;
 }
 
-int func5 ()
+int
+func5 ()
 {
   return 5;
 }
 
-void func6 ()
+void
+func6 ()
 {
   return;
 }
 
-void outside_scope ()
+void
+outside_scope ()
 {
   return;
 }
 
-int main()
+int
+main()
 {
   func1 (); /* Break func1.  */
   func2 ();

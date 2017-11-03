@@ -15,17 +15,20 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
-int efunc1 ()
+int
+efunc1 ()
 {
   return 1;
 }
 
-int efunc2 ()
+int
+efunc2 ()
 {
   return 2;
 }
 
-int efunc3 ()
+int
+efunc3 ()
 {
   return 3;
 }
