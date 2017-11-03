@@ -646,7 +646,7 @@ gdbpy_solib_name (PyObject *self, PyObject *args)
    optionally a MINSYMS, THROTTLE and SYMTABS keyword and return a
    Python list that contains newly set breakpoints that match that
    criteria.  REGEX refers to a GDB format standard regex pattern of
-   symbols names to search; MINISYMS is an optional boolean (default
+   symbols names to search; MINSYMS is an optional boolean (default
    False) that indicates if the function should search GDB's minimal
    symbols; THROTTLE is an optional integer (default unlimited) that
    indicates the maximum amount of breakpoints allowable before the
