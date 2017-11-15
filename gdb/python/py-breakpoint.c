@@ -32,6 +32,7 @@
 #include "language.h"
 #include "location.h"
 #include "py-event.h"
+#include "linespec.h"
 
 /* Number of live breakpoints.  */
 static int bppy_live;
@@ -638,19 +639,76 @@ static int
 bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 {
   static const char *keywords[] = { "spec", "type", "wp_class", "internal",
-				    "temporary", NULL };
-  const char *spec;
+				    "temporary","source", "function",
+				    "label", "line", NULL };
+  const char *spec = NULL;
   int type = bp_breakpoint;
   int access_type = hw_write;
   PyObject *internal = NULL;
   PyObject *temporary = NULL;
   int internal_bp = 0;
   int temporary_bp = 0;
+  char *line = NULL;
+  char *label = NULL;
+  char *source = NULL;
+  char *function = NULL;
 
-  if (!gdb_PyArg_ParseTupleAndKeywords (args, kwargs, "s|iiOO", keywords,
+  if (!gdb_PyArg_ParseTupleAndKeywords (args, kwargs, "|siiOOssss", keywords,
 					&spec, &type, &access_type,
-					&internal, &temporary))
+					&internal,
+					&temporary, &source,
+					&function, &label, &line
+					))
     return -1;
+
+  /* If spec is defined, ensure that none of the explicit locations
+     keywords are also defined.  */
+  if (spec)
+    {
+      if (source != NULL || function != NULL || label != NULL || line != NULL)
+	{
+	  PyErr_SetString (PyExc_RuntimeError,
+			   _("Breakpoints specified with spec cannot "
+			     "have source, function, label or line defined."));
+	  gdbpy_print_stack ();
+	  return -1;
+	}
+    }
+  else
+    {
+      /* If spec isn't defined, ensure that the user is not trying to
+	 define a watchpoint with an explicit location.  */
+      if (type == bp_watchpoint)
+	{
+	  PyErr_SetString (PyExc_RuntimeError,
+			   _("Watchpoints cannot be set by explicit "
+			     "location parameters."));
+	  gdbpy_print_stack ();
+	  return -1;
+	}
+      else
+	{
+	  /* Otherwise, ensure some explicit locations are defined. */
+	  if (source == NULL && function == NULL && label == NULL
+	      && line == NULL)
+	    {
+	      PyErr_SetString (PyExc_RuntimeError,
+			       _("Neither spec not explicit location set."));
+	      gdbpy_print_stack ();
+	      return -1;
+	    }
+	  /* Finally, if source is specified ensure that line, label of
+	     function are specified too. */
+	  if (source != NULL && function == NULL && label == NULL
+	      && line == NULL)
+	    {
+	      PyErr_SetString (PyExc_RuntimeError,
+			       _("Specifying a source must also include a "
+				 "line, label or function."));
+	      return -1;
+	    }
+	}
+    }
 
   if (internal)
     {
@@ -672,16 +730,36 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 
   TRY
     {
-      gdb::unique_xmalloc_ptr<char>
-	copy_holder (xstrdup (skip_spaces (spec)));
-      char *copy = copy_holder.get ();
-
       switch (type)
 	{
 	case bp_breakpoint:
 	  {
-	    event_location_up location
-	      = string_to_event_location (&copy, current_language);
+	    event_location_up location;
+
+	    if (spec)
+	      {
+		gdb::unique_xmalloc_ptr<char> copy_holder (xstrdup (skip_spaces (spec)));
+		char *copy = copy_holder.get ();
+
+		location  = string_to_event_location (&copy,
+						      current_language);
+	      }
+	    else
+	      {
+		struct explicit_location explicit_loc;
+
+		initialize_explicit_location (&explicit_loc);
+		explicit_loc.source_filename = source;
+		explicit_loc.function_name = function;
+		explicit_loc.label_name = label;
+
+		if (line != NULL)
+		  explicit_loc.line_offset =
+		    linespec_parse_line_offset (line);
+
+		location = new_explicit_location (&explicit_loc);
+	      }
+
 	    create_breakpoint (python_gdbarch,
 			       location.get (), NULL, -1, NULL,
 			       0,
@@ -692,8 +770,11 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 			       0, 1, internal_bp, 0);
 	    break;
 	  }
-        case bp_watchpoint:
+	case bp_watchpoint:
 	  {
+	    gdb::unique_xmalloc_ptr<char> copy_holder (xstrdup (skip_spaces (spec)));
+	    char *copy = copy_holder.get ();
+
 	    if (access_type == hw_write)
 	      watch_command_wrapper (copy, 0, internal_bp);
 	    else if (access_type == hw_access)

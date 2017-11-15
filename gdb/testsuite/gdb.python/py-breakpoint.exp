@@ -564,52 +564,55 @@ proc test_bkpt_explicit_loc {} {
 	set bp_location1 [gdb_get_line_number "Break at multiply."]
 	set bp_location2 [gdb_get_line_number "Break at add."]
 
-	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (\"-li $bp_location1\")" \
-	    "Set explicit breakpoint by line" 0
+	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (line=\"$bp_location1\")" \
+	    "set explicit breakpoint by line" 0
 	gdb_continue_to_breakpoint "Break at multiply" \
 	    ".*Break at multiply.*"
-	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (\"-li +1\")" \
-	    "Set explicit breakpoint by relative line" 0
+
+	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (line=\"+1\")" \
+	    "set explicit breakpoint by relative line" 0
 	gdb_continue_to_breakpoint "Break at add" \
 	    ".*Break at add.*"
+
 	delete_breakpoints
-	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (\"-li -1\")" \
-	    "Set explicit breakpoint by relative negative line" 0
+	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (line=\"-1\")" \
+	    "set explicit breakpoint by relative negative line" 0
 	gdb_continue_to_breakpoint "Break at multiply" \
 	    ".*Break at multiply.*"
+
 	delete_breakpoints
-	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (\"-function add\")" \
-	    "Set explicit breakpoint by function" 0
+	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (function=\"add\")" \
+	    "set explicit breakpoint by function" 0
 	gdb_continue_to_breakpoint "Break at function add" \
 	    ".*Break at function add.*"
+
 	delete_breakpoints
-	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (\"-source $srcfile -function add\")" \
-	    "Set explicit breakpoint by source file and function" 0
+	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (source=\"$srcfile\", function=\"add\")" \
+	    "set explicit breakpoint by source file and function" 0
 	gdb_continue_to_breakpoint "Break at function add" \
 	    ".*Break at function add.*"
+
 	delete_breakpoints
-	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (\"-source $srcfile -li $bp_location2\")" \
-	    "Set explicit breakpoint by source file and line number" 0
+	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (source=\"$srcfile\", line=\"$bp_location2\")" \
+	    "set explicit breakpoint by source file and line number" 0
 	gdb_continue_to_breakpoint "Break at add" \
 	    ".*Break at add.*"
+
 	delete_breakpoints
-	gdb_test "python bp1 = gdb.Breakpoint (\"-source $srcfile\")" \
-	    "RuntimeError: Source filename requires function, label, or line offset.*" \
-	    "Set invalid explicit breakpoint by source only"
+	gdb_test "python bp1 = gdb.Breakpoint (source=\"$srcfile\")" \
+	    "RuntimeError: Specifying a source must also include a line, label or function.*" \
+	    "set invalid explicit breakpoint by source only"
+
 	# The below will print a warning but set pending breakpoints.
-	gdb_test "python bp1 = gdb.Breakpoint (\"-source foo.c -li 5\")" \
+	gdb_test "python bp1 = gdb.Breakpoint (source=\"foo.c\", line=\"5\")" \
 	    "No source file named foo.*" \
-	    "Set invalid explicit breakpoint by missing source and line"
-	gdb_test "python bp1 = gdb.Breakpoint (\"-source $srcfile -li 900\")" \
+	    "set invalid explicit breakpoint by missing source and line"
+	gdb_test "python bp1 = gdb.Breakpoint (source=\"$srcfile\", line=\"900\")" \
 	    "No line 900 in file \"$srcfile\".*" \
-	    "Set invalid explicit breakpoint by source and invalid line."
-	gdb_test "python bp1 = gdb.Breakpoint (\"-function blah\")" \
+	    "set invalid explicit breakpoint by source and invalid line"
+	gdb_test "python bp1 = gdb.Breakpoint (function=\"blah\")" \
 	    "Function \"blah\" not defined.*" \
-	    "Set invalid explicit breakpoint by missing function."
-	# Invalid explicit location flags.
-	gdb_test "python bp1 = gdb.Breakpoint (\"-foo -li 5\")" \
-	    "RuntimeError: invalid explicit location argument, \"-foo\".*" \
-	    "Set invalid explicit breakpoint by wrong flag"
+	    "set invalid explicit breakpoint by missing function"
     }
 }
 
