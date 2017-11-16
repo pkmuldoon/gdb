@@ -693,7 +693,7 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 			       _("Neither spec nor explicit location set."));
 	      return -1;
 	    }
-	  /* Finally, if source is specified ensure that line, label of
+	  /* Finally, if source is specified ensure that line, label or
 	     function are specified too. */
 	  if (source != NULL && function == NULL && label == NULL
 	      && line == NULL)
@@ -734,8 +734,8 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 
 	    if (spec)
 	      {
-		gdb::unique_xmalloc_ptr<char> copy_holder (xstrdup
-							   (skip_spaces (spec)));
+		gdb::unique_xmalloc_ptr<char>
+		  copy_holder (xstrdup (skip_spaces (spec)));
 		char *copy = copy_holder.get ();
 
 		location  = string_to_event_location (&copy,
@@ -769,7 +769,8 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 	  }
 	case bp_watchpoint:
 	  {
-	    gdb::unique_xmalloc_ptr<char> copy_holder (xstrdup (skip_spaces (spec)));
+	    gdb::unique_xmalloc_ptr<char>
+	      copy_holder (xstrdup (skip_spaces (spec)));
 	    char *copy = copy_holder.get ();
 
 	    if (access_type == hw_write)

@@ -4866,10 +4866,10 @@ Create a new breakpoint according to @var{spec}, which is a string
 naming the location of the breakpoint, or an expression that defines a
 watchpoint. The contents can be any location recognized by the
 @code{break} command or, in the case of a watchpoint, by the
-@code{watch} command. Alternatively, create a new a explicit location
+@code{watch} command.  Alternatively, create a new a explicit location
 breakpoint (@pxref{Explicit Locations}) according to the
 specifications contained in the key words @var{source},
-@var{function}, @var{label} and @var{line}. The optional @var{type}
+@var{function}, @var{label} and @var{line}.  The optional @var{type}
 denotes the breakpoint to create from the types defined later in this
 chapter.  This argument can be either @code{gdb.BP_BREAKPOINT} or
 @code{gdb.BP_WATCHPOINT}; it defaults to @code{gdb.BP_BREAKPOINT}.

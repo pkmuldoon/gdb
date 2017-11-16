@@ -25,7 +25,7 @@
      description of these.
 
   ** Python breakpoints can now accept explicit locations.  See the
-     manual for further description of this feature.
+     manual for a further description of this feature.
 
 * New features in the GDB remote stub, GDBserver
 
