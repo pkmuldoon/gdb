@@ -657,11 +657,10 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 					&spec, &type, &access_type,
 					&internal,
 					&temporary, &source,
-					&function, &label, &line
-					))
+					&function, &label, &line))
     return -1;
 
-  /* If spec is defined, ensure that none of the explicit locations
+  /* If spec is defined, ensure that none of the explicit location
      keywords are also defined.  */
   if (spec)
     {
@@ -670,7 +669,6 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 	  PyErr_SetString (PyExc_RuntimeError,
 			   _("Breakpoints specified with spec cannot "
 			     "have source, function, label or line defined."));
-	  gdbpy_print_stack ();
 	  return -1;
 	}
     }
@@ -683,18 +681,16 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 	  PyErr_SetString (PyExc_RuntimeError,
 			   _("Watchpoints cannot be set by explicit "
 			     "location parameters."));
-	  gdbpy_print_stack ();
 	  return -1;
 	}
       else
 	{
-	  /* Otherwise, ensure some explicit locations are defined. */
+	  /* Otherwise, ensure some explicit locations are defined.  */
 	  if (source == NULL && function == NULL && label == NULL
 	      && line == NULL)
 	    {
 	      PyErr_SetString (PyExc_RuntimeError,
-			       _("Neither spec not explicit location set."));
-	      gdbpy_print_stack ();
+			       _("Neither spec nor explicit location set."));
 	      return -1;
 	    }
 	  /* Finally, if source is specified ensure that line, label of
@@ -738,7 +734,8 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 
 	    if (spec)
 	      {
-		gdb::unique_xmalloc_ptr<char> copy_holder (xstrdup (skip_spaces (spec)));
+		gdb::unique_xmalloc_ptr<char> copy_holder (xstrdup
+							   (skip_spaces (spec)));
 		char *copy = copy_holder.get ();
 
 		location  = string_to_event_location (&copy,
