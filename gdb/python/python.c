@@ -741,7 +741,7 @@ gdbpy_rbreak (PyObject *self, PyObject *args, PyObject *kw)
 	    return NULL;
 
 	  /* Make sure there is a definite place to store the value of
-	     s before it is released.  */
+	     filename before it is released.  */
 	  symtab_paths.vec.push_back (nullptr);
 	  symtab_paths.vec.back () = filename.release ();
 	}
