@@ -4861,15 +4861,17 @@ represented as Python @code{Long} values.
 Python code can manipulate breakpoints via the @code{gdb.Breakpoint}
 class.
 
-@defun Breakpoint.__init__ (spec @r{[}, type @r{[}, wp_class @r{[},internal @r{[},temporary@r{]]]]})
+@defun Breakpoint.__init__ (spec @r{[}, type @r{[}, wp_class @r{[}, internal @r{[}, temporary @r{]}, source @r{]}, function @r{]}, label @r{]}, line @r{]]]]]]]]})
 Create a new breakpoint according to @var{spec}, which is a string
 naming the location of the breakpoint, or an expression that defines a
-watchpoint.  The contents can be any location recognized by the
-@code{break} command, including those set as explicit locations
-(@pxref{Explicit Locations}), or in the case of a watchpoint, by the
-@code{watch} command.  The optional @var{type} denotes the breakpoint
-to create from the types defined later in this chapter.  This argument
-can be either @code{gdb.BP_BREAKPOINT} or @code{gdb.BP_WATCHPOINT}; it
+watchpoint. The contents can be any location recognized by the
+@code{break} command or the case of a watchpoint, by the @code{watch}
+command. Alternatively, create a new a explicit location breakpoint
+(@pxref{Explicit Locations}) according to the specifications contained
+in the key words @var{source}, @var{function}, @var{label} and
+@var{line}. The optional @var{type} denotes the breakpoint to create
+from the types defined later in this chapter.  This argument can be
+either @code{gdb.BP_BREAKPOINT} or @code{gdb.BP_WATCHPOINT}; it
 defaults to @code{gdb.BP_BREAKPOINT}.  The optional @var{internal}
 argument allows the breakpoint to become invisible to the user.  The
 breakpoint will neither be reported when created, nor will it be

@@ -24,6 +24,9 @@
      gdb.new_thread are emitted.  See the manual for further
      description of these.
 
+  ** Python breakpoints can now accept explicit locations.  See the
+     manual for further description of this feature.
+
 * New features in the GDB remote stub, GDBserver
 
   ** New "--selftest" command line option runs some GDBserver self
