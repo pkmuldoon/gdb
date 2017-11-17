@@ -603,7 +603,6 @@ proc test_bkpt_explicit_loc {} {
 	    "RuntimeError: Specifying a source must also include a line, label or function.*" \
 	    "set invalid explicit breakpoint by source only"
 
-	# The below will print a warning but set pending breakpoints.
 	gdb_test "python bp1 = gdb.Breakpoint (source=\"foo.c\", line=\"5\")" \
 	    "No source file named foo.*" \
 	    "set invalid explicit breakpoint by missing source and line"

@@ -662,7 +662,7 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 
   /* If spec is defined, ensure that none of the explicit location
      keywords are also defined.  */
-  if (spec)
+  if (spec != NULL)
     {
       if (source != NULL || function != NULL || label != NULL || line != NULL)
 	{
@@ -693,8 +693,8 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 			       _("Neither spec nor explicit location set."));
 	      return -1;
 	    }
-	  /* Finally, if source is specified ensure that line, label or
-	     function are specified too. */
+	  /* Finally, if source is specified, ensure that line, label
+	     or function are specified too.  */
 	  if (source != NULL && function == NULL && label == NULL
 	      && line == NULL)
 	    {
@@ -732,7 +732,7 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 	  {
 	    event_location_up location;
 
-	    if (spec)
+	    if (spec != NULL)
 	      {
 		gdb::unique_xmalloc_ptr<char>
 		  copy_holder (xstrdup (skip_spaces (spec)));
