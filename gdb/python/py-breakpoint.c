@@ -57,6 +57,7 @@ static struct pybp_code pybp_codes[] =
 {
   { "BP_NONE", bp_none},
   { "BP_BREAKPOINT", bp_breakpoint},
+  { "BP_HARDWARE_BREAKPOINT", bp_hardware_breakpoint},
   { "BP_WATCHPOINT", bp_watchpoint},
   { "BP_HARDWARE_WATCHPOINT", bp_hardware_watchpoint},
   { "BP_READ_WATCHPOINT", bp_read_watchpoint},
@@ -640,7 +641,7 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
   static const char *keywords[] = { "spec", "type", "wp_class", "internal",
 				    "temporary", NULL };
   const char *spec;
-  int type = bp_breakpoint;
+  bptype type = bp_breakpoint;
   int access_type = hw_write;
   PyObject *internal = NULL;
   PyObject *temporary = NULL;
@@ -679,13 +680,14 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
       switch (type)
 	{
 	case bp_breakpoint:
+	case bp_hardware_breakpoint:
 	  {
 	    event_location_up location
 	      = string_to_event_location_basic (&copy, current_language);
 	    create_breakpoint (python_gdbarch,
 			       location.get (), NULL, -1, NULL,
 			       0,
-			       temporary_bp, bp_breakpoint,
+			       temporary_bp, type,
 			       0,
 			       AUTO_BOOLEAN_TRUE,
 			       &bkpt_breakpoint_ops,
@@ -856,6 +858,7 @@ gdbpy_breakpoint_created (struct breakpoint *bp)
     return;
 
   if (bp->type != bp_breakpoint
+      && bp->type != bp_hardware_breakpoint
       && bp->type != bp_watchpoint
       && bp->type != bp_hardware_watchpoint
       && bp->type != bp_read_watchpoint
