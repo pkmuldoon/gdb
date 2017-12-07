@@ -566,18 +566,18 @@ proc test_bkpt_explicit_loc {} {
 
 	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (line=$bp_location1)" \
 	    "set explicit breakpoint by line" 0
-	gdb_continue_to_breakpoint "Break at multiply" \
+	gdb_continue_to_breakpoint "break at multiply for explicit line" \
 	    ".*Break at multiply.*"
 
 	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (line=\"+1\")" \
 	    "set explicit breakpoint by relative line" 0
-	gdb_continue_to_breakpoint "Break at add" \
+	gdb_continue_to_breakpoint "break at add for relative line" \
 	    ".*Break at add.*"
 
 	delete_breakpoints
 	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (line=\"-1\")" \
 	    "set explicit breakpoint by relative negative line" 0
-	gdb_continue_to_breakpoint "Break at multiply" \
+	gdb_continue_to_breakpoint "break at multiply for negative line" \
 	    ".*Break at multiply.*"
 
 	delete_breakpoints
@@ -588,25 +588,25 @@ proc test_bkpt_explicit_loc {} {
 	delete_breakpoints
 	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (function=\"add\")" \
 	    "set explicit breakpoint by function" 0
-	gdb_continue_to_breakpoint "Break at function add" \
+	gdb_continue_to_breakpoint "break at function add for function" \
 	    ".*Break at function add.*"
 
 	delete_breakpoints
 	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (source=\"$srcfile\", function=\"add\")" \
 	    "set explicit breakpoint by source file and function" 0
-	gdb_continue_to_breakpoint "Break at function add" \
+	gdb_continue_to_breakpoint "break at function add for source and function" \
 	    ".*Break at function add.*"
 
 	delete_breakpoints
 	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (source=\"$srcfile\", line=\"$bp_location2\")" \
 	    "set explicit breakpoint by source file and line number" 0
-	gdb_continue_to_breakpoint "Break at add" \
+	gdb_continue_to_breakpoint "break at add for source and line" \
 	    ".*Break at add.*"
 
 	delete_breakpoints
 	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (\"-source $srcfile -line $bp_location2\")" \
 	    "set explicit breakpoint by source file and line number in spec" 0
-	gdb_continue_to_breakpoint "Break at add" \
+	gdb_continue_to_breakpoint "break at add for source and line in spec" \
 	    ".*Break at add.*"
 
 	delete_breakpoints
