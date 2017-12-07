@@ -92,8 +92,7 @@ tdesc_get_features_xml (target_desc *tdesc)
   /* Either .xmltarget or .features is not NULL.  */
   gdb_assert (tdesc->xmltarget != NULL
 	      || (tdesc->features != NULL
-		  && tdesc->arch != NULL
-		  && tdesc->osabi != NULL));
+		  && tdesc->arch != NULL));
 
   if (tdesc->xmltarget == NULL)
     {
@@ -105,9 +104,12 @@ tdesc_get_features_xml (target_desc *tdesc)
       buffer += tdesc->arch;
       buffer += "</architecture>";
 
-      buffer += "<osabi>";
-      buffer += tdesc->osabi;
-      buffer += "</osabi>";
+      if (tdesc->osabi != nullptr)
+	{
+	  buffer += "<osabi>";
+	  buffer += tdesc->osabi;
+	  buffer += "</osabi>";
+	}
 
       char *xml;
 
@@ -144,7 +146,7 @@ tdesc_create_feature (struct target_desc *tdesc, const char *name,
 
 /* See arch/tdesc.h.  */
 
-struct tdesc_type *
+tdesc_type_with_fields *
 tdesc_create_flags (struct tdesc_feature *feature, const char *name,
 		    int size)
 {
@@ -154,7 +156,7 @@ tdesc_create_flags (struct tdesc_feature *feature, const char *name,
 /* See arch/tdesc.h.  */
 
 void
-tdesc_add_flag (struct tdesc_type *type, int start,
+tdesc_add_flag (tdesc_type_with_fields *type, int start,
 		const char *flag_name)
 {}
 
@@ -168,7 +170,7 @@ tdesc_named_type (const struct tdesc_feature *feature, const char *id)
 
 /* See arch/tdesc.h.  */
 
-struct tdesc_type *
+tdesc_type_with_fields *
 tdesc_create_union (struct tdesc_feature *feature, const char *id)
 {
   return NULL;
@@ -176,7 +178,7 @@ tdesc_create_union (struct tdesc_feature *feature, const char *id)
 
 /* See arch/tdesc.h.  */
 
-struct tdesc_type *
+tdesc_type_with_fields *
 tdesc_create_struct (struct tdesc_feature *feature, const char *id)
 {
   return NULL;
@@ -220,20 +222,20 @@ tdesc_create_vector (struct tdesc_feature *feature, const char *name,
 }
 
 void
-tdesc_add_bitfield (struct tdesc_type *type, const char *field_name,
+tdesc_add_bitfield (tdesc_type_with_fields *type, const char *field_name,
 		    int start, int end)
 {}
 
 /* See arch/tdesc.h.  */
 
 void
-tdesc_add_field (struct tdesc_type *type, const char *field_name,
+tdesc_add_field (tdesc_type_with_fields *type, const char *field_name,
 		 struct tdesc_type *field_type)
 {}
 
 /* See arch/tdesc.h.  */
 
 void
-tdesc_set_struct_size (struct tdesc_type *type, int size)
+tdesc_set_struct_size (tdesc_type_with_fields *type, int size)
 {
 }

@@ -59,10 +59,12 @@ if { ![istarget cris-*-*] && ![istarget crisv32-*-*]
 if {    ![istarget alpha*-*-*vms*]
      && ![istarget am3*-*-*]
      && ![istarget avr-*-*]
+     && ![istarget ft32-*-*]
      && ![istarget hppa*-*-*]
      && ![istarget microblaze-*-*]
      && ![istarget mn10300-*-*]
      && ![istarget msp430*-*-*]
+     && ![istarget riscv*-*-*]
      && ![istarget rl78-*-*]
      && ![istarget rx-*-*] } then {
     gas_test_error "diff1.s" "" "difference of two undefined symbols"
@@ -275,6 +277,7 @@ if {    ![istarget *c30*-*-*]
      && ![istarget *c54x*-*-*]
      && ![istarget cr16*-*-*]
      && ![istarget crx*-*-*]
+     && ![istarget ft32-*-*]
      && ![istarget h8300*-*-*]
      && ![istarget hppa*-*-*] } then {
     # The vax fails because VMS can apparently actually handle this
@@ -486,3 +489,5 @@ run_dump_test "org-3"
 run_dump_test "org-4"
 run_dump_test "org-5"
 run_dump_test "org-6"
+
+run_dump_test "fill-1"

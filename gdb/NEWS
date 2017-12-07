@@ -3,6 +3,17 @@
 
 *** Changes since GDB 8.0
 
+* New "--readnever" command line option instructs GDB to not read each
+  symbol file's symbolic debug information.  This makes startup faster
+  but at the expense of not being able to perform symbolic debugging.
+  This option is intended for use cases where symbolic debugging will
+  not be used, e.g., when you only need to dump the debuggee's core.
+
+* GDB now uses the GNU MPFR library, if available, to emulate target
+  floating-point arithmetic during expression evaluation when the target
+  uses different floating-point formats than the host.  At least version
+  3.1 of GNU MPFR is required.
+
 * GDB now supports access to the guarded-storage-control registers and the
   software-based guarded-storage broadcast control registers on IBM z14.
 
@@ -18,16 +29,103 @@
   the remote inferior is started by the GDBserver, use the "unset
   environment" command.
 
+* Completion improvements
+
+  ** GDB can now complete function parameters in linespecs and
+     explicit locations without quoting.  When setting breakpoints,
+     quoting around functions names to help with TAB-completion is
+     generally no longer necessary.  For example, this now completes
+     correctly:
+
+      (gdb) b function(in[TAB]
+      (gdb) b function(int)
+
+     Related, GDB is no longer confused with completing functions in
+     C++ anonymous namespaces:
+
+      (gdb) b (anon[TAB]
+      (gdb) b (anonymous namespace)::[TAB][TAB]
+      (anonymous namespace)::a_function()
+      (anonymous namespace)::b_function()
+
+  ** GDB now has much improved linespec and explicit locations TAB
+     completion support, that better understands what you're
+     completing and offers better suggestions.  For example, GDB no
+     longer offers data symbols as possible completions when you're
+     setting a breakpoint.
+
+  ** GDB now TAB-completes label symbol names.
+
+  ** The "complete" command now mimics TAB completion accurately.
+
+* New command line options (gcore)
+
+-a
+  Dump all memory mappings.
+
+* Breakpoints on C++ functions are now set on all scopes by default
+
+  By default, breakpoints on functions/methods are now interpreted as
+  specifying all functions with the given name ignoring missing
+  leading scopes (namespaces and classes).
+
+  For example, assuming a C++ program with symbols named:
+
+    A::B::func()
+    B::func()
+
+  both commands "break func()" and "break B::func()" set a breakpoint
+  on both symbols.
+
+  You can use the new flag "-qualified" to override this.  This makes
+  GDB interpret the specified function name as a complete
+  fully-qualified name instead.  For example, using the same C++
+  program, the "break -q B::func" command sets a breakpoint on
+  "B::func", only.
+
+* Breakpoints on functions marked with C++ ABI tags
+
+  GDB can now set breakpoints on functions marked with C++ ABI tags
+  (e.g., [abi:cxx11]).  See here for a description of ABI tags:
+  https://developers.redhat.com/blog/2015/02/05/gcc5-and-the-c11-abi/
+
+  Functions with a C++11 abi tag are demangled/displayed like this:
+
+    function[abi:cxx11](int)
+            ^^^^^^^^^^^
+
+  You can now set a breakpoint on such functions simply as if they had
+  no tag, like:
+
+    (gdb) b function(int)
+
+  Or if you need to disambiguate between tags, like:
+
+    (gdb) b function[abi:other_tag](int)
+
+  Tab completion was adjusted accordingly as well.
+
 * Python Scripting
 
   ** New events gdb.new_inferior, gdb.inferior_deleted, and
      gdb.new_thread are emitted.  See the manual for further
      description of these.
 
+  ** A new command, "rbreak" has been added to the Python API.  This
+     command allows the setting of a large number of breakpoints via a
+     regex pattern in Python.  See the manual for further details.
+
   ** Python breakpoints can now accept explicit locations.  See the
      manual for a further description of this feature.
 
+
 * New features in the GDB remote stub, GDBserver
+
+  ** GDBserver is now able to start inferior processes with a
+     specified initial working directory.
+
+     The user can set the desired working directory to be used from
+     GDB using the new "set cwd" command.
 
   ** New "--selftest" command line option runs some GDBserver self
      tests.  These self tests are disabled in releases.
@@ -44,6 +142,14 @@
   ** On Unix systems, GDBserver now supports receiving environment
      variables that are to be set or unset from GDB.  These variables
      will affect the environment to be passed to the inferior.
+
+* When catching an Ada exception raised with a message, GDB now prints
+  the message in the catchpoint hit notification. In GDB/MI mode, that
+  information is provided as an extra field named "exception-message"
+  in the *stopped notification.
+
+* Trait objects can now be inspected When debugging Rust code.  This
+  requires compiler support which will appear in Rust 1.24.
 
 * New remote packets
 
@@ -62,13 +168,23 @@ QEnvironmentReset
 QStartupWithShell
   Indicates whether the inferior must be started with a shell or not.
 
+QSetWorkingDir
+  Tell GDBserver that the inferior to be started should use a specific
+  working directory.
+
 * The "maintenance print c-tdesc" command now takes an optional
   argument which is the file name of XML target description.
 
 * The "maintenance selftest" command now takes an optional argument to
   filter the tests to be run.
 
+* The "enable", and "disable" commands now accept a range of
+  breakpoint locations, e.g. "enable 1.3-5".
+
 * New commands
+
+set|show cwd
+  Set and show the current working directory for the inferior.
 
 set|show compile-gcc
   Set and show compilation command used for compiling and injecting code
@@ -77,6 +193,11 @@ set|show compile-gcc
 set debug separate-debug-file
 show debug separate-debug-file
   Control the display of debug output about separate debug file search.
+
+set dump-excluded-mappings
+show dump-excluded-mappings
+  Control whether mappings marked with the VM_DONTDUMP flag should be
+  dumped when generating a core file.
 
 maint info selftests
   List the registered selftests.
@@ -116,10 +237,16 @@ starti
 * New native configurations
 
 FreeBSD/aarch64			aarch64*-*-freebsd*
+FreeBSD/arm			arm*-*-freebsd*
 
 * New targets
 
 FreeBSD/aarch64			aarch64*-*-freebsd*
+FreeBSD/arm			arm*-*-freebsd*
+
+* Removed targets and native configurations
+
+Solaris 2.0-9			i?86-*-solaris2.[0-9], sparc*-*-solaris2.[0-9]
 
 *** Changes in GDB 8.0
 

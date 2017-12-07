@@ -1,3 +1,1239 @@
+2017-12-04  Alan Modra  <amodra@gmail.com>
+
+	PR 22544
+	* doc/as.texinfo (8byte): Correct.
+
+2017-12-04  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/gas/ppc/ppc.exp: Don't exclude VLE tests when little-endian.
+	* testsuite/gas/ppc/efs.d: Add -mbig to assembler options.
+	* testsuite/gas/ppc/efs2.d: Likewise.
+	* testsuite/gas/ppc/lsp-checks.d: Likewise.
+	* testsuite/gas/ppc/lsp.d: Likewise.
+	* testsuite/gas/ppc/spe.d: Likewise.
+	* testsuite/gas/ppc/spe2-checks.d: Likewise.
+	* testsuite/gas/ppc/spe2.d: Likewise.
+	* testsuite/gas/ppc/spe_ambiguous.d: Likewise.
+	* testsuite/gas/ppc/vle-mult-ld-st-insns.d: Likewise.
+	* testsuite/gas/ppc/vle-reloc.d: Likewise.
+	* testsuite/gas/ppc/vle-simple-1.d: Likewise.
+	* testsuite/gas/ppc/vle-simple-2.d: Likewise.
+	* testsuite/gas/ppc/vle-simple-3.d: Likewise.
+	* testsuite/gas/ppc/vle-simple-4.d: Likewise.
+	* testsuite/gas/ppc/vle-simple-5.d: Likewise.
+	* testsuite/gas/ppc/vle-simple-6.d: Likewise.
+	* testsuite/gas/ppc/vle.d: Likewise.
+
+2017-12-03  Jim Wilson  <jimw@sifive.com>
+
+	* doc/c-riscv.texi (RISC-V-Directives): Move @section immediately after
+	@node.
+
+2017-12-01  Palmer Dabbelt  <palmer@sifive.com>
+	    Jim Wilson  <jimw@sifive.com>
+
+	* doc/as.texinfo (RISC-V): Alphabetize RISC-V entries.  Change
+	RISC-V-Opts to RISC-V-Options.  Delete redundant space.  Add -fpic
+	and related options to option list.
+	* doc/c-riscv.texi: (RISC-V-Options): Renamed from RISC-V-Opts.
+	(RISC-V Options): Renamed from Options.  Add missing period.
+	(-fpic): Also mention -fPIC.
+	(RISC-V Directives): New node.
+
+2017-12-01  Peter Bergner <bergner@vnet.ibm.com>
+
+	* config/tc-ppc.c (last_insn): Update type.
+	(insn_validate) <omask, mask>: Likewise.
+	(ppc_setup_opcodes) <mask, right_bit>: Likewise.
+	<PRINT_OPCODE_TABLE>: Update types and printf format specifiers.
+	(ppc_insert_operand): Update return and argument types and remove
+	unneeded type casts.
+	<min, max, right, tmp>: Update type.
+	(md_assemble): Remove unneeded type casts.
+	<insn, val, tmp_insn>: Update type.
+
+2017-11-29  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (enum i386_error): Remove try_vector_disp8.
+	(mode_from_disp_size, build_modrm_byte, build_modrm_byte,
+	disp_size): Remove reference to .vec_disp8.
+	(output_disp): Likewise. Unconditionally use i.memshift.
+	(fits_in_vec_disp8): Rename to fits_in_disp8.
+	(type_names): Remove OPERAND_TYPE_VEC_DISP8 entry.
+	(optimize_disp): Use fits_in_disp8.
+	(check_VecOperands): Re-work (simplify) .disp8memshift
+	conditional handling.
+
+2017-11-29  Jan Beulich  <jbeulich@suse.com>
+
+	PR gas/21874
+	* config/tc-i386-intel.c (i386_intel_simplify): Chain together
+	multiple segment override expressions.
+	(i386_intel_operand): Issue diagnostic for redundant segment
+	overrides.
+	* testsuite/gas/i386/intelok.e: New.
+	* testsuite/gas/i386/intelok.d: Reference intelok.e.
+	* testsuite/gas/i386/inval-seg.s: Add redundant override checks.
+	* testsuite/gas/i386/inval-seg.l: Adjust expectations.
+
+2017-11-29  Jim Wilson  <jimw@sifive.com>
+	    Palmer Dabbelt  <palmer@sifive.com>
+
+	* config/tc-riscv.c (riscv_frag_align_code): New local insn_alignment.
+	Early return if bytes less than or equal to insn_alignment.
+	* testsuite/gas/riscv/align-1.l: New.
+	* testsuite/gas/riscv/align-1.s: New.
+	* testsuite/gas/riscv/riscv.exp: Use run_dump_tests.  Use run_list_test
+	for align-1.
+
+	PR gas/22464
+	* doc/c-i386.texi (-n): Clarify docs.
+
+2017-11-29  Renlin Li  <renlin.li@arm.com>
+
+	* config/tc-aarch64.c (reg_names): Fix IP1 register alias typo.
+	* testsuite/gas/aarch64/register_aliases.s: Add IP0 and IP1 tests.
+	* testsuite/gas/aarch64/register_aliases.d: Update.
+
+2017-11-29  Stefan Stroe  <stroestefan@gmail.com>
+
+	* po/Make-in (datadir): Define as @datadir@.
+	(localedir): Define as @localedir@.
+	(gnulocaledir, gettextsrcdir): Use @datarootdir@.
+
+2017-11-29  Nick Clifton  <nickc@redhat.com>
+
+	PR 22492
+	* config/obj-elf.c (obj_elf_version): Use record_alignment rather
+	than bfd_set_section_alignment.
+
+2017-11-27  Andrew Waterman <andrew@sifive.com>
+	    Palmer Dabbelt  <palmer@sifive.com>
+	    Jim Wilson  <jimw@sifive.com>
+
+	* config/tc-riscv.c (riscv_handle_implicit_zero_offset): New.
+	(riscv_ip): Cases 'k', 'l', 'm', 'n', 'M', 'N', add call to
+	riscv_handle_implicit_zero_offset.  At label load_store, replace
+	existing code with call to riscv_handle_implicit_zero_offset.
+	* testsuite/gas/riscv/c-ld.d, testsuite/gas/riscv/c-ld.s: New.
+	* testsuite/gas/riscv/c-lw.d, testsuite/gas/riscv/c-lw.s: New.
+	* testsuite/gas/riscv/riscv.exp: Run new tests.
+
+2017-11-27  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* config/tc-xtensa.c (find_trampoline_seg): Add static variable
+	that caches the result of the most recent search.
+
+2017-11-27  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* config/tc-xtensa.c (trampoline_chain_entry, trampoline_chain)
+	(trampoline_chain_index): New structures.
+	(trampoline_index): Add chain_index field.
+	(xg_order_trampoline_chain_entry, xg_sort_trampoline_chain)
+	(xg_find_chain_entry, xg_get_best_chain_entry)
+	(xg_order_trampoline_chain, xg_get_trampoline_chain)
+	(xg_find_best_eq_target, xg_add_location_to_chain)
+	(xg_create_trampoline_chain, xg_get_single_symbol_slot): New
+	functions.
+	(xg_relax_fixups): Call xg_find_best_eq_target to adjust jump
+	target to point to an existing jump. Call
+	xg_create_trampoline_chain to create new jump target. Call
+	xg_add_location_to_chain to add newly created trampoline jump
+	to the corresponding chain.
+	(add_jump_to_trampoline): Extract loop searching for a single
+	slot with a symbol into a separate function, replace that code
+	with a call to that function.
+	(relax_frag_immed): Call xg_find_best_eq_target to adjust jump
+	target to point to an existing jump.
+	* testsuite/gas/xtensa/all.exp: Add trampoline-2 test.
+	* testsuite/gas/xtensa/trampoline.d: Adjust absolute addresses
+	as many duplicate trampoline chains are now coalesced.
+	* testsuite/gas/xtensa/trampoline.s: Add _nop so that objdump
+	stays in sync with instruction stream.
+	* testsuite/gas/xtensa/trampoline-2.l: New test result file.
+	* testsuite/gas/xtensa/trampoline-2.s: New test source file.
+
+2017-11-27  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* config/tc-xtensa.c (search_trampolines, get_best_trampoline):
+	Remove definitions.
+	(xg_find_best_trampoline_for_tinsn): New function.
+	(relax_frag_immed): Replace call to get_best_trampoline with a
+	call to xg_find_best_trampoline_for_tinsn.
+	* testsuite/gas/xtensa/trampoline.d: Adjust absolute addresses
+	as the placement of trampolines for relaxed branches has been
+	changed.
+
+2017-11-27  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* config/tc-xtensa.c (trampoline_index): New structure.
+	(trampoline_seg): Replace trampoline list with trampoline index.
+	(xg_find_trampoline, xg_add_trampoline_to_index)
+	(xg_remove_trampoline_from_index, xg_add_trampoline_to_seg)
+	(xg_is_trampoline_frag_full, xg_get_fulcrum)
+	(xg_find_best_trampoline, xg_relax_fixup, xg_relax_fixups)
+	(xg_is_relaxable_fixup): New functions.
+	(J_MARGIN): New macro.
+	(xtensa_create_trampoline_frag): Use xg_add_trampoline_to_seg
+	instead of open-coded addition to the linked list.
+	(dump_trampolines): Iterate through the trampoline_seg::index.
+	(cached_fixupS, cached_fixup, fixup_cacheS, fixup_cache)
+	(fixup_order, xtensa_make_cached_fixup)
+	(xtensa_realloc_fixup_cache, xtensa_cache_relaxable_fixups)
+	(xtensa_find_first_cached_fixup, xtensa_delete_cached_fixup)
+	(xtensa_add_cached_fixup, check_and_update_trampolines): Remove
+	definitions.
+	(xg_relax_trampoline): Extract logic into separate functions,
+	replace body with a call to xg_relax_fixups.
+	(search_trampolines): Replace search in linked list with search
+	in index. Change data type of address-tracking variables from
+	int to offsetT. Replace abs with labs.
+	(xg_append_jump): Finish the trampoline frag if it's full.
+	(add_jump_to_trampoline): Remove trampoline frag from the index
+	if the frag is full.
+	* config/tc-xtensa.h (xtensa_frag_type): Remove next_trampoline.
+	* testsuite/gas/xtensa/trampoline.d: Adjust absolute addresses
+	as the placement of trampolines has slightly changed.
+	* testsuite/gas/xtensa/trampoline.s: Add _nop so that objdump
+	stays in sync with instruction stream.
+
+2017-11-27  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* config/tc-xtensa.c (init_trampoline_frag): Replace pointer to
+	struct trampoline_frag parameter with pointer to fragS.
+	(xg_append_jump): Remove jump_around parameter.
+	(struct trampoline_frag): Remove.
+	(struct trampoline_seg): Change type of trampoline_list from
+	struct trampoline_frag to fragS.
+	(xtensa_create_trampoline_frag): Don't allocate struct
+	trampoline_frag. Initialize new fragS::tc_frag_data fields.
+	(dump_trampolines, xg_relax_trampoline, search_trampolines)
+	(get_best_trampoline, init_trampoline_frag)
+	(add_jump_to_trampoline, relax_frag_immed): Replace pointer to
+	struct trampoline_frag with a pointer to fragS.
+	(xg_append_jump): Remove jump_around parameter, use
+	fragS::tc_frag_data.jump_around_fix instead.
+	(xg_relax_trampoline, init_trampoline_frag)
+	(add_jump_to_trampoline): Don't pass jump_around parameter to
+	xg_append_jump.
+	* config/tc-xtensa.h (struct xtensa_frag_type): Add new fields:
+	needs_jump_around, next_trampoline and jump_around_fix.
+
+2017-11-27  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* config/tc-xtensa.c (find_trampoline_seg): Move above the first
+	use.
+	(xtensa_create_trampoline_frag): Replace trampoline seg search
+	code with a call to find_trampoline_seg.
+
+2017-11-27  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* config/tc-xtensa.c (xg_append_jump): New function.
+	(xg_relax_trampoline, init_trampoline_frag)
+	(add_jump_to_trampoline): Replace trampoline jump assembling
+	code with a call to xg_append_jump.
+
+2017-11-27  Max Filippov  <jcmvbkbc@gmail.com>
+
+	* config/tc-xtensa.c (xg_relax_trampoline): New function.
+	(xtensa_relax_frag): Replace trampoline relaxation code with a
+	call to xg_relax_trampoline.
+
+2017-11-27  Nick Clifton  <nickc@redhat.com>
+
+	PR 22492
+	* config/obj-elf.c (obj_elf_version): Set the alignment of the
+	.note section.
+
+2017-11-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/gas/i386/sse-noavx.s: Add tests for fisttps and
+	fisttpl.
+	* testsuite/gas/i386/x86-64-sse-noavx.s: Likewise.
+	* testsuite/gas/i386/ilp32/x86-64-sse-noavx.d: Updated.
+	* testsuite/gas/i386/sse-noavx.d: Likewise.
+	* testsuite/gas/i386/x86-64-sse-noavx.d: Likewise.
+
+2017-11-24  Jim Wilson  <jimw@sifive.com>
+
+	* write.h (FAKE_LABEL_CHAR): Expand comment.
+
+2017-11-24  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (check_VecOperations): Check register type
+	for masking. Quote the actual register name in the respective
+	diagnostic. Check {z} wasn't specified on its own.
+	* testsuite/gas/i386/inval-avx512f.s,
+	testsuite/gas/i386/x86-64-inval-avx512f.s: Add further bad
+	masking tests.
+	* testsuite/gas/i386/inval-avx512f.l,
+	testsuite/gas/i386/x86-64-inval-avx512f.l: Adjust expectations.
+
+2017-11-24  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/intel.d, testsuite/gas/i386/opcode.d,
+	testsuite/gas/i386/opcode-suffix.d, testsuite/gas/i386/sse3.d,
+	testsuite/gas/i386/sse-noavx.d, testsuite/gas/i386/x86-64-sse3.d,
+	testsuite/gas/i386/x86-64-sse-noavx.d,
+	testsuite/gas/i386/ilp32/x86-64-sse3.d,
+	testsuite/gas/i386/ilp32/x86-64-sse-noavx.d: Adjust expectations.
+
+2017-11-23  Jim Wilson  <jimw@sifive.com>
+
+	* testsuite/gas/all/err-fakelabel.s (dg-error): Also accept fatal error
+	string.
+
+	* as.c (INITIALIZING_EMULS): Define.
+	* config/obj-multi.h (FAKE_LABEL_NAME): When INITIALIZING_EMULS set,
+	don't define it.
+
+2017-11-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* testsuite/gas/i386/avx512f_vaes-intel.d: Regenerate.
+	* testsuite/gas/i386/avx512f_vaes.d: Likewise.
+	* testsuite/gas/i386/avx512f_vaes-wig1-intel.d: Likewise.
+	* testsuite/gas/i386/avx512f_vaes-wig1.d: Likewise.
+	* testsuite/gas/i386/avx512vl_vaes-intel.d: Likewise.
+	* testsuite/gas/i386/avx512vl_vaes.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512f_vaes.s: Add instructions with
+	disp8*N.
+	* testsuite/gas/i386/x86-64-avx512f_vaes-intel.d: Regenerate.
+	* testsuite/gas/i386/x86-64-avx512f_vaes.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512f_vaes-wig.s: Add instructions with
+	disp8*N.
+	* testsuite/gas/i386/x86-64-avx512f_vaes-wig1-intel.d: Regenerate.
+	* testsuite/gas/i386/x86-64-avx512f_vaes-wig1.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vl_vaes-intel.d: Regenerate.
+	* testsuite/gas/i386/x86-64-avx512vl_vaes.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vl_vaes-wig.s: Add instructions with
+	disp8*N.
+	* testsuite/gas/i386/x86-64-avx512vl_vaes-wig1-intel.d: Regenerate.
+	* testsuite/gas/i386/x86-64-avx512vl_vaes-wig1.d: Regenerate.
+
+2017-11-23  Jan Beulich  <jbeulich@suse.com>
+
+	* tc-i386.c (check_VecOperands): Don't clear .disp16.
+	* testsuite/gas/i386/avx512f.s: Add 16-bit addressing tests.
+	* testsuite/gas/i386/avx512f.d,
+	testsuite/gas/i386/avx512f-intel.d: Adjust expectations.
+
+2017-11-23  Jan Beulich  <jbeulich@suse.com>
+
+	PR gas/22441
+	* config/tc-i386.c (build_modrm_byte): Add address override
+	prefix checks alongside 64-bit mode ones.
+	* testsuite/gas/i386/reloc64.s: Add 32-bit signed/unsigned
+	relocation cases.
+	* testsuite/gas/i386/reloc64.d: Adjust expectations.
+
+2017-11-23  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (build_modrm_byte): Drop VSIB handling from
+	code also setting fake_zero_displacement.
+
+2017-11-23  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/arch-4.s: Correct ud1 and ud2b. Add ud0.
+	* testsuite/gas/i386/intel.s: Test ud2 instead of ud2b.
+	* testsuite/gas/i386/opcode.s: Likewise.
+	* testsuite/gas/i386/arch-4.d, testsuite/gas/i386/intel.d,
+	testsuite/gas/i386/opcode.d, testsuite/gas/i386/opcode-intel.d,
+	testsuite/gas/i386/opcode-suffix.d: Adjust expectations.
+
+2017-11-23  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386-intel.c (i386_intel_operand): Don't call
+	as_bad() if a prior error was already reported.
+	* testsuite/gas/i386/inval-avx512f.l,
+	testsuite/gas/i386/x86-64-inval-avx512f.l: Adjust expectations.
+
+2017-11-22  Jim Wilson  <jimw@sifive.com>
+
+	* as.c: Include write.h.
+	(common_emul_init): Use FAKE_LABEL_NAME.
+	* ecoff.c (add_file, ecoff_directive_end, ecoff_directive_loc):
+	Likewise.
+	(ecoff_build_symbols): Use FAKE_LABEL_CHAR.
+	* expr.c (get_symbol_name): Use FAKE_LABEL_CHAR.  Accept only if
+	input_from_string is TRUE.
+	* read.c (input_from_string): New.
+	(read_symbol_name): Use FAKE_LABEL_CHAR.  Accept only if
+	input_from_string is TRUE.
+	(temp_ilp): Set input_from_string to TRUE.
+	(restore_ilp): Set input_from_string to FALSE.
+	* read.h (input_from_string): Declare.
+	* symbols.c: Include write.h
+	(S_IS_LOCAL): Check for FAKE_LABEL_CHAR.
+	(symbol_relc_make_sym): Fix comment refering to default fake label
+	string.
+	* write.h (FAKE_LABEL_CHAR): New.
+	* config/tc-riscv.h (FAKE_LABEL_CHAR): Define.
+	* testsuite/gas/all/err-fakelabel.s: New.
+
+	* doc/as.texinfo (.align): Change some to most for text nop fill.
+	(.balign, .p2align): Likewise.
+
+2017-11-22  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/tc-arm.c (arm_reg_type): Comment on the link with
+	reg_expected_msgs.
+	(reg_expected_msgs): Initialize using array designators with
+	arm_reg_type index.
+
+2017-11-22  Claudiu Zissulescu  <claziss@synopsys.com>
+
+	* testsuite/gas/arc/hregs-err.s: New test.
+
+2017-11-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/22464
+	* testsuite/gas/i386/align-1.s: New file.
+	* testsuite/gas/i386/align-1a.d: Likewise.
+	* testsuite/gas/i386/align-1b.d: Likewise.
+	* testsuite/gas/i386/i386.exp: Run align-1a and align-1b.
+
+2017-11-21  Claudiu Zissulescu <claziss@synopsys.com>
+
+	* testsuite/gas/arc/b.d : Update test.
+	* testsuite/gas/arc/bl.d: Likewise.
+	* testsuite/gas/arc/jli-1.d: Likewise.
+	* testsuite/gas/arc/lp.d: Likewise.
+	* testsuite/gas/arc/pcl-relocs.d: Likewise.
+	* testsuite/gas/arc/pcrel-relocs.d: Likewise.
+	* testsuite/gas/arc/pic-relocs.d: Likewise.
+	* testsuite/gas/arc/plt-relocs.d: Likewise.
+	* testsuite/gas/arc/pseudos.d: Likewise.
+	* testsuite/gas/arc/relax-avoid2.d: Likewise.
+	* testsuite/gas/arc/relax-avoid3.d: Likewise.
+	* testsuite/gas/arc/relax-b.d: Likewise.
+	* testsuite/gas/arc/tls-relocs.d: Likewise.
+	* testsuite/gas/arc/relax-add01.d: Likewise.
+	* testsuite/gas/arc/relax-add04.d: Likewise.
+	* testsuite/gas/arc/relax-ld01.d: Likewise.
+	* testsuite/gas/arc/relax-sub01.d: Likewise.
+	* testsuite/gas/arc/relax-sub02.d: Likewise.
+	* testsuite/gas/arc/relax-sub04.d: Likewise.
+	* testsuite/gas/arc/pcl-print.s: New file.
+	* testsuite/gas/arc/pcl-print.d: Likewise.
+	* testsuite/gas/arc/nps400-12.d: Likewise.
+
+2017-11-21  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-xtensa.c (finish_vinsn): Avoid multiple ngettext calls
+	in error message.
+
+2017-11-20  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/gas/i386/x86-64-reg-bad.l: Accept trailing padding.
+
+2017-11-16  Tamar Christina  <tamar.christina@arm.com>
+
+	* config/tc-aarch64.c (fp16fml): New.
+	* doc/c-aarch64.texi (fp16fml): New.
+	* testsuite/gas/aarch64/armv8_2-a-crypto-fp16.d (fp16): Make fp16fml.
+	* testsuite/gas/aarch64/armv8_3-a-crypto-fp16.d (fp16): Make fp16fml.
+
+2017-11-16  Tamar Christina  <tamar.christina@arm.com>
+
+	* opcodes/aarch64-tbl.h
+	(aarch64_feature_crypto): Add ARCH64_FEATURE_SIMD and AARCH64_FEATURE_FP.
+	(aarch64_feature_crypto_v8_2, aarch64_feature_sm4): Likewise.
+	(aarch64_feature_sha3): Likewise.
+
+2017-11-16  Tamar Christina  <tamar.christina@arm.com>
+
+	* doc/c-aarch64.texi (armv8.4-a, sha2, sha3, sm4): New.
+	(dotprod): Update default note.
+
+2017-11-16  Tamar Christina  <tamar.christina@arm.com>
+
+	* testsuite/gas/aarch64/armv8_4-a-illegal.d: New.
+	* testsuite/gas/aarch64/armv8_4-a-illegal.l: New.
+	* testsuite/gas/aarch64/armv8_4-a-illegal.s: New.
+	* testsuite/gas/aarch64/armv8_4-a.d: New.
+	* testsuite/gas/aarch64/armv8_4-a.s: New.
+	* testsuite/gas/aarch64/armv8_2-a-crypto-fp16.s: New.
+	* testsuite/gas/aarch64/armv8_2-a-crypto-fp16.d: New.
+	* testsuite/gas/aarch64/armv8_3-a-crypto-fp16.d: New.
+	* testsuite/gas/aarch64/armv8_4-a-crypto-fp16.d: New.
+	* testsuite/gas/aarch64/armv8_2-a-crypto-fp16-illegal.s: New.
+	* testsuite/gas/aarch64/armv8_2-a-crypto-fp16-illegal.l: New.
+	* testsuite/gas/aarch64/armv8_2-a-crypto-fp16-illegal.d: New.
+
+2017-11-16  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/noextreg.s: Add tests with register index
+	bit 3 set.
+	* testsuite/gas/i386/noextreg.d: Adjust expectations.
+
+2017-11-16  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (process_suffix): Ignore .no_qsuf outside of
+	64-bit mode.
+	* testsuite/gas/i386/ptwrite.s: Add test for memory operand
+	without DWORD PTR.
+	* testsuite/gas/i386/ptwrite.d,
+	testsuite/gas/i386/ptwrite-intel.d: Adjust expectations.
+
+2017-11-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/gas/i386/noextreg.s: Replace .code64/.code32 and
+	64-bit instructions with .byte.  Remove ELF directive.
+
+2017-11-15  Tamar Christina  <tamar.christina@arm.com>
+
+	* config/tc-arm.c (arm_ext_fp16_fml, fp16fml): New.
+	(do_neon_fmac_maybe_scalar_long): Use arm_ext_fp16_fml.
+	* doc/c-arm.texi (fp16, fp16fml): New.
+	* testsuite/gas/arm/armv8_2-a-fp16.d (fp16): Make fp16fml.
+	* testsuite/gas/arm/armv8_3-a-fp16.d (fp16): Make fp16fml.
+	* testsuite/gas/arm/armv8_2-a-fp16-illegal.d (fp16): Make fp16fml.
+	* testsuite/gas/arm/armv8_2-a-fp16-thumb2.d (fp16): Make fp16fml.
+
+2017-11-15  Nick Clifton  <nickc@redhat.com>
+
+	PR 15152
+	* testsuite/gas/avr/large-debug-line-table.d: Update expected
+	output.
+	* testsuite/gas/elf/dwarf2-11.d: Likewise.
+	* testsuite/gas/elf/dwarf2-12.d: Likewise.
+	* testsuite/gas/elf/dwarf2-13.d: Likewise.
+	* testsuite/gas/elf/dwarf2-14.d: Likewise.
+	* testsuite/gas/elf/dwarf2-15.d: Likewise.
+	* testsuite/gas/elf/dwarf2-16.d: Likewise.
+	* testsuite/gas/elf/dwarf2-17.d: Likewise.
+	* testsuite/gas/elf/dwarf2-18.d: Likewise.
+	* testsuite/gas/elf/dwarf2-5.d: Likewise.
+	* testsuite/gas/elf/dwarf2-6.d: Likewise.
+	* testsuite/gas/elf/dwarf2-7.d: Likewise.
+
+2017-11-15  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/noextreg.s: Add tests for VEX-encoded GPR
+	insns with VEX.W set.
+	* testsuite/gas/i386/noextreg.d: Adjust expectations.
+
+2017-11-15  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/noextreg.{s,d}: New.
+	* testsuite/gas/i386/i386.exp: Run new test.
+
+2017-11-15  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/x86-64-reg.s: Add extended byte reg tests.
+	* testsuite/gas/i386/x86-64-reg.d,
+	testsuite/gas/i386/x86-64-reg-intel.d,
+	testsuite/gas/i386/ilp32/x86-64-reg.d,
+	testsuite/gas/i386/ilp32/x86-64-reg-intel.d: Adjust
+	expectations.
+
+	* testsuite/gas/i386/x86-64-reg-bad.{s,l}: New.
+	* testsuite/gas/i386/i386.exp: Run new test.
+
+2017-11-14  Jim Wilson  <jimw@sifive.com>
+
+	* testsuite/gas/lns/lns.exp (lns-common-1): Add riscv*-*-* to alt list.
+
+2017-11-14  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/x86-64-xop.d, testsuite/gas/i386/xop.d,
+	testsuite/gas/i386/xop32reg.d: Adjust expectations.
+
+2017-11-14  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/avx512bw.s: Add vpcmp* pseudo tests.
+	* testsuite/gas/i386/avx512bw_vl.s: Likewise.
+	* testsuite/gas/i386/avx512bw.d, testsuite/gas/i386/avx512bw-intel.d,
+	testsuite/gas/i386/avx512bw_vl.d,
+	testsuite/gas/i386/avx512bw_vl-intel.d: Adjust expectations.
+
+2017-11-14  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/i386/string-ok.s: Add a few more valid patterns.
+	Move bogus tests ...
+	* testsuite/gas/i386/string-bad.s: ... here.
+	* testsuite/gas/i386/string-bad.l: Adjust expectations.
+	* testsuite/gas/i386/string-ok.d: Likewise.
+	* testsuite/gas/i386/string-ok.e: Likewise.
+
+2017-11-13  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-aarch64.c (R_Z_BHSDQ_VZP): Rename to ...
+	(R_Z_SP_BHSDQ_VZP): ... and include both stack pointer variants.
+
+2017-11-13  Jan Beulich  <jbeulich@suse.com>
+
+	* testsuite/gas/ia64/group-1.d: Adjust expectations.
+	* testsuite/gas/ia64/group-2.d: Likewise.
+	* testsuite/gas/ia64/xdata.d: Likewise.
+
+2017-11-13  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (process_suffix): Treat .shiftcount just like
+	.inoutportreg.
+	* testsuite/gas/i386/inval.s: Add ambiguous shift/rotate cases.
+	* testsuite/gas/i386/inval.l: Adjust expectations.
+
+2017-11-13  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386-intel.c (i386_intel_simplify_register): Also
+	recognize RegRiz/RegEiz as index-only registers.
+	* testsuite/gas/i386/intel.s: Add tests exercising base/index
+	swapping.
+	* testsuite/gas/i386/intel.d: Adjust expectations.
+
+2017-11-13  Jan Beulich  <jbeulich@suse.com>
+
+	* config/tc-i386.c (i386_index_check): Break out ...
+	(i386_addressing_mode): ... this new function.
+	* config/tc-i386-intel.c (i386_intel_operand): Do base/index
+	swapping and the setting of .baseindex earlier. Call
+	i386_addressing_mode.
+	* testsuite/gas/i386/x86-64-inval.s: Add out of range
+	displacement case.
+	* testsuite/gas/i386/x86-64-inval.l: Adjust expectations.
+
+2017-11-09  Jim Wilson  <jimw@sifive.com>
+
+	* testsuite/gas/elf/dwarf2-10.l: Accept optional line number in error.
+
+2017-11-06  Tamar Christina  <tamar.christina@arm.com>
+
+	* gas/testsuite/gas/aarch64/dotproduct_armv8_4.s: New.
+	* gas/testsuite/gas/aarch64/dotproduct_armv8_4.d: New.
+
+2017-11-09  Tamar Christina  <tamar.christina@arm.com>
+
+	* gas/testsuite/gas/aarch64/armv8_4-a-registers-illegal.d: New.
+	* gas/testsuite/gas/aarch64/armv8_4-a-registers-illegal.l: New.
+	* gas/testsuite/gas/aarch64/armv8_4-a-registers-illegal.s: New.
+	* gas/testsuite/gas/aarch64/armv8_4-a-registers.d: New.
+	* gas/testsuite/gas/aarch64/armv8_4-a-registers.s: New.
+
+2017-11-09 Tamar Christina  <tamar.christina@arm.com>
+
+	* config/tc-aarch64.c (process_omitted_operand):
+	Add AARCH64_OPND_Va, AARCH64_OPND_SM3_IMM2
+	and AARCH64_OPND_IMM_2.
+	(parse_operands): Add AARCH64_OPND_Va, AARCH64_OPND_SM3_IMM2,
+	AARCH64_OPND_IMM_2, AARCH64_OPND_MASK
+	and AARCH64_OPND_ADDR_OFFSET.
+
+2017-11-09  Tamar Christina  <tamar.christina@arm.com>
+
+	* config/tc-aarch64.c (aarch64_arch_option_table): Add armv8.4-a.
+	(aarch64_features): Add SM4 and SHA3.
+
+2017-11-08  Tamar Christina  <tamar.christina@arm.com>
+
+	* config/tc-aarch64.c
+	(aarch64_features): Include AES and SHA2 in CRYPTO.
+	Add SHA2 and AES.
+
+2017-11-08  Jiong Wang  <jiong.wang@arm.com>
+	    Tamar Christina <tamar.christina@arm.com>
+
+	* config/tc-arm.c (arm_extensions):
+	(arm_archs): New entry for "armv8.4-a".
+	Add FPU_ARCH_DOTPROD_NEON_VFP_ARMV8.
+	(arm_ext_v8_2): New variable.
+	(enum arm_reg_type): New enumeration REG_TYPE_NSD.
+	(reg_expected_msgs): New entry for REG_TYPE_NSD.
+	(parse_typed_reg_or_scalar): Handle REG_TYPE_NSD.
+	(parse_scalar): Support REG_TYPE_VFS.
+	(enum operand_parse_code): New enumerations OP_RNSD and OP_RNSD_RNSC.
+	(parse_operands): Handle OP_RNSD and OP_RNSD_RNSC.
+	(NEON_SHAPE_DEF): New entries for DHH and DHS.
+	(neon_scalar_for_fmac_fp16_long): New function to generate Rm encoding
+	for new FP16 instructions in ARMv8.2-A.
+	(do_neon_fmac_maybe_scalar_long): New function to encode new FP16
+	instructions in ARMv8.2-A.
+	(do_neon_vfmal): Wrapper function for vfmal.
+	(do_neon_vfmsl): Wrapper function for vfmsl.
+	(insns): New entries for vfmal and vfmsl.
+	* doc/c-arm.texi (-march): Document "armv8.4-a".
+	* testsuite/gas/arm/dotprod-mandatory.d: New test.
+	* testsuite/gas/arm/armv8_2-a-fp16.s: New test source.
+	* testsuite/gas/arm/armv8_2-a-fp16-illegal.s: New test source.
+	* testsuite/gas/arm/armv8_2-a-fp16.d: New test.
+	* testsuite/gas/arm/armv8_3-a-fp16.d: New test.
+	* testsuite/gas/arm/armv8_4-a-fp16.d: New test.
+	* testsuite/gas/arm/armv8_2-a-fp16-thumb2.d: New test.
+	* testsuite/gas/arm/armv8_2-a-fp16-illegal.d: New test.
+	* testsuite/gas/arm/armv8_2-a-fp16-illegal.l: New error file.
+
+2017-11-08  Alan Modra  <amodra@gmail.com>
+
+	* config/tc-xtensa.c (finish_vinsn): Properly pluralize error message.
+
+2017-11-07  Jim Wilson  <jimw@sifive.com>
+
+	* config/tc-riscv.c (append_insn): Call frag_wane and frag_new at
+	end for linker optimizable relocs.
+	* testsuite/gas/riscv/eh-relocs.d: New.
+	* testsuite/gas/riscv/eh-relocs.s: New.
+	* testsuite/gas/riscv/riscv.exp: Run eh-relocs test.
+
+2017-11-07  Palmer Dabbelt  <palmer@dabbelt.com>
+
+	* testsuite/gas/riscv/satp.d: New test.
+	testsuite/gas/riscv/satp.s: Likewise.
+	testsuite/gas/riscv/riscv.exp: Likewise.
+	config/tc-riscv.c (md_begin): Handle CSR aliases.
+
+2017-11-07  Tamar Christina  <tamar.christina@arm.com>
+
+	* config/tc-arm.c (arm_cpus):
+	Change FPU_ARCH_CRYPTO_NEON_VFP_ARMV8
+	into FPU_ARCH_CRYPTO_NEON_VFP_ARMV8_DOTPROD.
+
+2017-11-07  Alan Modra  <amodra@gmail.com>
+
+	* read.c (assemble_one, s_bundle_unlock): Formatting.
+	Consistently add comma and "bytes" to error message.
+	* testsuite/gas/i386/bundle-bad.l: Adjust to suit.
+
+2017-11-07  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/gas/arm/got_prel.d,
+	* testsuite/gas/elf/dwarf2-1.d,
+	* testsuite/gas/elf/dwarf2-2.d,
+	* testsuite/gas/elf/dwarf2-3.d,
+	* testsuite/gas/elf/dwarf2-5.d,
+	* testsuite/gas/elf/dwarf2-6.d,
+	* testsuite/gas/i386/debug1.d,
+	* testsuite/gas/i386/dw2-compress-1.d,
+	* testsuite/gas/i386/dw2-compress-3a.d,
+	* testsuite/gas/i386/dw2-compress-3b.d,
+	* testsuite/gas/i386/dw2-compressed-1.d,
+	* testsuite/gas/i386/dw2-compressed-3a.d,
+	* testsuite/gas/i386/dw2-compressed-3b.d,
+	* testsuite/gas/i386/ilp32/x86-64-localpic.d,
+	* testsuite/gas/i386/localpic.d,
+	* testsuite/gas/i386/x86-64-localpic.d,
+	* testsuite/gas/ia64/pr13167.d,
+	* testsuite/gas/mips/loc-swap-2.d,
+	* testsuite/gas/mips/loc-swap.d,
+	* testsuite/gas/mips/micromips@loc-swap-2.d,
+	* testsuite/gas/mips/micromips@loc-swap.d,
+	* testsuite/gas/mips/mips16-dwarf2-n32.d,
+	* testsuite/gas/mips/mips16-dwarf2.d,
+	* testsuite/gas/mips/mips16@loc-swap-2.d,
+	* testsuite/gas/mips/mips16@loc-swap.d,
+	* testsuite/gas/mips/mips16e@loc-swap.d,
+	* testsuite/gas/mmix/bspec-1.d,
+	* testsuite/gas/mmix/bspec-2.d,
+	* testsuite/gas/tic6x/unwind-1.d,
+	* testsuite/gas/tic6x/unwind-2.d,
+	* testsuite/gas/tic6x/unwind-3.d: Update for pluralization
+	fixes.
+
+2017-11-07  Alan Modra  <amodra@gmail.com>
+
+	* as.c (main): Properly pluralize messages.
+	* frags.c (frag_grow): Likewise.
+	* read.c (emit_expr_with_reloc, emit_expr_fix): Likewise.
+	(parse_bitfield_cons): Likewise.
+	* write.c (fixup_segment, compress_debug, write_contents): Likewise.
+	(relax_segment): Likewise.
+	* config/tc-arm.c (s_arm_elf_cons): Likewise.
+	* config/tc-cr16.c (l_cons): Likewise.
+	* config/tc-i370.c (i370_elf_cons): Likewise.
+	* config/tc-m68k.c (m68k_elf_cons): Likewise.
+	* config/tc-msp430.c (msp430_operands): Likewise.
+	* config/tc-s390.c (s390_elf_cons, s390_literals): Likewise.
+	* config/tc-mcore.c (md_apply_fix): Likewise.
+	* config/tc-tic54x.c (md_assemble): Likewise.
+	* config/tc-xtensa.c (xtensa_elf_cons): Likewise.
+	(xg_expand_assembly_insn): Likewise.
+	* config/xtensa-relax.c (build_transition): Likewise.
+
+2017-11-07  Alan Modra  <amodra@gmail.com>
+
+	* asintl.h (textdomain, bindtextdomain): Use safer "do nothing".
+	(ngettext, dngettext, dcngettext): Define when !ENABLE_NLS.
+
+2017-11-03  Siddhesh Poyarekar  <siddhesh.poyarekar@linaro.org>
+	    Jim Wilson  <jim.wilson@linaro.org>
+
+	* config/tc-aarch64.c (aarch64_cpus): Add saphira.
+	* doc/c-aarch64.texi: Likewise.
+
+2017-11-02  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* testsuite/gas/arm/copro-thumb_v6t2plus-thumb_v6t2-1.d: Add
+	--disassembler-options=force-thumb to objdump options.
+	* testsuite/gas/arm/copro-thumb_v6t2plus-thumb_v6t2-2.d: Likewise.
+
+2017-11-01  James Bowman  <james.bowman@ftdichip.com>
+
+	* config/tc-ft32.c (md_assemble): Add relaxation reloc
+	BFD_RELOC_FT32_RELAX.
+	(md_longopts): Add "norelax" and "no-relax".
+	(md_apply_fix): Add reloc BFD_RELOC_FT32_DIFF32.
+	(relaxable_section, ft32_validate_fix_sub, ft32_force_relocation,
+	ft32_allow_local_subtract): New function.
+	* config/tc-ft32.h: Remove unused MD_PCREL_FROM_SECTION.
+	* testsuite/gas/ft32/insnsc.s: New test exercising all FT32B
+	shortcodes.
+	* testsuite/gas/ft32/insnsc.d: New driver file.
+	* testsuite/gas/all/gas.exp: Update.
+	* testsuite/gas/ft32/ft32.exp: Run the new test.
+	* testsuite/gas/ft32/insn.d: Update.
+	* testsuite/gas/elf/dwarf2-11.d: Update.
+	* testsuite/gas/elf/dwarf2-12.d: Update.
+	* testsuite/gas/elf/dwarf2-13.d: Update.
+	* testsuite/gas/elf/dwarf2-14.d: Update.
+	* testsuite/gas/elf/dwarf2-15.d: Update.
+	* testsuite/gas/elf/dwarf2-16.d: Update.
+	* testsuite/gas/elf/dwarf2-17.d: Update.
+	* testsuite/gas/elf/dwarf2-18.d: Update.
+	* testsuite/gas/elf/dwarf2-3.d: Update.
+	* testsuite/gas/elf/dwarf2-5.d: Update.
+	* testsuite/gas/elf/dwarf2-7.d: Update.
+
+2017-11-01  Thomas Preud'homme  <thomas.preudhomme@arm.com>
+
+	* config/tc-arm.c (arm_ext_v2): Define to ARM_EXT_V2 feature bit.
+	* testsuite/gas/arm/copro.s: Split into
+	* testsuite/gas/arm/copro-arm_v2plus-thumb_v6t2plus.s: This while
+	changing it to unified syntax and
+	* testsuite/gas/arm/copro-arm_v5plus-thumb_v6t2plus.s: this and ...
+	* testsuite/gas/arm/copro-arm_v5teplus-thumb_v6t2plus.s: This and ...
+	* testsuite/gas/arm/copro-arm_v6plus-thumb_v6t2plus.s: This.
+	* testsuite/gas/arm/copro.d: Split into ...
+	* testsuite/gas/arm/copro-arm_v2plus-arm_v2.d: This but target ARMv2
+	and ...
+	* testsuite/gas/arm/copro-arm_v5plus-arm_v5.d: this but target ARMv5
+	and ...
+	* testsuite/gas/arm/copro-arm_v5teplus-arm_v5te.d: This but target
+	ARMv5TE and ...
+	* testsuite/gas/arm/copro-arm_v6plus-arm_v6.d: This but target ARMv6.
+	* testsuite/gas/arm/copro-arm_v2plus-arm_v1.d: New testcase.
+	* testsuite/gas/arm/copro-thumb_v6t2plus-thumb_v4t-1.d: New testcase.
+	* testsuite/gas/arm/copro-arm_v2plus-thumb_v6t2plus-unavail.l: Expected
+	errors for the above two testcases.
+	* testsuite/gas/arm/copro-thumb_v6t2plus-thumb_v6t2-1.d: New testcase.
+	* testsuite/gas/arm/copro-arm_v5plus-arm_v4.d: New testcase.
+	* testsuite/gas/arm/copro-thumb_v6t2plus-thumb_v4t-2.d: New testcase.
+	* testsuite/gas/arm/copro-arm_v5plus-thumb_v6t2plus-unavail.l:
+	Expected errors for the above two testcases.
+	* testsuite/gas/arm/copro-thumb_v6t2plus-thumb_v6t2-2.d: New testcase.
+	* testsuite/gas/arm/copro-arm_v5teplus-arm_v5.d: New testcase.
+	* testsuite/gas/arm/copro-thumb_v6t2plus-thumb_v4t-3.d: New testcase.
+	* testsuite/gas/arm/copro-arm_v5teplus-thumb_v6t2plus-unavail.l:
+	Expected errors for the above two testcases.
+	* testsuite/gas/arm/copro-thumb_v6t2plus-thumb_v6t2-3.d: New testcase.
+	* testsuite/gas/arm/copro-arm_v6plus-arm_v5te.d: New testcase.
+	* testsuite/gas/arm/copro-thumb_v6t2plus-thumb_v4t-4.d: New testcase.
+	* testsuite/gas/arm/copro-arm_v6plus-thumb_v6t2plus-unavail.l:
+	Expected errors for the above two testcases.
+	* testsuite/gas/arm/copro-thumb_v6t2plus-thumb_v6t2-4.d: New testcase.
+
+2017-10-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/22352
+	* config/tc-i386.c (check_VecOperands): Also check XMM register
+	for invalid register in AVX512 gathers.
+	* testsuite/gas/i386/vgather-check.s: Add tests for AVX512
+	gathers with XMM register.
+	* testsuite/gas/i386/x86-64-vgather-check.s: Likewise.
+	* testsuite/gas/i386/vgather-check-error.l: Updated.
+	* testsuite/gas/i386/vgather-check-none.d: Likewise.
+	* testsuite/gas/i386/vgather-check-warn.d: Likewise.
+	* testsuite/gas/i386/vgather-check-warn.e: Likewise.
+	* testsuite/gas/i386/vgather-check.d: Likewise.
+	* testsuite/gas/i386/x86-64-vgather-check-error.l: Likewise.
+	* testsuite/gas/i386/x86-64-vgather-check-none.d: Likewise.
+	* testsuite/gas/i386/x86-64-vgather-check-warn.d: Likewise.
+	* testsuite/gas/i386/x86-64-vgather-check-warn.e: Likewise.
+	* testsuite/gas/i386/x86-64-vgather-check.d: Likewise.
+
+2017-10-26  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	* testsuite/gas/all/fill-1.s: Use L2 rather than .L2.
+
+2017-10-25  Alan Modra  <amodra@gmail.com>
+
+	PR 22348
+	* config/tc-crx.c (instruction, output_opcode): Make static.
+	(relocatable, ins_parse, cur_arg_num): Likewise.
+	(parse_insn): Adjust for renamed opcodes globals.
+	(check_range): Likewise
+
+2017-10-25  Alan Modra  <amodra@gmail.com>
+
+	* testsuite/gas/all/fill-1.d: Exclude tic4x and tic54x.
+	* testsuite/gas/all/fill-1.s: Use L1 rather than .L1.
+
+2017-10-24  Andrew Waterman  <andrew@sifive.com>
+
+	* testsuite/gas/riscv/c-addi16sp-fail.d: New test.
+	* testsuite/gas/riscv/c-addi16sp-fail.l: Likewise.
+	* testsuite/gas/riscv/c-addi16sp-fail.s: Likewise.
+	* testsuite/gas/riscv/c-addi4spn-fail.d: Likewise.
+	* testsuite/gas/riscv/c-addi4spn-fail.l: Likewise.
+	* testsuite/gas/riscv/c-addi4spn-fail.s: Likewise.
+	* testsuite/gas/riscv/riscv.exp: Add new tests.
+
+2017-10-24  Andrew Waterman  <andrew@sifive.com>
+
+	* testsuite/gas/riscv/c-lui-fail.d: New testcase.
+	* gas/testsuite/gas/riscv/c-lui-fail.l: Likewise.
+	* gas/testsuite/gas/riscv/c-lui-fail.s: Likewise.
+	* gas/testsuite/gas/riscv/riscv.exp: Likewise.
+
+2017-10-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/tc-i386.c (md_pseudo_table): Add .code64 directive
+	only if BFD64 is defined.
+	* testsuite/gas/i386/code64-inval.l: New file.
+	* gas/testsuite/gas/i386/code64-inval.s: Likewise.
+	* gas/testsuite/gas/i386/code64.d: Likewise.
+	* gas/testsuite/gas/i386/code64.s: Likewise.
+	* testsuite/gas/i386/i386.exp: Run mixed-mode-reloc32,
+	att-regs, intel-regs, intel-expr and string-ok tests only if
+	assembler supports x86-64.  Run code64 and code64-inval.
+
+2017-10-23  Palmer Dabbelt  <palmer@dabbelt.com>
+
+	* config/tc-riscv.c (riscv_frag_align_code): Align code by 4
+	bytes on non-RVC systems.
+
+2017-10-23  Maciej W. Rozycki  <macro@imgtec.com>
+
+	* config/tc-mips.c (mips_elf_final_processing): Don't set
+	EF_MIPS_ABI2 in `e_flags'.
+
+2017-10-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* config/tc-i386.c (cpu_arch): Add .avx512_bitalg.
+	(cpu_noarch): noavx512_bitalg.
+	* doc/c-i386.texi: Document .avx512_bitalg, noavx512_bitalg.
+	* testsuite/gas/i386/i386.exp: Add AVX512_BITALG tests.
+	* testsuite/gas/i386/avx512f_bitalg-intel.d: New test.
+	* testsuite/gas/i386/avx512f_bitalg.d: Likewise.
+	* testsuite/gas/i386/avx512f_bitalg.s: Likewise.
+	* testsuite/gas/i386/avx512vl_bitalg-intel.d: Likewise.
+	* testsuite/gas/i386/avx512vl_bitalg.d: Likewise.
+	* testsuite/gas/i386/avx512vl_bitalg.s: Likewise.
+	* testsuite/gas/i386/x86-64-avx512f_bitalg-intel.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512f_bitalg.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512f_bitalg.s: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vl_bitalg-intel.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vl_bitalg.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vl_bitalg.s: Likewise.
+
+2017-10-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* config/tc-i386.c (cpu_arch): Add .avx512_vnni.
+	(cpu_noarch): Add noavx512_vnni.
+	* doc/c-i386.texi: Document .avx512_vnni.
+	* testsuite/gas/i386/i386.exp: Add AVX512_VNNI tests.
+	* testsuite/gas/i386/avx512vnni-intel.d: New test.
+	* testsuite/gas/i386/avx512vnni.d: Likewise.
+	* testsuite/gas/i386/avx512vnni.s: Likewise.
+	* testsuite/gas/i386/avx512vnni_vl-intel.d: Likewise.
+	* testsuite/gas/i386/avx512vnni_vl.d: Likewise.
+	* testsuite/gas/i386/avx512vnni_vl.s: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vnni-intel.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vnni.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vnni.s: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vnni_vl-intel.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vnni_vl.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vnni_vl.s: Likewise.
+
+2017-10-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* config/tc-i386.c (cpu_arch): Add VPCLMULQDQ.
+	* doc/c-i386.texi: Document VPCLMULQDQ.
+	* testsuite/gas/i386/i386.exp: Run VPCLMULQDQ tests.
+	* testsuite/gas/i386/avx512f_vpclmulqdq-intel.d: New test.
+	* testsuite/gas/i386/avx512f_vpclmulqdq-wig.s: Ditto.
+	* testsuite/gas/i386/avx512f_vpclmulqdq-wig1-intel.d: Ditto.
+	* testsuite/gas/i386/avx512f_vpclmulqdq-wig1.d: Ditto.
+	* testsuite/gas/i386/avx512f_vpclmulqdq.d: Ditto.
+	* testsuite/gas/i386/avx512f_vpclmulqdq.s: Ditto.
+	* testsuite/gas/i386/avx512vl_vpclmulqdq-intel.d: Ditto.
+	* testsuite/gas/i386/avx512vl_vpclmulqdq-wig.s: Ditto.
+	* testsuite/gas/i386/avx512vl_vpclmulqdq-wig1-intel.d: Ditto.
+	* testsuite/gas/i386/avx512vl_vpclmulqdq-wig1.d: Ditto.
+	* testsuite/gas/i386/avx512vl_vpclmulqdq.d: Ditto.
+	* testsuite/gas/i386/avx512vl_vpclmulqdq.s: Ditto.
+	* testsuite/gas/i386/vpclmulqdq-intel.d: Ditto.
+	* testsuite/gas/i386/vpclmulqdq.d: Ditto.
+	* testsuite/gas/i386/vpclmulqdq.s: Ditto.
+	* testsuite/gas/i386/x86-64-avx512f_vpclmulqdq-intel.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512f_vpclmulqdq-wig.s: Ditto.
+	* testsuite/gas/i386/x86-64-avx512f_vpclmulqdq-wig1-intel.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512f_vpclmulqdq-wig1.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512f_vpclmulqdq.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512f_vpclmulqdq.s: Ditto.
+	* testsuite/gas/i386/x86-64-avx512vl_vpclmulqdq-intel.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512vl_vpclmulqdq-wig.s: Ditto.
+	* testsuite/gas/i386/x86-64-avx512vl_vpclmulqdq-wig1-intel.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512vl_vpclmulqdq-wig1.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512vl_vpclmulqdq.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512vl_vpclmulqdq.s: Ditto.
+	* testsuite/gas/i386/x86-64-vpclmulqdq-intel.d: Ditto.
+	* testsuite/gas/i386/x86-64-vpclmulqdq.d: Ditto.
+	* testsuite/gas/i386/x86-64-vpclmulqdq.s: Ditto.
+
+2017-10-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* config/tc-i386.c (cpu_arch): Add VAES.
+	* doc/c-i386.texi: Document VAES.
+	* testsuite/gas/i386/i386.exp: Run VAES tests.
+	* testsuite/gas/i386/avx512f_vaes-intel.d: New test.
+	* testsuite/gas/i386/avx512f_vaes-wig.s: Ditto.
+	* testsuite/gas/i386/avx512f_vaes-wig1-intel.d: Ditto.
+	* testsuite/gas/i386/avx512f_vaes-wig1.d: Ditto.
+	* testsuite/gas/i386/avx512f_vaes.d: Ditto.
+	* testsuite/gas/i386/avx512f_vaes.s: Ditto.
+	* testsuite/gas/i386/avx512vl_vaes-intel.d: Ditto.
+	* testsuite/gas/i386/avx512vl_vaes-wig.s: Ditto.
+	* testsuite/gas/i386/avx512vl_vaes-wig1-intel.d: Ditto.
+	* testsuite/gas/i386/avx512vl_vaes-wig1.d: Ditto.
+	* testsuite/gas/i386/avx512vl_vaes.d: Ditto.
+	* testsuite/gas/i386/avx512vl_vaes.s: Ditto.
+	* testsuite/gas/i386/vaes-intel.d: Ditto.
+	* testsuite/gas/i386/vaes.d: Ditto.
+	* testsuite/gas/i386/vaes.s: Ditto.
+	* testsuite/gas/i386/x86-64-avx512f_vaes-intel.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512f_vaes-wig.s: Ditto.
+	* testsuite/gas/i386/x86-64-avx512f_vaes-wig1-intel.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512f_vaes-wig1.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512f_vaes.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512f_vaes.s: Ditto.
+	* testsuite/gas/i386/x86-64-avx512vl_vaes-intel.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512vl_vaes-wig.s: Ditto.
+	* testsuite/gas/i386/x86-64-avx512vl_vaes-wig1-intel.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512vl_vaes-wig1.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512vl_vaes.d: Ditto.
+	* testsuite/gas/i386/x86-64-avx512vl_vaes.s: Ditto.
+	* testsuite/gas/i386/x86-64-vaes-intel.d: Ditto.
+	* testsuite/gas/i386/x86-64-vaes.d: Ditto.
+	* testsuite/gas/i386/x86-64-vaes.s: Ditto.
+
+2017-10-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* config/tc-i386.c (cpu_arch): Add .gfni.
+	* doc/c-i386.texi: Document .gfni.
+	* testsuite/gas/i386/i386.exp: Add GFNI tests.
+	* testsuite/gas/i386/avx.s: New GFNI test.
+	* testsuite/gas/i386/x86-64-avx.s: Likewise.
+	* testsuite/gas/i386/avx.d: Adjust.
+	* testsuite/gas/i386/avx-intel.d: Likewise
+	* testsuite/gas/i386/ilp32/x86-64-avx-intel.d: Likewise.
+	* testsuite/gas/i386/ilp32/x86-64-avx.d: Likewise.
+	* testsuite/gas/i386/avx512f_gfni-intel.d: New test.
+	* testsuite/gas/i386/avx512f_gfni.d: Likewise.
+	* testsuite/gas/i386/avx512f_gfni.s: Likewise.
+	* testsuite/gas/i386/avx512vl_gfni-intel.d: Likewise.
+	* testsuite/gas/i386/avx512vl_gfni.d: Likewise.
+	* testsuite/gas/i386/avx512vl_gfni.s: Likewise.
+	* testsuite/gas/i386/gfni-intel.d: Likewise.
+	* testsuite/gas/i386/gfni.d: Likewise.
+	* testsuite/gas/i386/gfni.s: Likewise.
+	* testsuite/gas/i386/x86-64-avx512f_gfni-intel.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512f_gfni.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512f_gfni.s: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vl_gfni-intel.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vl_gfni.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vl_gfni.s: Likewise.
+	* testsuite/gas/i386/x86-64-avx_gfni-intel.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx_gfni.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx_gfni.s: Likewise.
+	* testsuite/gas/i386/x86-64-gfni-intel.d: Likewise.
+	* testsuite/gas/i386/x86-64-gfni.d: Likewise.
+	* testsuite/gas/i386/x86-64-gfni.s: Likewise.
+
+2017-10-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* config/tc-i386.c (cpu_arch): Add .avx512_vbmi2.
+	(cpu_noarch): noavx512_vbmi2.
+	* doc/c-i386.texi: Document .avx512_vbmi2, noavx512_vbmi2.
+	* testsuite/gas/i386/i386.exp: Add AVX512_VBMI2 tests.
+	* testsuite/gas/i386/avx512vbmi2-intel.d: New test.
+	* testsuite/gas/i386/avx512vbmi2.d: Likewise.
+	* testsuite/gas/i386/avx512vbmi2.s: Likewise.
+	* testsuite/gas/i386/avx512vbmi2_vl-intel.d: Likewise.
+	* testsuite/gas/i386/avx512vbmi2_vl.d: Likewise.
+	* testsuite/gas/i386/avx512vbmi2_vl.s: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vbmi2-intel.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vbmi2.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vbmi2.s: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vbmi2_vl-intel.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vbmi2_vl.d: Likewise.
+	* testsuite/gas/i386/x86-64-avx512vbmi2_vl.s: Likewise.
+
+2017-10-22  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR gas/22304
+	* testsuite/gas/cris/range-err-1.s: Remove quotes left from last edit.
+
+2017-10-20  Nick Clifton  <nickc@redhat.com>
+
+	PR 22324
+	* read.c (s_rept): Use size_t type for count parameter.
+	(do_repeat): Change type of count parameter to size_t.
+	Issue an error is the count parameter is negative.
+	(do_repeat_with_expression): Likewise.
+	* read.h: Update prototypes for do_repeat and
+	do_repeat_with_expression.
+	* doc/as.texinfo (Rept): Document that a zero count is allowed but
+	negative counts are not.
+	* config/tc-rx.c (rx_rept): Use size_t type for count parameter.
+	* config/tc-tic54x.c (tic54x_loop): Cast count parameter to size_t
+	type.
+	* testsuite/gas/macros/end.s: Add a test using a negative repeat
+	count.
+	* testsuite/gas/macros/end.l: Add expected error message.
+
+2017-10-19  Palmer Dabbelt  <palmer@dabbelt.com>
+
+	* config/tc-riscv.c (md_apply_fix): Mark
+	BFD_RELOC_RISCV_PCREL_HI20 as relaxable when relaxations are
+	enabled.
+
+2017-10-19  Nick Clifton  <nickc@redhat.com>
+
+	PR 21621
+	* config/tc-avr.h (struct avr_frag_data): Add prev_opcode field.
+	(TC_FRAG_INIT): Define.
+	(avr_frag_init): Add prototype.
+	* config/tc-avr.c (avr_frag_init): New function.
+	(avr_operands): Replace static local 'prev' variable with
+	prev_opcode field in current frag.
+	* testsuite/gas/avr/pr21621.s: New test source file.
+	* testsuite/gas/avr/pr21621.d: New test driver file.
+	* testsuite/gas/avr/pr21621.s: New test error output file.
+
+2017-10-19  Andreas Krebbel  <krebbel@linux.vnet.ibm.com>
+
+	* testsuite/gas/all/fill-1.s: Use normal labels.  Change .text to
+	.data. Pick different values.  Use .dc.w instead of .word.
+	* testsuite/gas/all/fill-1.d: New objdump output check.
+	* testsuite/gas/all/gas.exp: Use run_dump_test to execute fill-1
+	testcase.
+
+2017-10-18  Palmer Dabbelt  <palmer@dabbelt.com>
+
+	* testsuite/gas/all/align.d: Mark as unsupported on RISC-V.
+	testsuite/gas/all/relax.d: Likewise.
+	testsuite/gas/all/sleb128-2.d: Likewise.
+	testsuite/gas/all/sleb128-4.d: Likewise.
+	testsuite/gas/all/sleb128-5.d: Likewise.
+	testsuite/gas/all/sleb128-7.d: Likewise.
+	testsuite/gas/elf/section11.d: Likewise.
+	testsuite/gas/all/gas.exp (diff1.s): Likewise.
+
+2017-10-18  Nick Clifton  <nickc@redhat.com>
+
+	PR gas/22304
+	* testsuite/gas/cris/range-err-1.s: Remove spurious xfails.
+	* testsuite/gas/cris/cris.exp: Expect the shexpr-1 test to pass.
+
+2017-10-18  Nick Clifton  <nickc@redhat.com>
+
+	* po/sv.po: Updated Swedish translation.
+
+2017-10-16  Sandra Loosemore  <sandra@codesourcery.com>
+	    Henry Wong  <henry@stuffedcow.net>
+
+	* config/tc-nios2.c (nios2_translate_pseudo_insn): Check for
+	correct number of arguments.
+	(md_assemble): Handle failure of nios2_translate_pseudo_insn.
+	* testsuite/gas/nios2/illegal_pseudoinst.l: New file.
+	* testsuite/gas/nios2/illegal_pseudoinst.s: New file.
+	* testsuite/gas/nios2/nios2.exp: Add illegal_pseudoinst test.
+
+2017-10-12  James Bowman  <james.bowman@ftdichip.com>
+
+	* config/tc-ft32.c (md_assemble): Replace FT32_FLD_K8 with
+	K15.
+	(md_apply_fix, tc_gen_reloc): Add BFD_RELOC_FT32_15.
+
+2017-10-11  Nick Clifton  <nickc@redhat.com>
+
+	PR 21977
+	* listing.c (listing_newline): Use the name of the current
+	physical input file, rather than the current logical input file,
+	unless including high level source in the listing.
+	* input-scrub.c (as_where_physical): New function.  Returns the
+	name of the current physical input file.
+	* as.h: Add prototype for as_where_physical.
+
+2017-10-09  Andreas Krebbel  <krebbel@linux.vnet.ibm.com>
+
+	* testsuite/gas/s390/zarch-arch12.d (prno, tpei, irbm): New
+	instructions added.
+	* testsuite/gas/s390/zarch-arch12.s: Likewise.
+	* testsuite/gas/s390/zarch-z13.d: Rename ppno to prno.
+
+2017-10-09  Andreas Krebbel  <krebbel@linux.vnet.ibm.com>
+
+        * testsuite/gas/all/fill-1.s: Replace nop with .word 42
+
+2017-10-09  Andreas Krebbel  <krebbel@linux.vnet.ibm.com>
+
+        * read.c (s_fill): Invoke expression instead of
+        get_known_segmented_expression.
+        * testsuite/gas/all/fill-1.s: New testcase.
+        * testsuite/gas/all/gas.exp: Run fill-1 testcase
+
+2017-10-05  Nick Clifton  <nickc@redhat.com>
+
+	PR 22133
+	* config/tc-msp430.c (parse_exp): Skip an 'h' suffix to constant
+	expressions.
+	(msp430_srcoperand): Check that the entire text was parsed by
+	parse_exp.
+	(msp430_operands): Likewise.
+	* testsuite/gas/msp430/pr22133.s: New test file.
+	* testsuite/gas/msp430/pr22133.d: New test driver.
+	* testsuite/gas/msp430/pr22133.s: Expected error output.
+	* testsuite/gas/msp430/msp430.exp: Run the new test.
+
+2017-10-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gas/21167
+	* testsuite/gas/elf/elf.exp: Run group3.
+	* testsuite/gas/elf/group3.d: New file.
+	* testsuite/gas/elf/group3.s: Likewise.
+
+2017-10-05  Alan Modra  <amodra@gmail.com>
+
+	PR 21167
+	* config/obj-elf.c (struct group_list): Delete elt_count.
+	(groups): New static.
+	(build_group_lists): Don't count elements.
+	(elf_adjust_symtab): Use "groups" rather than auto "list".  Set up
+	pointer from group member to SHT_GROUP section.  Don't size
+	SHT_GROUP section or clean up here..
+	(elf_frob_file_after_relocs): ..do so here instead.
+	* testsuite/gas/arc/jli-1.d,
+	* testsuite/gas/elf/groupautob.d,
+	* testsuite/gas/mips/compact-eh-eb-2.d,
+	* testsuite/gas/mips/compact-eh-eb-5.d,
+	* testsuite/gas/mips/compact-eh-el-2.d,
+	* testsuite/gas/mips/compact-eh-el-5.d: Adjust.
+
+2017-10-01  Alexander Fedotov  <alfedotov@gmail.com>
+
+	* testsuite/gas/ppc/vle-mult-ld-st-insns.s: New file: Tests the
+	support for the VLE multiple load/store instructions.
+	* testsuite/gas/ppc/vle-mult-ld-st-insns.d: New file: Test
+	driver.
+	* testsuite/gas/ppc/ppc.exp: Run it.
+
+2017-09-27  Nick Clifton  <nickc@redhat.com>
+
+	PR 22179
+	* testsuite/gas/riscv/fmv.x.s: New file: Tests the support for the
+	renamed fmv.x.s and fmv.s.x instructions.
+	* testsuite/gas/riscv/fmv.x.d: New file: Test driver.
+
 2017-09-21  Maciej W. Rozycki  <macro@imgtec.com>
 
 	* testsuite/gas/mips/elf_mach_5900.d: New test.
@@ -235,19 +1471,6 @@
 	* testsuite/gas/elf/dwarf2-5.d: Likewise.
 	* testsuite/gas/elf/dwarf2-6.d: Likewise.
 	* testsuite/gas/elf/dwarf2-7.d: Likewise.
-
-2017-08-01  H.J. Lu  <hongjiu.lu@intel.com>
-
-	PR gas/21874
-	* config/tc-i386-intel.c (i386_intel_operand): Update segment
-	register check.
-	* testsuite/gas/i386/intelok.s: Replace "fs:gs:[eax]" with
-	"fs:[eax]".
-	* testsuite/gas/i386/inval-seg.s: Add tests for invalid segment
-	register.
-	* testsuite/gas/i386/x86-64-inval-seg.s: Likewise.
-	* testsuite/gas/i386/inval-seg.l: Updated.
-	* testsuite/gas/i386/x86-64-inval-seg.l: Likewise.
 
 2017-07-31  John David Anglin  <danglin@gcc.gnu.org>
 

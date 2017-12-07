@@ -28,6 +28,7 @@ extern int debug_threads;
 #include "nat/gdb_thread_db.h"
 #include "gdb_vecs.h"
 #include "nat/linux-procfs.h"
+#include "common/scoped_restore.h"
 
 #ifndef USE_LIBTHREAD_DB_DIRECTLY
 #include <dlfcn.h>
@@ -155,19 +156,21 @@ thread_db_state_str (td_thr_state_e state)
 }
 #endif
 
+/* Get thread info about PTID, accessing memory via the current
+   thread.  */
+
 static int
 find_one_thread (ptid_t ptid)
 {
   td_thrhandle_t th;
   td_thrinfo_t ti;
   td_err_e err;
-  struct thread_info *inferior;
   struct lwp_info *lwp;
   struct thread_db *thread_db = current_process ()->priv->thread_db;
   int lwpid = ptid_get_lwp (ptid);
 
-  inferior = (struct thread_info *) find_inferior_id (&all_threads, ptid);
-  lwp = get_thread_lwp (inferior);
+  thread_info *thread = find_thread_ptid (ptid);
+  lwp = get_thread_lwp (thread);
   if (lwp->thread_known)
     return 1;
 
@@ -403,7 +406,7 @@ thread_db_get_tls_address (struct thread_info *thread, CORE_ADDR offset,
 
   lwp = get_thread_lwp (thread);
   if (!lwp->thread_known)
-    find_one_thread (thread->entry.id);
+    find_one_thread (thread->id);
   if (!lwp->thread_known)
     return TD_NOTHR;
 
@@ -448,8 +451,7 @@ thread_db_thread_handle (ptid_t ptid, gdb_byte **handle, int *handle_len)
 {
   struct thread_db *thread_db;
   struct lwp_info *lwp;
-  struct thread_info *thread
-    = (struct thread_info *) find_inferior_id (&all_threads, ptid);
+  thread_info *thread = find_thread_ptid (ptid);
 
   if (thread == NULL)
     return false;
@@ -461,7 +463,7 @@ thread_db_thread_handle (ptid_t ptid, gdb_byte **handle, int *handle_len)
 
   lwp = get_thread_lwp (thread);
 
-  if (!lwp->thread_known && !find_one_thread (thread->entry.id))
+  if (!lwp->thread_known && !find_one_thread (thread->id))
     return false;
 
   gdb_assert (lwp->thread_known);
@@ -887,15 +889,22 @@ thread_db_handle_monitor_command (char *mon)
 /* See linux-low.h.  */
 
 void
-thread_db_notice_clone (struct process_info *proc, ptid_t ptid)
+thread_db_notice_clone (struct thread_info *parent_thr, ptid_t child_ptid)
 {
-  struct thread_db *thread_db = proc->priv->thread_db;
+  process_info *parent_proc = get_thread_process (parent_thr);
+  struct thread_db *thread_db = parent_proc->priv->thread_db;
 
   /* If the thread layer isn't initialized, return.  It may just
      be that the program uses clone, but does not use libthread_db.  */
   if (thread_db == NULL || !thread_db->all_symbols_looked_up)
     return;
 
-  if (!find_one_thread (ptid))
+  /* find_one_thread calls into libthread_db which accesses memory via
+     the current thread.  Temporarily switch to a thread we know is
+     stopped.  */
+  scoped_restore restore_current_thread
+    = make_scoped_restore (&current_thread, parent_thr);
+
+  if (!find_one_thread (child_ptid))
     warning ("Cannot find thread after clone.\n");
 }

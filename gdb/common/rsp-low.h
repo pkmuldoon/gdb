@@ -20,6 +20,8 @@
 #ifndef COMMON_RSP_LOW_H
 #define COMMON_RSP_LOW_H
 
+#include "common/byte-vector.h"
+
 /* Convert hex digit A to a number, or throw an exception.  */
 
 extern int fromhex (int a);
@@ -41,7 +43,7 @@ extern char *pack_hex_byte (char *pkt, int byte);
    in RESULT.  Reads until a non-hex digit is seen.  Returns a pointer
    to the terminating character.  */
 
-extern char *unpack_varlen_hex (char *buff, ULONGEST *result);
+extern const char *unpack_varlen_hex (const char *buff, ULONGEST *result);
 
 /* HEX is a string of characters representing hexadecimal digits.
    Convert pairs of hex digits to bytes and store sequentially into
@@ -51,6 +53,10 @@ extern char *unpack_varlen_hex (char *buff, ULONGEST *result);
    Returns the number of characters actually converted.  */
 
 extern int hex2bin (const char *hex, gdb_byte *bin, int count);
+
+/* Like the above, but return a gdb::byte_vector.  */
+
+gdb::byte_vector hex2bin (const char *hex);
 
 /* Like hex2bin, but return a std::string.  */
 

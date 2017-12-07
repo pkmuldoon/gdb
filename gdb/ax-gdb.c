@@ -158,8 +158,6 @@ static void gen_expr_binop_rest (struct expression *exp,
 				 struct axs_value *value,
 				 struct axs_value *value1,
 				 struct axs_value *value2);
-
-static void agent_command (char *exp, int from_tty);
 
 
 /* Detecting constant expressions.  */
@@ -2622,7 +2620,7 @@ agent_eval_command_one (const char *exp, int eval, CORE_ADDR pc)
 }
 
 static void
-agent_command_1 (char *exp, int eval)
+agent_command_1 (const char *exp, int eval)
 {
   /* We don't deal with overlay debugging at the moment.  We need to
      think more carefully about this.  If you copy this code into
@@ -2640,7 +2638,8 @@ agent_command_1 (char *exp, int eval)
 
       exp = skip_spaces (exp);
 
-      event_location_up location = new_linespec_location (&exp);
+      event_location_up location
+	= new_linespec_location (&exp, symbol_name_match_type::WILD);
       decode_line_full (location.get (), DECODE_LINE_FUNFIRSTLINE, NULL,
 			(struct symtab *) NULL, 0, &canonical,
 			NULL, NULL);
@@ -2661,7 +2660,7 @@ agent_command_1 (char *exp, int eval)
 }
 
 static void
-agent_command (char *exp, int from_tty)
+agent_command (const char *exp, int from_tty)
 {
   agent_command_1 (exp, 0);
 }
@@ -2671,7 +2670,7 @@ agent_command (char *exp, int from_tty)
    expression.  */
 
 static void
-agent_eval_command (char *exp, int from_tty)
+agent_eval_command (const char *exp, int from_tty)
 {
   agent_command_1 (exp, 1);
 }
@@ -2680,12 +2679,11 @@ agent_eval_command (char *exp, int from_tty)
    that does a printf, and display the resulting expression.  */
 
 static void
-maint_agent_printf_command (char *exp, int from_tty)
+maint_agent_printf_command (const char *cmdrest, int from_tty)
 {
   struct cleanup *old_chain = 0;
   struct expression *argvec[100];
   struct frame_info *fi = get_current_frame ();	/* need current scope */
-  const char *cmdrest;
   const char *format_start, *format_end;
   struct format_piece *fpieces;
   int nargs;
@@ -2697,10 +2695,8 @@ maint_agent_printf_command (char *exp, int from_tty)
   if (overlay_debugging)
     error (_("GDB can't do agent expression translation with overlays."));
 
-  if (exp == 0)
+  if (cmdrest == 0)
     error_no_arg (_("expression to translate"));
-
-  cmdrest = exp;
 
   cmdrest = skip_spaces (cmdrest);
 

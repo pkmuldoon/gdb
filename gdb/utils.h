@@ -31,11 +31,45 @@ extern void initialize_utils (void);
 
 extern int sevenbit_strings;
 
+/* Modes of operation for strncmp_iw_with_mode.  */
+
+enum class strncmp_iw_mode
+{
+/* Do a strcmp() type operation on STRING1 and STRING2, ignoring any
+   differences in whitespace.  Returns 0 if they match, non-zero if
+   they don't (slightly different than strcmp()'s range of return
+   values).  */
+  NORMAL,
+
+  /* Like NORMAL, but also apply the strcmp_iw hack.  I.e.,
+     string1=="FOO(PARAMS)" matches string2=="FOO".  */
+  MATCH_PARAMS,
+};
+
+/* Helper for strcmp_iw and strncmp_iw.  Exported so that languages
+   can implement both NORMAL and MATCH_PARAMS variants in a single
+   function and defer part of the work to strncmp_iw_with_mode.
+
+   LANGUAGE is used to implement some context-sensitive
+   language-specific comparisons.  For example, for C++,
+   "string1=operator()" should not match "string2=operator" even in
+   MATCH_PARAMS mode.
+
+   MATCH_FOR_LCD is passed down so that the function can mark parts of
+   the symbol name as ignored for completion matching purposes (e.g.,
+   to handle abi tags).  */
+extern int strncmp_iw_with_mode
+  (const char *string1, const char *string2, size_t string2_len,
+   strncmp_iw_mode mode, enum language language,
+   completion_match_for_lcd *match_for_lcd = NULL);
+
 /* Do a strncmp() type operation on STRING1 and STRING2, ignoring any
    differences in whitespace.  STRING2_LEN is STRING2's length.
    Returns 0 if STRING1 matches STRING2_LEN characters of STRING2,
    non-zero otherwise (slightly different than strncmp()'s range of
-   return values).  */
+   return values).  Note: passes language_minimal to
+   strncmp_iw_with_mode, and should therefore be avoided if a more
+   suitable language is available.  */
 extern int strncmp_iw (const char *string1, const char *string2,
 		       size_t string2_len);
 
@@ -47,7 +81,10 @@ extern int strncmp_iw (const char *string1, const char *string2,
    As an extra hack, string1=="FOO(ARGS)" matches string2=="FOO".
    This "feature" is useful when searching for matching C++ function
    names (such as if the user types 'break FOO', where FOO is a
-   mangled C++ function).  */
+   mangled C++ function).
+
+   Note: passes language_minimal to strncmp_iw_with_mode, and should
+   therefore be avoided if a more suitable language is available.  */
 extern int strcmp_iw (const char *string1, const char *string2);
 
 extern int strcmp_iw_ordered (const char *, const char *);
@@ -206,19 +243,15 @@ private:
 /* Cleanup utilities.  */
 
 struct section_addr_info;
-extern struct cleanup *(make_cleanup_free_section_addr_info 
-                        (struct section_addr_info *));
+extern struct cleanup *make_cleanup_free_section_addr_info
+                       (struct section_addr_info *);
 
 /* For make_cleanup_close see common/filestuff.h.  */
-
-extern struct cleanup *make_cleanup_restore_integer (int *variable);
-extern struct cleanup *make_cleanup_restore_uinteger (unsigned int *variable);
 
 struct target_ops;
 extern struct cleanup *make_cleanup_unpush_target (struct target_ops *ops);
 
 extern struct cleanup *make_cleanup_value_free_to_mark (struct value *);
-extern struct cleanup *make_cleanup_value_free (struct value *);
 
 /* A deleter for a hash table.  */
 struct htab_deleter
@@ -236,9 +269,27 @@ extern void free_current_contents (void *);
 
 extern void init_page_info (void);
 
-extern struct cleanup *make_cleanup_restore_page_info (void);
-extern struct cleanup *
-  set_batch_flag_and_make_cleanup_restore_page_info (void);
+/* Temporarily set BATCH_FLAG and the associated unlimited terminal size.
+   Restore when destroyed.  */
+
+struct set_batch_flag_and_restore_page_info
+{
+public:
+
+  set_batch_flag_and_restore_page_info ();
+  ~set_batch_flag_and_restore_page_info ();
+
+  DISABLE_COPY_AND_ASSIGN (set_batch_flag_and_restore_page_info);
+
+private:
+
+  /* Note that this doesn't use scoped_restore, because it's important
+     to control the ordering of operations in the destruction, and it
+     was simpler to avoid introducing a new ad hoc class.  */
+  unsigned m_save_lines_per_page;
+  unsigned m_save_chars_per_line;
+  int m_save_batch_flag;
+};
 
 extern struct cleanup *make_bpstat_clear_actions_cleanup (void);
 
@@ -441,9 +492,6 @@ void dummy_obstack_deallocate (void *object, void *data);
 #ifdef HAVE_WAITPID
 extern pid_t wait_to_die_with_timeout (pid_t pid, int *status, int timeout);
 #endif
-
-extern int producer_is_gcc_ge_4 (const char *producer);
-extern int producer_is_gcc (const char *producer, int *major, int *minor);
 
 extern int myread (int, char *, int);
 

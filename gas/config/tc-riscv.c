@@ -643,6 +643,7 @@ md_begin (void)
   hash_reg_names (RCLASS_FPR, riscv_fpr_names_abi, NFPR);
 
 #define DECLARE_CSR(name, num) hash_reg_name (RCLASS_CSR, #name, num);
+#define DECLARE_CSR_ALIAS(name, num) DECLARE_CSR(name, num);
 #include "opcode/riscv-opc.h"
 #undef DECLARE_CSR
 
@@ -715,6 +716,21 @@ append_insn (struct riscv_cl_insn *ip, expressionS *address_expr,
 
   add_fixed_insn (ip);
   install_insn (ip);
+
+  /* We need to start a new frag after any instruction that can be
+     optimized away or compressed by the linker during relaxation, to prevent
+     the assembler from computing static offsets across such an instruction.
+     This is necessary to get correct EH info.  */
+  if (reloc_type == BFD_RELOC_RISCV_CALL
+      || reloc_type == BFD_RELOC_RISCV_CALL_PLT
+      || reloc_type == BFD_RELOC_RISCV_HI20
+      || reloc_type == BFD_RELOC_RISCV_PCREL_HI20
+      || reloc_type == BFD_RELOC_RISCV_TPREL_HI20
+      || reloc_type == BFD_RELOC_RISCV_TPREL_ADD)
+    {
+      frag_wane (frag_now);
+      frag_new (0);
+    }
 }
 
 /* Build an instruction created by a macro expansion.  This is passed
@@ -1169,6 +1185,25 @@ my_getSmallExpression (expressionS *ep, bfd_reloc_code_real_type *reloc,
   return reloc_index;
 }
 
+/* Detect and handle implicitly zero load-store offsets.  For example,
+   "lw t0, (t1)" is shorthand for "lw t0, 0(t1)".  Return TRUE iff such
+   an implicit offset was detected.  */
+
+static bfd_boolean
+riscv_handle_implicit_zero_offset (expressionS *expr, const char *s)
+{
+  /* Check whether there is only a single bracketed expression left.
+     If so, it must be the base register and the constant must be zero.  */
+  if (*s == '(' && strchr (s + 1, '(') == 0)
+    {
+      expr->X_op = O_constant;
+      expr->X_add_number = 0;
+      return TRUE;
+    }
+
+  return FALSE;
+}
+
 /* This routine assembles an instruction into its binary format.  As a
    side effect, it sets the global variable imm_reloc to the type of
    relocation to do if one of the operands is an address expression.  */
@@ -1309,6 +1344,8 @@ rvc_imm_done:
 		  ip->insn_opcode |= ENCODE_RVC_IMM (imm_expr->X_add_number);
 		  goto rvc_imm_done;
 		case 'k':
+		  if (riscv_handle_implicit_zero_offset (imm_expr, s))
+		    continue;
 		  if (my_getSmallExpression (imm_expr, imm_reloc, s, p)
 		      || imm_expr->X_op != O_constant
 		      || !VALID_RVC_LW_IMM (imm_expr->X_add_number))
@@ -1316,6 +1353,8 @@ rvc_imm_done:
 		  ip->insn_opcode |= ENCODE_RVC_LW_IMM (imm_expr->X_add_number);
 		  goto rvc_imm_done;
 		case 'l':
+		  if (riscv_handle_implicit_zero_offset (imm_expr, s))
+		    continue;
 		  if (my_getSmallExpression (imm_expr, imm_reloc, s, p)
 		      || imm_expr->X_op != O_constant
 		      || !VALID_RVC_LD_IMM (imm_expr->X_add_number))
@@ -1323,6 +1362,8 @@ rvc_imm_done:
 		  ip->insn_opcode |= ENCODE_RVC_LD_IMM (imm_expr->X_add_number);
 		  goto rvc_imm_done;
 		case 'm':
+		  if (riscv_handle_implicit_zero_offset (imm_expr, s))
+		    continue;
 		  if (my_getSmallExpression (imm_expr, imm_reloc, s, p)
 		      || imm_expr->X_op != O_constant
 		      || !VALID_RVC_LWSP_IMM (imm_expr->X_add_number))
@@ -1331,6 +1372,8 @@ rvc_imm_done:
 		    ENCODE_RVC_LWSP_IMM (imm_expr->X_add_number);
 		  goto rvc_imm_done;
 		case 'n':
+		  if (riscv_handle_implicit_zero_offset (imm_expr, s))
+		    continue;
 		  if (my_getSmallExpression (imm_expr, imm_reloc, s, p)
 		      || imm_expr->X_op != O_constant
 		      || !VALID_RVC_LDSP_IMM (imm_expr->X_add_number))
@@ -1364,6 +1407,8 @@ rvc_imm_done:
 		    ENCODE_RVC_ADDI16SP_IMM (imm_expr->X_add_number);
 		  goto rvc_imm_done;
 		case 'M':
+		  if (riscv_handle_implicit_zero_offset (imm_expr, s))
+		    continue;
 		  if (my_getSmallExpression (imm_expr, imm_reloc, s, p)
 		      || imm_expr->X_op != O_constant
 		      || !VALID_RVC_SWSP_IMM (imm_expr->X_add_number))
@@ -1372,6 +1417,8 @@ rvc_imm_done:
 		    ENCODE_RVC_SWSP_IMM (imm_expr->X_add_number);
 		  goto rvc_imm_done;
 		case 'N':
+		  if (riscv_handle_implicit_zero_offset (imm_expr, s))
+		    continue;
 		  if (my_getSmallExpression (imm_expr, imm_reloc, s, p)
 		      || imm_expr->X_op != O_constant
 		      || !VALID_RVC_SDSP_IMM (imm_expr->X_add_number))
@@ -1602,12 +1649,7 @@ rvc_lui:
 	      p = percent_op_rtype;
 	      *imm_reloc = BFD_RELOC_UNUSED;
 load_store:
-	      /* Check whether there is only a single bracketed expression
-		 left.  If so, it must be the base register and the
-		 constant must be zero.  */
-	      imm_expr->X_op = O_constant;
-	      imm_expr->X_add_number = 0;
-	      if (*s == '(' && strchr (s + 1, '(') == 0)
+	      if (riscv_handle_implicit_zero_offset (imm_expr, s))
 		continue;
 alu_op:
 	      /* If this value won't fit into a 16 bit offset, then go
@@ -1885,7 +1927,6 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
       break;
 
     case BFD_RELOC_RISCV_GOT_HI20:
-    case BFD_RELOC_RISCV_PCREL_HI20:
     case BFD_RELOC_RISCV_ADD8:
     case BFD_RELOC_RISCV_ADD16:
     case BFD_RELOC_RISCV_ADD32:
@@ -2078,8 +2119,12 @@ md_apply_fix (fixS *fixP, valueT *valP, segT seg ATTRIBUTE_UNUSED)
       relaxable = TRUE;
       break;
 
+    case BFD_RELOC_RISCV_PCREL_HI20:
     case BFD_RELOC_RISCV_PCREL_LO12_S:
     case BFD_RELOC_RISCV_PCREL_LO12_I:
+      relaxable = riscv_opts.relax;
+      break;
+
     case BFD_RELOC_RISCV_ALIGN:
       break;
 
@@ -2274,9 +2319,17 @@ bfd_boolean
 riscv_frag_align_code (int n)
 {
   bfd_vma bytes = (bfd_vma) 1 << n;
-  bfd_vma worst_case_bytes = bytes - 2;
-  char *nops = frag_more (worst_case_bytes);
+  bfd_vma insn_alignment = riscv_opts.rvc ? 2 : 4;
+  bfd_vma worst_case_bytes = bytes - insn_alignment;
+  char *nops;
   expressionS ex;
+
+  /* If we are moving to a smaller alignment than the instruction size, then no
+     alignment is required. */
+  if (bytes <= insn_alignment)
+    return TRUE;
+
+  nops = frag_more (worst_case_bytes);
 
   /* When not relaxing, riscv_handle_align handles code alignment.  */
   if (!riscv_opts.relax)

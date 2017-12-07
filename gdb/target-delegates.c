@@ -1286,36 +1286,34 @@ debug_follow_exec (struct target_ops *self, struct inferior *arg1, char *arg2)
 }
 
 static int
-delegate_set_syscall_catchpoint (struct target_ops *self, int arg1, int arg2, int arg3, int arg4, int *arg5)
+delegate_set_syscall_catchpoint (struct target_ops *self, int arg1, bool arg2, int arg3, gdb::array_view<const int> arg4)
 {
   self = self->beneath;
-  return self->to_set_syscall_catchpoint (self, arg1, arg2, arg3, arg4, arg5);
+  return self->to_set_syscall_catchpoint (self, arg1, arg2, arg3, arg4);
 }
 
 static int
-tdefault_set_syscall_catchpoint (struct target_ops *self, int arg1, int arg2, int arg3, int arg4, int *arg5)
+tdefault_set_syscall_catchpoint (struct target_ops *self, int arg1, bool arg2, int arg3, gdb::array_view<const int> arg4)
 {
   return 1;
 }
 
 static int
-debug_set_syscall_catchpoint (struct target_ops *self, int arg1, int arg2, int arg3, int arg4, int *arg5)
+debug_set_syscall_catchpoint (struct target_ops *self, int arg1, bool arg2, int arg3, gdb::array_view<const int> arg4)
 {
   int result;
   fprintf_unfiltered (gdb_stdlog, "-> %s->to_set_syscall_catchpoint (...)\n", debug_target.to_shortname);
-  result = debug_target.to_set_syscall_catchpoint (&debug_target, arg1, arg2, arg3, arg4, arg5);
+  result = debug_target.to_set_syscall_catchpoint (&debug_target, arg1, arg2, arg3, arg4);
   fprintf_unfiltered (gdb_stdlog, "<- %s->to_set_syscall_catchpoint (", debug_target.to_shortname);
   target_debug_print_struct_target_ops_p (&debug_target);
   fputs_unfiltered (", ", gdb_stdlog);
   target_debug_print_int (arg1);
   fputs_unfiltered (", ", gdb_stdlog);
-  target_debug_print_int (arg2);
+  target_debug_print_bool (arg2);
   fputs_unfiltered (", ", gdb_stdlog);
   target_debug_print_int (arg3);
   fputs_unfiltered (", ", gdb_stdlog);
-  target_debug_print_int (arg4);
-  fputs_unfiltered (", ", gdb_stdlog);
-  target_debug_print_int_p (arg5);
+  target_debug_print_gdb_array_view_const_int (arg4);
   fputs_unfiltered (") = ", gdb_stdlog);
   target_debug_print_int (result);
   fputs_unfiltered ("\n", gdb_stdlog);
@@ -2148,29 +2146,29 @@ debug_get_memory_xfer_limit (struct target_ops *self)
   return result;
 }
 
-static VEC(mem_region_s) *
+static std::vector<mem_region>
 delegate_memory_map (struct target_ops *self)
 {
   self = self->beneath;
   return self->to_memory_map (self);
 }
 
-static VEC(mem_region_s) *
+static std::vector<mem_region>
 tdefault_memory_map (struct target_ops *self)
 {
-  return NULL;
+  return std::vector<mem_region> ();
 }
 
-static VEC(mem_region_s) *
+static std::vector<mem_region>
 debug_memory_map (struct target_ops *self)
 {
-  VEC(mem_region_s) * result;
+  std::vector<mem_region> result;
   fprintf_unfiltered (gdb_stdlog, "-> %s->to_memory_map (...)\n", debug_target.to_shortname);
   result = debug_target.to_memory_map (&debug_target);
   fprintf_unfiltered (gdb_stdlog, "<- %s->to_memory_map (", debug_target.to_shortname);
   target_debug_print_struct_target_ops_p (&debug_target);
   fputs_unfiltered (") = ", gdb_stdlog);
-  target_debug_print_VEC_mem_region_s__p (result);
+  target_debug_print_std_vector_mem_region (result);
   fputs_unfiltered ("\n", gdb_stdlog);
   return result;
 }
@@ -3352,34 +3350,34 @@ debug_static_tracepoint_markers_by_strid (struct target_ops *self, const char *a
   fputs_unfiltered (", ", gdb_stdlog);
   target_debug_print_const_char_p (arg1);
   fputs_unfiltered (") = ", gdb_stdlog);
-  target_debug_print_VEC_static_tracepoint_marker_p__p (result);
+  target_debug_print_VEC_static_tracepoint_marker_p_p (result);
   fputs_unfiltered ("\n", gdb_stdlog);
   return result;
 }
 
-static struct traceframe_info *
+static traceframe_info_up
 delegate_traceframe_info (struct target_ops *self)
 {
   self = self->beneath;
   return self->to_traceframe_info (self);
 }
 
-static struct traceframe_info *
+static traceframe_info_up
 tdefault_traceframe_info (struct target_ops *self)
 {
   tcomplain ();
 }
 
-static struct traceframe_info *
+static traceframe_info_up
 debug_traceframe_info (struct target_ops *self)
 {
-  struct traceframe_info * result;
+  traceframe_info_up result;
   fprintf_unfiltered (gdb_stdlog, "-> %s->to_traceframe_info (...)\n", debug_target.to_shortname);
   result = debug_target.to_traceframe_info (&debug_target);
   fprintf_unfiltered (gdb_stdlog, "<- %s->to_traceframe_info (", debug_target.to_shortname);
   target_debug_print_struct_target_ops_p (&debug_target);
   fputs_unfiltered (") = ", gdb_stdlog);
-  target_debug_print_struct_traceframe_info_p (result);
+  target_debug_print_traceframe_info_up (result);
   fputs_unfiltered ("\n", gdb_stdlog);
   return result;
 }

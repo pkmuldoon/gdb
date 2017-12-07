@@ -152,15 +152,15 @@ extern void setup_inferior (int from_tty);
 
 extern void post_create_inferior (struct target_ops *, int);
 
-extern void attach_command (char *, int);
+extern void attach_command (const char *, int);
 
 extern char *get_inferior_args (void);
 
-extern void set_inferior_args (char *);
+extern void set_inferior_args (const char *);
 
 extern void set_inferior_args_vector (int, char **);
 
-extern void registers_info (char *, int);
+extern void registers_info (const char *, int);
 
 extern void continue_1 (int all_threads);
 
@@ -168,7 +168,7 @@ extern void interrupt_target_1 (int all_threads);
 
 extern void delete_longjmp_breakpoint_cleanup (void *arg);
 
-extern void detach_command (char *, int);
+extern void detach_command (const char *, int);
 
 extern void notice_new_inferior (ptid_t, int, int);
 
@@ -263,7 +263,12 @@ enum stop_kind
 #define ON_STACK 1
 #define AT_ENTRY_POINT 4
 
-struct private_inferior;
+/* Base class for target-specific inferior data.  */
+
+struct private_inferior
+{
+  virtual ~private_inferior () = 0;
+};
 
 /* Inferior process specific part of `struct infcall_control_state'.
 
@@ -355,6 +360,10 @@ public:
      should never be freed.  */
   char **argv = NULL;
 
+  /* The current working directory that will be used when starting
+     this inferior.  */
+  gdb::unique_xmalloc_ptr<char> cwd;
+
   /* The name of terminal device to use for I/O.  */
   char *terminal = NULL;
 
@@ -399,7 +408,7 @@ public:
   bool needs_setup = false;
 
   /* Private data used by the target vector implementation.  */
-  private_inferior *priv = NULL;
+  std::unique_ptr<private_inferior> priv;
 
   /* HAS_EXIT_CODE is true if the inferior exited with an exit code.
      In this case, the EXIT_CODE field is also valid.  */

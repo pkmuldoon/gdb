@@ -485,8 +485,6 @@ bppy_get_commands (PyObject *self, void *closure)
 {
   gdbpy_breakpoint_object *self_bp = (gdbpy_breakpoint_object *) self;
   struct breakpoint *bp = self_bp->bp;
-  long length;
-  PyObject *result;
 
   BPPY_REQUIRE_VALID (self_bp);
 
@@ -636,6 +634,7 @@ bppy_get_ignore_count (PyObject *self, void *closure)
 
 /* Internal function to validate the Python parameters/keywords
    provided to bppy_init.  */
+
 static int
 bppy_init_validate_args (const char *spec, char *source,
 			 char *function, char *label,
@@ -765,7 +764,7 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 	      {
 		gdb::unique_xmalloc_ptr<char>
 		  copy_holder (xstrdup (skip_spaces (spec)));
-		char *copy = copy_holder.get ();
+		const char *copy = copy_holder.get ();
 
 		location  = string_to_event_location (&copy,
 						      current_language);
@@ -1043,7 +1042,6 @@ gdbpy_breakpoint_modified (struct breakpoint *b)
   int num = b->number;
   PyGILState_STATE state;
   struct breakpoint *bp = NULL;
-  gdbpy_breakpoint_object *bp_obj;
 
   state = PyGILState_Ensure ();
   bp = get_breakpoint (num);

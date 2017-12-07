@@ -39,7 +39,7 @@ riscv_elf_before_allocation (void)
   else
     ENABLE_RELAXATION;
 
-  link_info.relax_pass = 2;
+  link_info.relax_pass = 3;
 }
 
 static void
@@ -54,7 +54,7 @@ gld${EMULATION_NAME}_after_allocation (void)
       need_layout = bfd_elf_discard_info (link_info.output_bfd, &link_info);
       if (need_layout < 0)
 	{
-	  einfo ("%X%P: .eh_frame/.stab edit: %E\n");
+	  einfo (_("%X%P: .eh_frame/.stab edit: %E\n"));
 	  return;
 	}
     }

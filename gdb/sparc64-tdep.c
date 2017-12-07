@@ -20,7 +20,6 @@
 #include "defs.h"
 #include "arch-utils.h"
 #include "dwarf2-frame.h"
-#include "floatformat.h"
 #include "frame.h"
 #include "frame-base.h"
 #include "frame-unwind.h"
@@ -188,7 +187,7 @@ sparc64_forget_process (pid_t pid)
 }
 
 static void
-info_adi_command (char *args, int from_tty)
+info_adi_command (const char *args, int from_tty)
 {
   printf_unfiltered ("\"adi\" must be followed by \"examine\" "
                      "or \"assign\".\n");
@@ -293,7 +292,7 @@ adi_tag_fd (void)
     return proc->stat.tag_fd;
 
   char cl_name[MAX_PROC_NAME_SIZE];
-  snprintf (cl_name, sizeof(cl_name), "/proc/%d/adi/tags", pid);
+  snprintf (cl_name, sizeof(cl_name), "/proc/%ld/adi/tags", (long) pid);
   int target_errno;
   proc->stat.tag_fd = target_fileio_open (NULL, cl_name, O_RDWR|O_EXCL, 
                                           0, &target_errno);
@@ -311,14 +310,14 @@ adi_is_addr_mapped (CORE_ADDR vaddr, size_t cnt)
   size_t i = 0;
 
   pid_t pid = ptid_get_pid (inferior_ptid);
-  snprintf (filename, sizeof filename, "/proc/%d/adi/maps", pid);
-  char *data = target_fileio_read_stralloc (NULL, filename);
+  snprintf (filename, sizeof filename, "/proc/%ld/adi/maps", (long) pid);
+  gdb::unique_xmalloc_ptr<char> data
+    = target_fileio_read_stralloc (NULL, filename);
   if (data)
     {
-      struct cleanup *cleanup = make_cleanup (xfree, data);
       adi_stat_t adi_stat = get_adi_info (pid);
       char *line;
-      for (line = strtok (data, "\n"); line; line = strtok (NULL, "\n"))
+      for (line = strtok (data.get (), "\n"); line; line = strtok (NULL, "\n"))
         {
           ULONGEST addr, endaddr;
 
@@ -328,13 +327,9 @@ adi_is_addr_mapped (CORE_ADDR vaddr, size_t cnt)
                  && ((vaddr + i) * adi_stat.blksize) < endaddr)
             {
               if (++i == cnt)
-                {
-                  do_cleanups (cleanup);
-                  return true;
-                }
+		return true;
             }
         }
-        do_cleanups (cleanup);
       }
     else
       warning (_("unable to open /proc file '%s'"), filename);
@@ -346,7 +341,7 @@ adi_is_addr_mapped (CORE_ADDR vaddr, size_t cnt)
    for "SIZE" number of bytes.  */
 
 static int
-adi_read_versions (CORE_ADDR vaddr, size_t size, unsigned char *tags)
+adi_read_versions (CORE_ADDR vaddr, size_t size, gdb_byte *tags)
 {
   int fd = adi_tag_fd ();
   if (fd == -1)
@@ -388,7 +383,7 @@ adi_write_versions (CORE_ADDR vaddr, size_t size, unsigned char *tags)
    at "VADDR" with number of "CNT".  */
 
 static void
-adi_print_versions (CORE_ADDR vaddr, size_t cnt, unsigned char *tags)
+adi_print_versions (CORE_ADDR vaddr, size_t cnt, gdb_byte *tags)
 {
   int v_idx = 0;
   const int maxelts = 8;  /* # of elements per line */
@@ -420,21 +415,17 @@ static void
 do_examine (CORE_ADDR start, int bcnt)
 {
   CORE_ADDR vaddr = adi_normalize_address (start);
-  struct cleanup *cleanup;
 
   CORE_ADDR vstart = adi_align_address (vaddr);
   int cnt = adi_convert_byte_count (vaddr, bcnt, vstart);
-  unsigned char *buf = (unsigned char *) xmalloc (cnt);
-  cleanup = make_cleanup (xfree, buf);
-  int read_cnt = adi_read_versions (vstart, cnt, buf);
+  gdb::def_vector<gdb_byte> buf (cnt);
+  int read_cnt = adi_read_versions (vstart, cnt, buf.data ());
   if (read_cnt == -1)
     error (_("No ADI information"));
   else if (read_cnt < cnt)
     error(_("No ADI information at %s"), paddress (target_gdbarch (), vaddr));
 
-  adi_print_versions (vstart, cnt, buf);
-
-  do_cleanups (cleanup);
+  adi_print_versions (vstart, cnt, buf.data ());
 }
 
 static void
@@ -461,7 +452,7 @@ do_assign (CORE_ADDR start, size_t bcnt, int version)
      adi (examine|x)/count <addr> */
 
 static void
-adi_examine_command (char *args, int from_tty)
+adi_examine_command (const char *args, int from_tty)
 {
   /* make sure program is active and adi is available */
   if (!target_has_execution)
@@ -473,7 +464,7 @@ adi_examine_command (char *args, int from_tty)
   pid_t pid = ptid_get_pid (inferior_ptid);
   sparc64_adi_info *proc = get_adi_info_proc (pid);
   int cnt = 1;
-  char *p = args;
+  const char *p = args;
   if (p && *p == '/')
     {
       p++;
@@ -496,7 +487,7 @@ adi_examine_command (char *args, int from_tty)
      adi (assign|a)/count <addr> = <version>  */
 
 static void
-adi_assign_command (char *args, int from_tty)
+adi_assign_command (const char *args, int from_tty)
 {
   /* make sure program is active and adi is available */
   if (!target_has_execution)
@@ -505,7 +496,7 @@ adi_assign_command (char *args, int from_tty)
   if (!adi_available ())
     error (_("No ADI information"));
 
-  char *exp = args;
+  const char *exp = args;
   if (exp == 0)
     error_no_arg (_("Usage: adi assign|a[/count] <addr> = <version>"));
 
@@ -516,7 +507,7 @@ adi_assign_command (char *args, int from_tty)
     error (_("Usage: adi assign|a[/count] <addr> = <version>"));
 
   size_t cnt = 1;
-  char *p = args;
+  const char *p = args;
   if (exp && *exp == '/')
     {
       p = exp + 1;
@@ -666,7 +657,7 @@ sparc64_pstate_type (struct gdbarch *gdbarch)
     {
       struct type *type;
 
-      type = arch_flags_type (gdbarch, "builtin_type_sparc64_pstate", 8);
+      type = arch_flags_type (gdbarch, "builtin_type_sparc64_pstate", 64);
       append_flags_type_flag (type, 0, "AG");
       append_flags_type_flag (type, 1, "IE");
       append_flags_type_flag (type, 2, "PRIV");
@@ -693,7 +684,7 @@ sparc64_ccr_type (struct gdbarch *gdbarch)
     {
       struct type *type;
 
-      type = arch_flags_type (gdbarch, "builtin_type_sparc64_ccr", 8);
+      type = arch_flags_type (gdbarch, "builtin_type_sparc64_ccr", 64);
       append_flags_type_flag (type, 0, "icc.c");
       append_flags_type_flag (type, 1, "icc.v");
       append_flags_type_flag (type, 2, "icc.z");
@@ -718,7 +709,7 @@ sparc64_fsr_type (struct gdbarch *gdbarch)
     {
       struct type *type;
 
-      type = arch_flags_type (gdbarch, "builtin_type_sparc64_fsr", 8);
+      type = arch_flags_type (gdbarch, "builtin_type_sparc64_fsr", 64);
       append_flags_type_flag (type, 0, "NXC");
       append_flags_type_flag (type, 1, "DZC");
       append_flags_type_flag (type, 2, "UFC");
@@ -751,7 +742,7 @@ sparc64_fprs_type (struct gdbarch *gdbarch)
     {
       struct type *type;
 
-      type = arch_flags_type (gdbarch, "builtin_type_sparc64_fprs", 8);
+      type = arch_flags_type (gdbarch, "builtin_type_sparc64_fprs", 64);
       append_flags_type_flag (type, 0, "DL");
       append_flags_type_flag (type, 1, "DU");
       append_flags_type_flag (type, 2, "FEF");
@@ -1216,7 +1207,7 @@ static void
 sparc64_store_floating_fields (struct regcache *regcache, struct type *type,
 			       const gdb_byte *valbuf, int element, int bitpos)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   int len = TYPE_LENGTH (type);
 
   gdb_assert (element < 16);
@@ -1308,7 +1299,7 @@ static void
 sparc64_extract_floating_fields (struct regcache *regcache, struct type *type,
 				 gdb_byte *valbuf, int bitpos)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
 
   if (TYPE_CODE (type) == TYPE_CODE_ARRAY)
     {
@@ -1377,7 +1368,7 @@ sparc64_store_arguments (struct regcache *regcache, int nargs,
 			 struct value **args, CORE_ADDR sp,
 			 int struct_return, CORE_ADDR struct_addr)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   /* Number of extended words in the "parameter array".  */
   int num_elements = 0;
   int element = 0;
@@ -1873,9 +1864,13 @@ sparc64_init_abi (struct gdbarch_info info, struct gdbarch *gdbarch)
 #define TSTATE_XCC	0x000000f000000000ULL
 
 #define PSR_S		0x00000080
+#ifndef PSR_ICC
 #define PSR_ICC		0x00f00000
+#endif
 #define PSR_VERS	0x0f000000
+#ifndef PSR_IMPL
 #define PSR_IMPL	0xf0000000
+#endif
 #define PSR_V8PLUS	0xff000000
 #define PSR_XCC		0x000f0000
 
@@ -1884,7 +1879,7 @@ sparc64_supply_gregset (const struct sparc_gregmap *gregmap,
 			struct regcache *regcache,
 			int regnum, const void *gregs)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   enum bfd_endian byte_order = gdbarch_byte_order (gdbarch);
   int sparc32 = (gdbarch_ptr_bit (gdbarch) == 32);
   const gdb_byte *regs = (const gdb_byte *) gregs;
@@ -2001,7 +1996,7 @@ sparc64_collect_gregset (const struct sparc_gregmap *gregmap,
 			 const struct regcache *regcache,
 			 int regnum, void *gregs)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   enum bfd_endian byte_order = gdbarch_byte_order (gdbarch);
   int sparc32 = (gdbarch_ptr_bit (gdbarch) == 32);
   gdb_byte *regs = (gdb_byte *) gregs;
@@ -2111,7 +2106,7 @@ sparc64_supply_fpregset (const struct sparc_fpregmap *fpregmap,
 			 struct regcache *regcache,
 			 int regnum, const void *fpregs)
 {
-  int sparc32 = (gdbarch_ptr_bit (get_regcache_arch (regcache)) == 32);
+  int sparc32 = (gdbarch_ptr_bit (regcache->arch ()) == 32);
   const gdb_byte *regs = (const gdb_byte *) fpregs;
   int i;
 
@@ -2149,7 +2144,7 @@ sparc64_collect_fpregset (const struct sparc_fpregmap *fpregmap,
 			  const struct regcache *regcache,
 			  int regnum, void *fpregs)
 {
-  int sparc32 = (gdbarch_ptr_bit (get_regcache_arch (regcache)) == 32);
+  int sparc32 = (gdbarch_ptr_bit (regcache->arch ()) == 32);
   gdb_byte *regs = (gdb_byte *) fpregs;
   int i;
 

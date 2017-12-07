@@ -223,6 +223,12 @@ static initializer cpu_flag_init[] =
     "CPU_AVX512F_FLAGS|CpuAVX512_4VNNIW" },
   { "CPU_AVX512_VPOPCNTDQ_FLAGS",
     "CPU_AVX512F_FLAGS|CpuAVX512_VPOPCNTDQ" },
+  { "CPU_AVX512_VBMI2_FLAGS",
+    "CPU_AVX512F_FLAGS|CpuAVX512_VBMI2" },
+  { "CPU_AVX512_VNNI_FLAGS",
+    "CPU_AVX512F_FLAGS|CpuAVX512_VNNI" },
+  { "CPU_AVX512_BITALG_FLAGS",
+    "CPU_AVX512F_FLAGS|CpuAVX512_BITALG" },
   { "CPU_L1OM_FLAGS",
     "unknown" },
   { "CPU_K1OM_FLAGS",
@@ -265,6 +271,12 @@ static initializer cpu_flag_init[] =
     "CpuPTWRITE" },
   { "CPU_CET_FLAGS",
     "CpuCET" },
+  { "CPU_GFNI_FLAGS",
+    "CpuGFNI" },
+  { "CPU_VAES_FLAGS",
+    "CpuVAES" },
+  { "CPU_VPCLMULQDQ_FLAGS",
+    "CpuVPCLMULQDQ" },
   { "CPU_ANY_X87_FLAGS",
     "CPU_ANY_287_FLAGS|Cpu8087" },
   { "CPU_ANY_287_FLAGS",
@@ -292,7 +304,7 @@ static initializer cpu_flag_init[] =
   { "CPU_ANY_AVX2_FLAGS",
     "CpuAVX2" },
   { "CPU_ANY_AVX512F_FLAGS",
-    "CpuVREX|CpuRegZMM|CpuRegMask|CpuAVX512CD|CpuAVX512ER|CpuAVX512PF|CpuAVX512DQ|CpuAVX512BW|CpuAVX512VL|CpuAVX512IFMA|CpuAVX512VBMI|CpuAVX512_4FMAPS|CpuAVX512_4VNNIW|CpuAVX512_VPOPCNTDQ|CpuAVX512F" },
+    "CpuVREX|CpuRegZMM|CpuRegMask|CpuAVX512CD|CpuAVX512ER|CpuAVX512PF|CpuAVX512DQ|CpuAVX512BW|CpuAVX512VL|CpuAVX512IFMA|CpuAVX512VBMI|CpuAVX512_4FMAPS|CpuAVX512_4VNNIW|CpuAVX512_VPOPCNTDQ|CpuAVX512_VBMI2|CpuAVX512_VNNI|CpuAVX512_BITALG|CpuAVX512F" },
   { "CPU_ANY_AVX512CD_FLAGS",
     "CpuAVX512CD" },
   { "CPU_ANY_AVX512ER_FLAGS",
@@ -315,6 +327,12 @@ static initializer cpu_flag_init[] =
     "CpuAVX512_4VNNIW" },
   { "CPU_ANY_AVX512_VPOPCNTDQ_FLAGS",
     "CpuAVX512_VPOPCNTDQ" },
+  { "CPU_ANY_AVX512_VBMI2_FLAGS",
+    "CpuAVX512_VBMI2" },
+  { "CPU_ANY_AVX512_VNNI_FLAGS",
+    "CpuAVX512_VNNI" },
+  { "CPU_ANY_AVX512_BITALG_FLAGS",
+    "CpuAVX512_BITALG" },
 };
 
 static initializer operand_type_init[] =
@@ -421,8 +439,6 @@ static initializer operand_type_init[] =
     "Vec_Imm4" },
   { "OPERAND_TYPE_REGBND",
     "RegBND" },
-  { "OPERAND_TYPE_VEC_DISP8",
-    "Vec_Disp8" },
 };
 
 typedef struct bitfield
@@ -521,12 +537,18 @@ static bitfield cpu_flags[] =
   BITFIELD (CpuAVX512_4FMAPS),
   BITFIELD (CpuAVX512_4VNNIW),
   BITFIELD (CpuAVX512_VPOPCNTDQ),
+  BITFIELD (CpuAVX512_VBMI2),
+  BITFIELD (CpuAVX512_VNNI),
+  BITFIELD (CpuAVX512_BITALG),
   BITFIELD (CpuMWAITX),
   BITFIELD (CpuCLZERO),
   BITFIELD (CpuOSPKE),
   BITFIELD (CpuRDPID),
   BITFIELD (CpuPTWRITE),
   BITFIELD (CpuCET),
+  BITFIELD (CpuGFNI),
+  BITFIELD (CpuVAES),
+  BITFIELD (CpuVPCLMULQDQ),
   BITFIELD (CpuRegMMX),
   BITFIELD (CpuRegXMM),
   BITFIELD (CpuRegYMM),
@@ -658,13 +680,14 @@ static bitfield operand_types[] =
   BITFIELD (Anysize),
   BITFIELD (Vec_Imm4),
   BITFIELD (RegBND),
-  BITFIELD (Vec_Disp8),
 #ifdef OTUnused
   BITFIELD (OTUnused),
 #endif
 };
 
 static const char *filename;
+static i386_cpu_flags active_cpu_flags;
+static int active_isstring;
 
 static int
 compare (const void *x, const void *y)
@@ -855,6 +878,8 @@ output_cpu_flags (FILE *table, bitfield *flags, unsigned int size,
 {
   unsigned int i;
 
+  memset (&active_cpu_flags, 0, sizeof(active_cpu_flags));
+
   fprintf (table, "%s{ { ", indent);
 
   for (i = 0; i < size - 1; i++)
@@ -871,6 +896,8 @@ output_cpu_flags (FILE *table, bitfield *flags, unsigned int size,
 	  else
 	    fprintf (table, "\n    %s", indent);
 	}
+      if (flags[i].value)
+	active_cpu_flags.array[i / 32] |= 1U << (i % 32);
     }
 
   fprintf (table, "%d } }%s\n", flags[i].value, comma);
@@ -967,6 +994,8 @@ process_i386_opcode_modifier (FILE *table, char *mod, int lineno)
   char *str, *next, *last;
   bitfield modifiers [ARRAY_SIZE (opcode_modifiers)];
 
+  active_isstring = 0;
+
   /* Copy the default opcode modifier.  */
   memcpy (modifiers, opcode_modifiers, sizeof (modifiers));
 
@@ -977,16 +1006,26 @@ process_i386_opcode_modifier (FILE *table, char *mod, int lineno)
 	{
 	  str = next_field (next, '|', &next, last);
 	  if (str)
-	    set_bitfield (str, modifiers, 1, ARRAY_SIZE (modifiers),
+	    {
+	      set_bitfield (str, modifiers, 1, ARRAY_SIZE (modifiers),
 			  lineno);
+	      if (strcasecmp(str, "IsString") == 0)
+		active_isstring = 1;
+	    }
 	}
     }
   output_opcode_modifier (table, modifiers, ARRAY_SIZE (modifiers));
 }
 
+enum stage {
+  stage_macros,
+  stage_opcodes,
+  stage_registers,
+};
+
 static void
 output_operand_type (FILE *table, bitfield *types, unsigned int size,
-		     int macro, const char *indent)
+		     enum stage stage, const char *indent)
 {
   unsigned int i;
 
@@ -1001,7 +1040,7 @@ output_operand_type (FILE *table, bitfield *types, unsigned int size,
       if (((i + 1) % 20) == 0)
 	{
 	  /* We need \\ for macro.  */
-	  if (macro)
+	  if (stage == stage_macros)
 	    fprintf (table, " \\\n%s", indent);
 	  else
 	    fprintf (table, "\n%s", indent);
@@ -1012,7 +1051,7 @@ output_operand_type (FILE *table, bitfield *types, unsigned int size,
 }
 
 static void
-process_i386_operand_type (FILE *table, char *op, int macro,
+process_i386_operand_type (FILE *table, char *op, enum stage stage,
 			   const char *indent, int lineno)
 {
   char *str, *next, *last;
@@ -1023,15 +1062,32 @@ process_i386_operand_type (FILE *table, char *op, int macro,
 
   if (strcmp (op, "0"))
     {
+      int baseindex = 0;
+
       last = op + strlen (op);
       for (next = op; next && next < last; )
 	{
 	  str = next_field (next, '|', &next, last);
 	  if (str)
-	    set_bitfield (str, types, 1, ARRAY_SIZE (types), lineno);
+	    {
+	      set_bitfield (str, types, 1, ARRAY_SIZE (types), lineno);
+	      if (strcasecmp(str, "BaseIndex") == 0)
+		baseindex = 1;
+	    }
+	}
+
+      if (stage == stage_opcodes && baseindex && !active_isstring)
+	{
+	  set_bitfield("Disp8", types, 1, ARRAY_SIZE (types), lineno);
+	  if (!active_cpu_flags.bitfield.cpu64
+	      && !active_cpu_flags.bitfield.cpumpx)
+	    set_bitfield("Disp16", types, 1, ARRAY_SIZE (types), lineno);
+	  set_bitfield("Disp32", types, 1, ARRAY_SIZE (types), lineno);
+	  if (!active_cpu_flags.bitfield.cpuno64)
+	    set_bitfield("Disp32S", types, 1, ARRAY_SIZE (types), lineno);
 	}
     }
-  output_operand_type (table, types, ARRAY_SIZE (types), macro,
+  output_operand_type (table, types, ARRAY_SIZE (types), stage,
 		       indent);
 }
 
@@ -1119,14 +1175,15 @@ output_i386_opcode (FILE *table, const char *name, char *str,
       if (operand_types[i] == NULL || *operand_types[i] == '0')
 	{
 	  if (i == 0)
-	    process_i386_operand_type (table, "0", 0, "\t  ", lineno);
+	    process_i386_operand_type (table, "0", stage_opcodes, "\t  ",
+				       lineno);
 	  break;
 	}
 
       if (i != 0)
 	fprintf (table, ",\n      ");
 
-      process_i386_operand_type (table, operand_types[i], 0,
+      process_i386_operand_type (table, operand_types[i], stage_opcodes,
 				 "\t  ", lineno);
     }
   fprintf (table, " } },\n");
@@ -1288,7 +1345,7 @@ process_i386_opcodes (FILE *table)
   process_i386_opcode_modifier (table, "0", -1);
 
   fprintf (table, "    { ");
-  process_i386_operand_type (table, "0", 0, "\t  ", -1);
+  process_i386_operand_type (table, "0", stage_opcodes, "\t  ", -1);
   fprintf (table, " } }\n");
 
   fprintf (table, "};\n");
@@ -1357,7 +1414,8 @@ process_i386_registers (FILE *table)
 
       fprintf (table, "  { \"%s\",\n    ", reg_name);
 
-      process_i386_operand_type (table, reg_type, 0, "\t", lineno);
+      process_i386_operand_type (table, reg_type, stage_registers, "\t",
+				 lineno);
 
       /* Find 32-bit Dwarf2 register number.  */
       dw2_32_num = next_field (str, ',', &str, last);
@@ -1401,7 +1459,7 @@ process_i386_initializers (void)
     {
       fprintf (fp, "\n\n#define %s \\\n  ", operand_type_init[i].name);
       init = xstrdup (operand_type_init[i].init);
-      process_i386_operand_type (fp, init, 1, "      ", -1);
+      process_i386_operand_type (fp, init, stage_macros, "      ", -1);
       free (init);
     }
   fprintf (fp, "\n");

@@ -1,3 +1,118 @@
+2017-12-01  Peter Bergner  <bergner@vnet.ibm.com>
+
+	* opcode/ppc.h (PPC_INT_FMT): Define.
+	(struct powerpc_opcode) <opcode>: Update type.
+	(struct powerpc_opcode) <mask>: Likewise.
+	(struct powerpc_opcode) <bitm>: Likewise.
+	(struct powerpc_opcode) <insert>: Likewise.
+	(struct powerpc_opcode) <extract>: Likewise.
+	(ppc_optional_operand_value): Likewise.
+
+2017-11-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/22444
+	* elf/external.h (ELF_ALIGN_UP): New.
+	(ELF_NOTE_DESC_OFFSET): Likewise.
+	(ELF_NOTE_NEXT_OFFSET): Likewise.
+
+2017-11-16  Tamar Christina  <tamar.christina@arm.com>
+
+	* opcode/aarch64.h: (AARCH64_FEATURE_F16_FML): New.
+	(AARCH64_ARCH_V8_4): Enable AARCH64_FEATURE_F16_FML by default.
+
+2017-11-15  Tamar Christina  <tamar.christina@arm.com>
+
+	* opcode/arm.h: (ARM_EXT2_FP16_FML): New.
+	(ARM_AEXT2_V8_4A): Add ARM_EXT2_FP16_FML.
+
+2017-11-13  Jan Beulich  <jbeulich@suse.com>
+
+	* coff/pe.h (COFF_ENCODE_ALIGNMENT): Cap value to maximum one
+	representable.
+	(COFF_DECODE_ALIGNMENT): Define.
+
+2017-11-09  Tamar Christina  <tamar.christina@arm.com>
+
+	* opcode/aarch64.h (AARCH64_ARCH_V8_4): Enable DOTPROD.
+
+2017-11-09  Tamar Christina  <tamar.christina@arm.com>
+
+	* opcode/aarch64.h:
+	(aarch64_opnd): Add AARCH64_OPND_Va, AARCH64_OPND_MASK,
+	AARCH64_OPND_IMM_2, AARCH64_OPND_ADDR_OFFSET
+	and AARCH64_OPND_SM3_IMM2. 
+	(aarch64_insn_class): Add cryptosm3 and cryptosm4.
+	(arch64_feature_set): Make uint64_t.
+
+2017-11-09  Tamar Christina  <tamar.christina@arm.com>
+
+	* opcode/aarch64.h:
+	(AARCH64_FEATURE_V8_4, AARCH64_FEATURE_SM4): New.
+	(AARCH64_ARCH_V8_4, AARCH64_FEATURE_SHA3): New.
+
+2017-11-09  Nick Clifton  <nickc@redhat.com>
+
+	* opcode/aarch64.h (aarch64_feature_set): Change type to unsigned
+	long long.
+
+2017-11-08  Tamar Christina  <tamar.christina@arm.com>
+
+	* opcode/aarch64.h:
+	(AARCH64_FEATURE_SHA2, AARCH64_FEATURE_AES): New.
+
+2017-11-08  Jiong Wang  <jiong.wang@arm.com>
+
+	* opcode/arm.h (ARM_AEXT2_V8_4A): Include Dot Product feature.
+	(ARM_EXT2_V8_4A): New macro.
+	(ARM_AEXT2_V8_4A): Likewise.
+	(ARM_ARCH_V8_4A): Likewise.
+
+2017-11-07  Palmer Dabbelt  <palmer@dabbelt.com>
+
+	* opcode/riscv-opc.h (sptbr): Rename to satp.
+	(CSR_SPTBR): Rename to CSR_SATP.
+	(sptbr): Alias to CSR_SATP.
+
+2017-11-07  Tamar Christina  <tamar.christina@arm.com>
+
+	* opcode/arm.h (FPU_ARCH_CRYPTO_NEON_VFP_ARMV8_DOTPROD):
+	New macro.
+
+2017-11-02  Siddhesh Poyarekar  <siddhesh@sourceware.org>
+
+	* include/opcode/aarch64.h (AARCH64_ARCH_V8_2): Drop
+	AARCH64_FEATURE_F16.
+
+2017-11-01  James Bowman  <james.bowman@ftdichip.com>
+
+	* elf/ft32.h: Add R_FT32_RELAX, SC0, SC1, DIFF32.
+
+2017-10-25  Alan Modra  <amodra@gmail.com>
+
+	PR 22348
+	* opcode/cr16.h (instruction): Delete.
+	(cr16_words, cr16_allWords, cr16_currInsn): Delete.
+	* opcode/crx.h (crx_cst4_map): Rename from cst4_map.
+	(crx_cst4_maps): Rename from cst4_maps.
+	(crx_no_op_insn): Rename from no_op_insn.
+	(instruction): Delete.
+
+2017-10-24  Andrew Waterman  <andrew@sifive.com>
+
+	* opcode/riscv.h (VALID_RVC_LUI_IMM): c.lui can't load the
+	immediate 0.
+
+2017-10-12  James Bowman  <james.bowman@ftdichip.com>
+
+	* elf/ft32.h: Add R_FT32_15.
+	* opcode/ft32.h: Replace FT32_FLD_K8 with K15.
+	(ft32_shortcode, sc_compar, ft32_split_shortcode,
+	ft32_merge_shortcode, ft32_merge_shortcode): New functions.
+
+2017-10-05  John Baldwin  <jhb@FreeBSD.org>
+
+	* elf/common.h (AT_FREEBSD_EHDRFLAGS, AT_FREEBSD_HWCAP): Define.
+
 2017-09-22  Alexandre Oliva <aoliva@redhat.com>
 
 	* dwarf2.def (DW_AT_GNU_locviews): New.

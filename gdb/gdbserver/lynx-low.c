@@ -555,30 +555,12 @@ lynx_detach (int pid)
   return 0;
 }
 
-/* A callback for find_inferior which removes from the thread list
-   all threads belonging to process PROC.  */
-
-static int
-lynx_delete_thread_callback (struct inferior_list_entry *entry, void *proc)
-{
-  struct process_info *process = (struct process_info *) proc;
-
-  if (ptid_get_pid (entry->id) == pid_of (process))
-    {
-      struct thread_info *thr = find_thread_ptid (entry->id);
-
-      remove_thread (thr);
-    }
-
-  return 0;
-}
-
 /* Implement the mourn target_ops method.  */
 
 static void
 lynx_mourn (struct process_info *proc)
 {
-  find_inferior (&all_threads, lynx_delete_thread_callback, proc);
+  for_each_thread (proc->pid, remove_thread);
 
   /* Free our private data.  */
   free (proc->priv);

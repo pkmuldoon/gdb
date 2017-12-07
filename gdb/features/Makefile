@@ -79,7 +79,6 @@ WHICH = aarch64 \
 	s390-te-linux64 s390x-te-linux64 s390-vx-linux64 s390x-vx-linux64 \
 	s390-tevx-linux64 s390x-tevx-linux64 \
 	s390-gs-linux64 s390x-gs-linux64 \
-	tic6x-c64xp tic6x-c64x tic6x-c62x \
 	tic6x-c64xp-linux tic6x-c64x-linux tic6x-c62x-linux
 
 # Record which registers should be sent to GDB by default after stop.
@@ -107,19 +106,8 @@ s390-te-linux64-expedite = r14l,r15l,pswa
 s390-vx-linux64-expedite = r14l,r15l,pswa
 s390-tevx-linux64-expedite = r14l,r15l,pswa
 s390-gs-linux64-expedite = r14,r15,pswa
-s390x-linux64-expedite = r14,r15,pswa
-s390x-linux64v1-expedite = r14,r15,pswa
-s390x-linux64v2-expedite = r14,r15,pswa
-s390x-te-linux64-expedite = r14,r15,pswa
-s390x-vx-linux64-expedite = r14,r15,pswa
-s390x-tevx-linux64-expedite = r14,r15,pswa
-s390x-gs-linux64-expedite = r14,r15,pswa
-tic6x-c64xp-expedite = A15,PC
-tic6x-c64x-expedite = A15,PC
-tic6x-c62x-expedite = A15,PC
-tic6x-c64xp-linux-expedite = A15,PC
-tic6x-c64x-linux-expedite = A15,PC
-tic6x-c62x-linux-expedite = A15,PC
+s390x-expedite = r14,r15,pswa
+tic6x-expedite = A15,PC
 
 
 XSLTPROC = xsltproc
@@ -131,7 +119,6 @@ OUTPUTS = $(patsubst %,$(outdir)/%.dat,$(WHICH))
 # --enable-targets=all GDB.  You can override this by passing XMLTOC
 # to make on the command line.
 XMLTOC = \
-	aarch64.xml \
 	arc-v2.xml \
 	arc-arcompact.xml \
 	arm/arm-with-iwmmxt.xml \
@@ -148,7 +135,6 @@ XMLTOC = \
 	mips64-dsp-linux.xml \
 	mips64-linux.xml \
 	nds32.xml \
-	nios2-linux.xml \
 	nios2.xml \
 	rs6000/powerpc-32.xml \
 	rs6000/powerpc-32l.xml \
@@ -200,13 +186,7 @@ XMLTOC = \
 	s390x-tevx-linux64.xml \
 	s390x-vx-linux64.xml \
 	s390-gs-linux64.xml \
-	s390x-gs-linux64.xml \
-	tic6x-c62x-linux.xml \
-	tic6x-c62x.xml \
-	tic6x-c64x-linux.xml \
-	tic6x-c64x.xml \
-	tic6x-c64xp-linux.xml \
-	tic6x-c64xp.xml
+	s390x-gs-linux64.xml
 
 TDESC_CFILES = $(patsubst %.xml,%.c,$(XMLTOC))
 GDB = false
@@ -225,7 +205,9 @@ $(outdir)/%.dat: %.xml number-regs.xsl sort-regs.xsl gdbserver-regs.xsl
 	  $(XSLTPROC) gdbserver-regs.xsl - >> $(outdir)/$*.tmp
 	sh ../../move-if-change $(outdir)/$*.tmp $(outdir)/$*.dat
 
-FEATURE_XMLFILES = i386/32bit-core.xml \
+FEATURE_XMLFILES = aarch64-core.xml \
+	aarch64-fpu.xml \
+	i386/32bit-core.xml \
 	i386/32bit-sse.xml \
 	i386/32bit-linux.xml \
 	i386/32bit-avx.xml \
@@ -240,7 +222,10 @@ FEATURE_XMLFILES = i386/32bit-core.xml \
 	i386/64bit-linux.xml \
 	i386/64bit-pkeys.xml \
 	i386/64bit-sse.xml \
-	i386/x32-core.xml
+	i386/x32-core.xml \
+	tic6x-c6xp.xml \
+	tic6x-core.xml \
+	tic6x-gp.xml
 
 FEATURE_CFILES = $(patsubst %.xml,%.c,$(FEATURE_XMLFILES))
 

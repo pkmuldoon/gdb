@@ -306,7 +306,7 @@ trace_save (const char *filename, struct trace_file_writer *writer,
 }
 
 static void
-tsave_command (char *args, int from_tty)
+tsave_command (const char *args, int from_tty)
 {
   int target_does_save = 0;
   char **argv;
@@ -387,7 +387,7 @@ trace_save_ctf (const char *dirname, int target_does_save)
 void
 tracefile_fetch_registers (struct regcache *regcache, int regno)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   struct tracepoint *tp = get_tracepoint (get_tracepoint_number ());
   int regn;
 

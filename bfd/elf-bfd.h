@@ -216,20 +216,22 @@ struct elf_link_hash_entry
   /* Symbol is __start_SECNAME or __stop_SECNAME to mark section
      SECNAME.  */
   unsigned int start_stop : 1;
+  /* Symbol is or was a weak defined symbol from a dynamic object with
+     a strong defined symbol alias.  U.ALIAS points to a list of aliases,
+     the definition having is_weakalias clear.  */
+  unsigned int is_weakalias : 1;
 
   /* String table index in .dynstr if this is a dynamic symbol.  */
   unsigned long dynstr_index;
 
   union
   {
-    /* If this is a weak defined symbol from a dynamic object, this
-       field points to a defined symbol with the same value, if there is
-       one.  Otherwise it is NULL.  */
-    struct elf_link_hash_entry *weakdef;
+    /* Points to a circular list of non-function symbol aliases.  */
+    struct elf_link_hash_entry *alias;
 
     /* Hash value of the name computed using the ELF hash function.
        Used part way through size_dynamic_sections, after we've finished
-       with weakdefs.  */
+       with aliases.  */
     unsigned long elf_hash_value;
   } u;
 
@@ -257,6 +259,16 @@ struct elf_link_hash_entry
   } u2;
 };
 
+/* Return the strong definition for a weak symbol with aliases.  */
+
+static inline struct elf_link_hash_entry *
+weakdef (struct elf_link_hash_entry *h)
+{
+  while (h->is_weakalias)
+    h = h->u.alias;
+  return h;
+}
+
 /* Will references to this symbol always reference the symbol
    in this object?  */
 #define SYMBOL_REFERENCES_LOCAL(INFO, H) \
@@ -265,6 +277,13 @@ struct elf_link_hash_entry
 /* Will _calls_ to this symbol always call the version in this object?  */
 #define SYMBOL_CALLS_LOCAL(INFO, H) \
   _bfd_elf_symbol_refs_local_p (H, INFO, 1)
+
+/* Whether an undefined weak symbol should resolve to its link-time
+   value, even in PIC or PIE objects.  */
+#define UNDEFWEAK_NO_DYNAMIC_RELOC(INFO, H)		\
+  ((H)->root.type == bfd_link_hash_undefweak		\
+   && (ELF_ST_VISIBILITY ((H)->other) != STV_DEFAULT	\
+       || (INFO)->dynamic_undefined_weak == 0))
 
 /* Common symbols that are turned into definitions don't have the
    DEF_REGULAR flag set, so they might appear to be undefined.
@@ -329,8 +348,8 @@ struct eh_cie_fde
 	   .eh_frame input section that contains the CIE.  */
       union {
 	struct cie *full_cie;
- 	struct eh_cie_fde *merged_with;
- 	asection *sec;
+	struct eh_cie_fde *merged_with;
+	asection *sec;
       } u;
 
       /* The offset of the personality data from the start of the CIE,
@@ -650,7 +669,7 @@ struct elf_link_hash_table
 #define elf_hash_table_id(table)	((table) -> hash_table_id)
 
 /* Returns TRUE if the hash table is a struct elf_link_hash_table.  */
-#define is_elf_hash_table(htab)					      	\
+#define is_elf_hash_table(htab)						\
   (((struct bfd_link_hash_table *) (htab))->type == bfd_link_elf_hash_table)
 
 /* Used by bfd_sym_from_r_symndx to cache a small number of local
@@ -724,10 +743,11 @@ struct elf_size_info {
 };
 
 #define elf_symbol_from(ABFD,S) \
-	(((S)->the_bfd->xvec->flavour == bfd_target_elf_flavour \
-	  && (S)->the_bfd->tdata.elf_obj_data != 0) \
-	 ? (elf_symbol_type *) (S) \
-	 : 0)
+  (((S)->the_bfd != NULL					\
+    && (S)->the_bfd->xvec->flavour == bfd_target_elf_flavour	\
+    && (S)->the_bfd->tdata.elf_obj_data != 0)			\
+   ? (elf_symbol_type *) (S)					\
+   : 0)
 
 enum elf_reloc_type_class {
   reloc_class_normal,
@@ -1160,12 +1180,6 @@ struct elf_backend_data
   bfd_boolean (*gc_mark_extra_sections)
     (struct bfd_link_info *, elf_gc_mark_hook_fn);
 
-  /* This function, if defined, is called during the sweep phase of gc
-     in order that a backend might update any data structures it might
-     be maintaining.  */
-  bfd_boolean (*gc_sweep_hook)
-    (bfd *, struct bfd_link_info *, asection *, const Elf_Internal_Rela *);
-
   /* This function, if defined, is called after the ELF headers have
      been created.  This allows for things like the OS and ABI versions
      to be changed.  */
@@ -1268,6 +1282,11 @@ struct elf_backend_data
   /* This function, if defined, is called when an NT_PSINFO or NT_PRPSINFO
      note is found in a core file.  */
   bfd_boolean (*elf_backend_grok_psinfo)
+    (bfd *, Elf_Internal_Note *);
+
+  /* This function, if defined, is called when a "FreeBSD" NT_PRSTATUS
+     note is found in a core file.  */
+  bfd_boolean (*elf_backend_grok_freebsd_prstatus)
     (bfd *, Elf_Internal_Note *);
 
   /* This function, if defined, is called to write a note to a corefile.  */
@@ -1391,7 +1410,7 @@ struct elf_backend_data
   bfd_boolean (*elf_backend_copy_special_section_fields)
     (const bfd *ibfd, bfd *obfd, const Elf_Internal_Shdr *isection,
      Elf_Internal_Shdr *osection);
-		
+
   /* Used to handle bad SHF_LINK_ORDER input.  */
   void (*link_order_error_handler) (const char *, ...);
 
@@ -1552,6 +1571,14 @@ struct elf_backend_data
   /* True if `_bfd_elf_link_renumber_dynsyms' must be called even for
      static binaries.  */
   unsigned always_renumber_dynsyms : 1;
+
+  /* True if the 32-bit Linux PRPSINFO structure's `pr_uid' and `pr_gid'
+     members use a 16-bit data type.  */
+  unsigned linux_prpsinfo32_ugid16 : 1;
+
+  /* True if the 64-bit Linux PRPSINFO structure's `pr_uid' and `pr_gid'
+     members use a 16-bit data type.  */
+  unsigned linux_prpsinfo64_ugid16 : 1;
 };
 
 /* Information about reloc sections associated with a bfd_elf_section_data
@@ -1782,8 +1809,8 @@ enum elf_gnu_symbols
 
 typedef struct elf_section_list
 {
-  Elf_Internal_Shdr          hdr;
-  unsigned int               ndx;
+  Elf_Internal_Shdr	     hdr;
+  unsigned int		     ndx;
   struct elf_section_list *  next;
 } elf_section_list;
 
@@ -2588,10 +2615,6 @@ extern char *elfcore_write_linux_prpsinfo32
 
 /* Linux/most 64-bit archs.  */
 extern char *elfcore_write_linux_prpsinfo64
-  (bfd *, char *, int *, const struct elf_internal_linux_prpsinfo *);
-
-/* Linux/PPC32 uses different layout compared to most archs.  */
-extern char *elfcore_write_ppc_linux_prpsinfo32
   (bfd *, char *, int *, const struct elf_internal_linux_prpsinfo *);
 
 extern bfd *_bfd_elf32_bfd_from_remote_memory

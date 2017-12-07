@@ -19,5 +19,6 @@
 # MA 02110-1301, USA.
 
 if [istarget riscv*-*-*] {
-    run_dump_test "t_insns"
+    run_dump_tests [lsort [glob -nocomplain $srcdir/$subdir/*.d]]
+    run_list_test "align-1"
 }

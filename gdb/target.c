@@ -48,8 +48,6 @@
 #include <algorithm>
 #include "byte-vector.h"
 
-static void info_target_command (char *, int);
-
 static void generic_tls_error (void) ATTRIBUTE_NORETURN;
 
 static void default_terminal_info (struct target_ops *, const char *, int);
@@ -89,8 +87,6 @@ static void tcomplain (void) ATTRIBUTE_NORETURN;
 static int return_zero (struct target_ops *);
 
 static int return_zero_has_execution (struct target_ops *, ptid_t);
-
-static void target_command (char *, int);
 
 static struct target_ops *find_default_run_target (const char *);
 
@@ -171,7 +167,7 @@ int may_stop = 1;
 static unsigned int targetdebug = 0;
 
 static void
-set_targetdebug  (char *args, int from_tty, struct cmd_list_element *c)
+set_targetdebug  (const char *args, int from_tty, struct cmd_list_element *c)
 {
   update_current_target ();
 }
@@ -188,7 +184,7 @@ static void setup_target_debug (void);
 /* The user just typed 'target' without the name of a target.  */
 
 static void
-target_command (char *arg, int from_tty)
+target_command (const char *arg, int from_tty)
 {
   fputs_filtered ("Argument required (target name).  Try `help target'\n",
 		  gdb_stdout);
@@ -349,7 +345,7 @@ complete_target_initialization (struct target_ops *t)
 /* This is used to implement the various target commands.  */
 
 static void
-open_target (char *args, int from_tty, struct cmd_list_element *command)
+open_target (const char *args, int from_tty, struct cmd_list_element *command)
 {
   struct target_ops *ops = (struct target_ops *) get_cmd_context (command);
 
@@ -386,7 +382,7 @@ Remaining arguments are interpreted by the target protocol.  For more\n\
 information on the arguments for a particular protocol, type\n\
 `help target ' followed by the protocol name."),
 		    &targetlist, "target ", 0, &cmdlist);
-  c = add_cmd (t->to_shortname, no_class, NULL, t->to_doc, &targetlist);
+  c = add_cmd (t->to_shortname, no_class, t->to_doc, &targetlist);
   set_cmd_sfunc (c, open_target);
   set_cmd_context (c, t);
   if (completer != NULL)
@@ -411,7 +407,7 @@ add_deprecated_target_alias (struct target_ops *t, const char *alias)
 
   /* If we use add_alias_cmd, here, we do not get the deprecated warning,
      see PR cli/15104.  */
-  c = add_cmd (alias, no_class, NULL, t->to_doc, &targetlist);
+  c = add_cmd (alias, no_class, t->to_doc, &targetlist);
   set_cmd_sfunc (c, open_target);
   set_cmd_context (c, t);
   alt = xstrprintf ("target %s", t->to_shortname);
@@ -1481,34 +1477,31 @@ target_write_raw_memory (CORE_ADDR memaddr, const gdb_byte *myaddr, ssize_t len)
 
 /* Fetch the target's memory map.  */
 
-VEC(mem_region_s) *
+std::vector<mem_region>
 target_memory_map (void)
 {
-  VEC(mem_region_s) *result;
-  struct mem_region *last_one, *this_one;
-  int ix;
-  result = current_target.to_memory_map (&current_target);
-  if (result == NULL)
-    return NULL;
+  std::vector<mem_region> result
+    = current_target.to_memory_map (&current_target);
+  if (result.empty ())
+    return result;
 
-  qsort (VEC_address (mem_region_s, result),
-	 VEC_length (mem_region_s, result),
-	 sizeof (struct mem_region), mem_region_cmp);
+  std::sort (result.begin (), result.end ());
 
   /* Check that regions do not overlap.  Simultaneously assign
      a numbering for the "mem" commands to use to refer to
      each region.  */
-  last_one = NULL;
-  for (ix = 0; VEC_iterate (mem_region_s, result, ix, this_one); ix++)
+  mem_region *last_one = NULL;
+  for (size_t ix = 0; ix < result.size (); ix++)
     {
+      mem_region *this_one = &result[ix];
       this_one->number = ix;
 
-      if (last_one && last_one->hi > this_one->lo)
+      if (last_one != NULL && last_one->hi > this_one->lo)
 	{
 	  warning (_("Overlapping regions in memory map: ignoring"));
-	  VEC_free (mem_region_s, result);
-	  return NULL;
+	  return std::vector<mem_region> ();
 	}
+
       last_one = this_one;
     }
 
@@ -1630,43 +1623,37 @@ static void
 read_whatever_is_readable (struct target_ops *ops,
 			   const ULONGEST begin, const ULONGEST end,
 			   int unit_size,
-			   VEC(memory_read_result_s) **result)
+			   std::vector<memory_read_result> *result)
 {
-  gdb_byte *buf = (gdb_byte *) xmalloc (end - begin);
   ULONGEST current_begin = begin;
   ULONGEST current_end = end;
   int forward;
-  memory_read_result_s r;
   ULONGEST xfered_len;
 
   /* If we previously failed to read 1 byte, nothing can be done here.  */
   if (end - begin <= 1)
-    {
-      xfree (buf);
-      return;
-    }
+    return;
+
+  gdb::unique_xmalloc_ptr<gdb_byte> buf ((gdb_byte *) xmalloc (end - begin));
 
   /* Check that either first or the last byte is readable, and give up
      if not.  This heuristic is meant to permit reading accessible memory
      at the boundary of accessible region.  */
   if (target_read_partial (ops, TARGET_OBJECT_MEMORY, NULL,
-			   buf, begin, 1, &xfered_len) == TARGET_XFER_OK)
+			   buf.get (), begin, 1, &xfered_len) == TARGET_XFER_OK)
     {
       forward = 1;
       ++current_begin;
     }
   else if (target_read_partial (ops, TARGET_OBJECT_MEMORY, NULL,
-				buf + (end - begin) - 1, end - 1, 1,
+				buf.get () + (end - begin) - 1, end - 1, 1,
 				&xfered_len) == TARGET_XFER_OK)
     {
       forward = 0;
       --current_end;
     }
   else
-    {
-      xfree (buf);
-      return;
-    }
+    return;
 
   /* Loop invariant is that the [current_begin, current_end) was previously
      found to be not readable as a whole.
@@ -1696,7 +1683,7 @@ read_whatever_is_readable (struct target_ops *ops,
 	}
 
       xfer = target_read (ops, TARGET_OBJECT_MEMORY, NULL,
-			  buf + (first_half_begin - begin) * unit_size,
+			  buf.get () + (first_half_begin - begin) * unit_size,
 			  first_half_begin,
 			  first_half_end - first_half_begin);
 
@@ -1723,47 +1710,27 @@ read_whatever_is_readable (struct target_ops *ops,
   if (forward)
     {
       /* The [begin, current_begin) range has been read.  */
-      r.begin = begin;
-      r.end = current_begin;
-      r.data = buf;
+      result->emplace_back (begin, current_end, std::move (buf));
     }
   else
     {
       /* The [current_end, end) range has been read.  */
       LONGEST region_len = end - current_end;
 
-      r.data = (gdb_byte *) xmalloc (region_len * unit_size);
-      memcpy (r.data, buf + (current_end - begin) * unit_size,
+      gdb::unique_xmalloc_ptr<gdb_byte> data
+	((gdb_byte *) xmalloc (region_len * unit_size));
+      memcpy (data.get (), buf.get () + (current_end - begin) * unit_size,
 	      region_len * unit_size);
-      r.begin = current_end;
-      r.end = end;
-      xfree (buf);
+      result->emplace_back (current_end, end, std::move (data));
     }
-  VEC_safe_push(memory_read_result_s, (*result), &r);
 }
 
-void
-free_memory_read_result_vector (void *x)
-{
-  VEC(memory_read_result_s) **v = (VEC(memory_read_result_s) **) x;
-  memory_read_result_s *current;
-  int ix;
-
-  for (ix = 0; VEC_iterate (memory_read_result_s, *v, ix, current); ++ix)
-    {
-      xfree (current->data);
-    }
-  VEC_free (memory_read_result_s, *v);
-}
-
-VEC(memory_read_result_s) *
+std::vector<memory_read_result>
 read_memory_robust (struct target_ops *ops,
 		    const ULONGEST offset, const LONGEST len)
 {
-  VEC(memory_read_result_s) *result = 0;
+  std::vector<memory_read_result> result;
   int unit_size = gdbarch_addressable_memory_unit_size (target_gdbarch ());
-  struct cleanup *cleanup = make_cleanup (free_memory_read_result_vector,
-					  &result);
 
   LONGEST xfered_total = 0;
   while (xfered_total < len)
@@ -1789,19 +1756,17 @@ read_memory_robust (struct target_ops *ops,
       else
 	{
 	  LONGEST to_read = std::min (len - xfered_total, region_len);
-	  gdb_byte *buffer = (gdb_byte *) xmalloc (to_read * unit_size);
-	  struct cleanup *inner_cleanup = make_cleanup (xfree, buffer);
+	  gdb::unique_xmalloc_ptr<gdb_byte> buffer
+	    ((gdb_byte *) xmalloc (to_read * unit_size));
 
 	  LONGEST xfered_partial =
-	      target_read (ops, TARGET_OBJECT_MEMORY, NULL,
-			   (gdb_byte *) buffer,
+	      target_read (ops, TARGET_OBJECT_MEMORY, NULL, buffer.get (),
 			   offset + xfered_total, to_read);
 	  /* Call an observer, notifying them of the xfer progress?  */
 	  if (xfered_partial <= 0)
 	    {
 	      /* Got an error reading full chunk.  See if maybe we can read
 		 some subrange.  */
-	      do_cleanups (inner_cleanup);
 	      read_whatever_is_readable (ops, offset + xfered_total,
 					 offset + xfered_total + to_read,
 					 unit_size, &result);
@@ -1809,20 +1774,15 @@ read_memory_robust (struct target_ops *ops,
 	    }
 	  else
 	    {
-	      struct memory_read_result r;
-
-	      discard_cleanups (inner_cleanup);
-	      r.data = buffer;
-	      r.begin = offset + xfered_total;
-	      r.end = r.begin + xfered_partial;
-	      VEC_safe_push (memory_read_result_s, result, &r);
+	      result.emplace_back (offset + xfered_total,
+				   offset + xfered_total + xfered_partial,
+				   std::move (buffer));
 	      xfered_total += xfered_partial;
 	    }
 	  QUIT;
 	}
     }
 
-  discard_cleanups (cleanup);
   return result;
 }
 
@@ -1959,13 +1919,9 @@ target_read_alloc (struct target_ops *ops, enum target_object object,
   return target_read_alloc_1 (ops, object, annex, buf_p, 0);
 }
 
-/* Read OBJECT/ANNEX using OPS.  The result is NUL-terminated and
-   returned as a string, allocated using xmalloc.  If an error occurs
-   or the transfer is unsupported, NULL is returned.  Empty objects
-   are returned as allocated but empty strings.  A warning is issued
-   if the result contains any embedded NUL bytes.  */
+/* See target.h.  */
 
-char *
+gdb::unique_xmalloc_ptr<char>
 target_read_stralloc (struct target_ops *ops, enum target_object object,
 		      const char *annex)
 {
@@ -1980,7 +1936,7 @@ target_read_stralloc (struct target_ops *ops, enum target_object object,
     return NULL;
 
   if (transferred == 0)
-    return xstrdup ("");
+    return gdb::unique_xmalloc_ptr<char> (xstrdup (""));
 
   bufstr[transferred] = 0;
 
@@ -1994,7 +1950,7 @@ target_read_stralloc (struct target_ops *ops, enum target_object object,
 	break;
       }
 
-  return bufstr;
+  return gdb::unique_xmalloc_ptr<char> (bufstr);
 }
 
 /* Memory transfer methods.  */
@@ -2061,7 +2017,7 @@ target_remove_breakpoint (struct gdbarch *gdbarch,
 }
 
 static void
-info_target_command (char *args, int from_tty)
+info_target_command (const char *args, int from_tty)
 {
   struct target_ops *t;
   int has_all_mem = 0;
@@ -2275,8 +2231,6 @@ static int defer_target_commit_resume;
 void
 target_commit_resume (void)
 {
-  struct target_ops *t;
-
   if (defer_target_commit_resume)
     return;
 
@@ -2285,14 +2239,10 @@ target_commit_resume (void)
 
 /* See target.h.  */
 
-struct cleanup *
-make_cleanup_defer_target_commit_resume (void)
+scoped_restore_tmpl<int>
+make_scoped_defer_target_commit_resume ()
 {
-  struct cleanup *old_chain;
-
-  old_chain = make_cleanup_restore_integer (&defer_target_commit_resume);
-  defer_target_commit_resume = 1;
-  return old_chain;
+  return make_scoped_restore (&defer_target_commit_resume, 1);
 }
 
 void
@@ -2693,7 +2643,9 @@ target_supports_multi_process (void)
   return (*current_target.to_supports_multi_process) (&current_target);
 }
 
-char *
+/* See target.h.  */
+
+gdb::unique_xmalloc_ptr<char>
 target_get_osdata (const char *type)
 {
   struct target_ops *t;
@@ -3124,7 +3076,7 @@ target_fileio_read_alloc (struct inferior *inf, const char *filename,
 
 /* See target.h.  */
 
-char *
+gdb::unique_xmalloc_ptr<char> 
 target_fileio_read_stralloc (struct inferior *inf, const char *filename)
 {
   gdb_byte *buffer;
@@ -3135,10 +3087,10 @@ target_fileio_read_stralloc (struct inferior *inf, const char *filename)
   bufstr = (char *) buffer;
 
   if (transferred < 0)
-    return NULL;
+    return gdb::unique_xmalloc_ptr<char> (nullptr);
 
   if (transferred == 0)
-    return xstrdup ("");
+    return gdb::unique_xmalloc_ptr<char> (xstrdup (""));
 
   bufstr[transferred] = 0;
 
@@ -3152,7 +3104,7 @@ target_fileio_read_stralloc (struct inferior *inf, const char *filename)
 	break;
       }
 
-  return bufstr;
+  return gdb::unique_xmalloc_ptr<char> (bufstr);
 }
 
 
@@ -3174,7 +3126,9 @@ default_watchpoint_addr_within_range (struct target_ops *target,
 static struct gdbarch *
 default_thread_architecture (struct target_ops *ops, ptid_t ptid)
 {
-  return target_gdbarch ();
+  inferior *inf = find_inferior_ptid (ptid);
+  gdb_assert (inf != NULL);
+  return inf->gdbarch;
 }
 
 static int
@@ -3840,8 +3794,7 @@ default_rcmd (struct target_ops *self, const char *command,
 }
 
 static void
-do_monitor_command (char *cmd,
-		 int from_tty)
+do_monitor_command (const char *cmd, int from_tty)
 {
   target_rcmd (cmd, gdb_stdtarg);
 }
@@ -3850,34 +3803,29 @@ do_monitor_command (char *cmd,
    ignored.  */
 
 void
-flash_erase_command (char *cmd, int from_tty)
+flash_erase_command (const char *cmd, int from_tty)
 {
   /* Used to communicate termination of flash operations to the target.  */
   bool found_flash_region = false;
-  struct mem_region *m;
   struct gdbarch *gdbarch = target_gdbarch ();
 
-  VEC(mem_region_s) *mem_regions = target_memory_map ();
+  std::vector<mem_region> mem_regions = target_memory_map ();
 
   /* Iterate over all memory regions.  */
-  for (int i = 0; VEC_iterate (mem_region_s, mem_regions, i, m); i++)
+  for (const mem_region &m : mem_regions)
     {
-      /* Fetch the memory attribute.  */
-      struct mem_attrib *attrib = &m->attrib;
-
       /* Is this a flash memory region?  */
-      if (attrib->mode == MEM_FLASH)
+      if (m.attrib.mode == MEM_FLASH)
         {
           found_flash_region = true;
-          target_flash_erase (m->lo, m->hi - m->lo);
+          target_flash_erase (m.lo, m.hi - m.lo);
 
 	  ui_out_emit_tuple tuple_emitter (current_uiout, "erased-regions");
 
           current_uiout->message (_("Erasing flash memory region at address "));
-          current_uiout->field_fmt ("address", "%s", paddress (gdbarch,
-								 m->lo));
+          current_uiout->field_fmt ("address", "%s", paddress (gdbarch, m.lo));
           current_uiout->message (", size = ");
-          current_uiout->field_fmt ("size", "%s", hex_string (m->hi - m->lo));
+          current_uiout->field_fmt ("size", "%s", hex_string (m.hi - m.lo));
           current_uiout->message ("\n");
         }
     }
@@ -3892,7 +3840,7 @@ flash_erase_command (char *cmd, int from_tty)
 /* Print the name of each layers of our target stack.  */
 
 static void
-maintenance_print_target_stack (char *cmd, int from_tty)
+maintenance_print_target_stack (const char *cmd, int from_tty)
 {
   struct target_ops *t;
 
@@ -3930,7 +3878,7 @@ int target_async_permitted = 1;
 static int target_async_permitted_1 = 1;
 
 static void
-maint_set_target_async_command (char *args, int from_tty,
+maint_set_target_async_command (const char *args, int from_tty,
 				struct cmd_list_element *c)
 {
   if (have_live_inferiors ())
@@ -3983,7 +3931,7 @@ static enum auto_boolean target_non_stop_enabled_1 = AUTO_BOOLEAN_AUTO;
 /* Implementation of "maint set target-non-stop".  */
 
 static void
-maint_set_target_non_stop_command (char *args, int from_tty,
+maint_set_target_non_stop_command (const char *args, int from_tty,
 				   struct cmd_list_element *c)
 {
   if (have_live_inferiors ())
@@ -4039,7 +3987,7 @@ update_target_permissions (void)
    way.  */
 
 static void
-set_target_permissions (char *args, int from_tty,
+set_target_permissions (const char *args, int from_tty,
 			struct cmd_list_element *c)
 {
   if (target_has_execution)
@@ -4060,7 +4008,7 @@ set_target_permissions (char *args, int from_tty,
 /* Set memory write permission independently of observer mode.  */
 
 static void
-set_write_memory_permission (char *args, int from_tty,
+set_write_memory_permission (const char *args, int from_tty,
 			struct cmd_list_element *c)
 {
   /* Make the real values match the user-changed values.  */
@@ -4068,6 +4016,53 @@ set_write_memory_permission (char *args, int from_tty,
   update_observer_mode ();
 }
 
+#if GDB_SELF_TEST
+namespace selftests {
+
+static int
+test_target_has_registers (target_ops *self)
+{
+  return 1;
+}
+
+static int
+test_target_has_stack (target_ops *self)
+{
+  return 1;
+}
+
+static int
+test_target_has_memory (target_ops *self)
+{
+  return 1;
+}
+
+static void
+test_target_prepare_to_store (target_ops *self, regcache *regs)
+{
+}
+
+static void
+test_target_store_registers (target_ops *self, regcache *regs, int regno)
+{
+}
+
+test_target_ops::test_target_ops ()
+  : target_ops {}
+{
+  to_magic = OPS_MAGIC;
+  to_stratum = process_stratum;
+  to_has_memory = test_target_has_memory;
+  to_has_stack = test_target_has_stack;
+  to_has_registers = test_target_has_registers;
+  to_prepare_to_store = test_target_prepare_to_store;
+  to_store_registers = test_target_store_registers;
+
+  complete_target_initialization (this);
+}
+
+} // namespace selftests
+#endif /* GDB_SELF_TEST */
 
 void
 initialize_targets (void)

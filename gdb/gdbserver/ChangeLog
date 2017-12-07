@@ -1,3 +1,622 @@
+2017-12-05  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* tdesc.c (struct tdesc_type): Change return type.
+	(tdesc_add_flag): Change parameter type.
+	(tdesc_add_bitfield): Likewise.
+	(tdesc_add_field): Likewise.
+	(tdesc_set_struct_size): Likewise.
+
+2017-12-05  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* regcache.c (registers_to_string): Remove unused variable.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* inferiors.c (for_each_inferior_with_data): Remove.
+	* inferiors.h (for_each_inferior_with_data): Remove.
+	* server.c (handle_qxfer_threads_worker): Change parameter type.
+	(handle_qxfer_threads_proper): Use for_each_thread.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* inferiors.c (for_each_inferior): Remove.
+	(clear_inferiors): Use for_each_thread.
+	* inferiors.h (for_each_inferior): Remove.
+	* linux-low.c (linux_wait_for_event_filtered): Use
+	for_each_thread.
+	(linux_stabilize_threads): Likewise.
+	* regcache.c (regcache_release): Likewise.
+	* server.c (gdb_wants_all_threads_stopped): Likewise.
+	(clear_pending_status_callback): Remove.
+	(handle_status): Use for_each_thread.
+	(captured_main): Likewise.
+	* win32-low.c (child_init_thread_list): Likewise.
+	(win32_clear_inferiors): Likewise.
+	(fake_breakpoint_event): Likewise.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* inferiors.h (find_inferior): Remove.
+	* inferiors.c (find_inferior): Remove.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* linux-low.c (resume_status_pending_p): Update comment.
+	(need_step_over_p): Update comment.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* linux-low.c (proceed_one_lwp): Return void, change parameter
+	type.
+	(unsuspend_and_proceed_one_lwp): Likewise.
+	(proceed_all_lwps): Use for_each_thread.
+	(unstop_all_lwps): Likewise.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* linux-low.c (linux_resume_one_thread): Return void, take
+	parameter directly.
+	(linux_resume): Use for_each_thread.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* linux-low.c (send_sigstop_callback): Return void, change
+	parameter type.  Rename to...
+	(send_sigstop): ... this.
+	(suspend_and_send_sigstop_callback): Return void, change parameter
+	type.  Rename to...
+	(suspend_and_send_sigstop): ... this.
+	(stop_all_lwps): Use for_each_thread.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* linux-low.c (lwp_running): Return bool, remove unused
+	argument.
+	(linux_stabilize_threads): Use find_thread.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* linux-low.c (select_singlestep_lwp_callback): Remove.
+	(count_events_callback): Remove.
+	(select_event_lwp_callback): Remove.
+	(select_event_lwp): Use find_thread/for_each_thread.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* linux-low.c (not_stopped_callback): Return bool, take filter
+	argument directly.
+	(linux_wait_for_event_filtered): Use find_thread.
+	(linux_wait_1): Likewise.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* linux-low.c (same_lwp): Remove.
+	(find_lwp_pid): Use find_thread.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* linux-low.c (delete_lwp_callback): Remove.
+	(linux_mourn): Use for_each_thread.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* linux-low.c (linux_detach_lwp_callback): Return void, remove
+	args parameter, don't check for pid.
+	(linux_detach): Use for_each_thread.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* linux-low.c (struct counter): Remove.
+	(second_thread_of_pid_p): Remove.
+	(last_thread_of_process_p): Use find_thread.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* inferiors.c (find_inferior_in_random): Remove.
+	* inferiors.h (find_inferior_in_random): Remove.
+	* linux-low.c (status_pending_p_callback): Return bool, accept
+	parameter ptid directly.
+	(linux_wait_for_event_filtered): Use find_thread_in_random.
+	(linux_wait_1): Likewise.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* inferiors.c (find_inferior_id): Remove.
+	(find_thread_ptid): Move implemention from find_inferior_id to
+	here.
+	* inferiors.h (find_inferior_id): Remove.
+	* server.c (handle_status): Use find_thread_ptid.
+	(process_serial_event): Likewise.
+	* thread-db.c (find_one_thread): Likewise.
+	(thread_db_thread_handle): Likewise.
+	* win32-low.c (thread_rec): Likewise.
+	(child_delete_thread): Likewise.
+	(win32_thread_alive): Likewise.
+	(get_child_debug_event): Likewise.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* linux-mips-low.c (update_watch_registers_callback): Return
+	void, remove pid_p parameter, don't check for pid.
+	(mips_insert_point, mips_remove_point): Use for_each_thread.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* lynx.low (lynx_delete_thread_callback): Remove.
+	(lynx_mourn): Use for_each_thread.
+
+2017-12-02  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* regcache.c (regcache_invalidate_one): Remove.
+	(regcache_invalidate_pid): use for_each_thread.
+
+2017-11-26  Tom Tromey  <tom@tromey.com>
+
+	* linux-low.c (linux_create_inferior): Update.
+
+2017-11-24  Ulrich Weigand  <uweigand@de.ibm.com>
+
+	* spu-low.c (spu_create_inferior): Fix typo in argument name.
+
+2017-11-24  Alan Hayward  <alan.hayward@arm.com>
+
+	* configure.srv: Add linux-aarch64-tdesc-selftest.o.
+	* linux-aarch64-low.c (initialize_low_arch): Call init func.
+	* linux-aarch64-tdesc-selftest.c: New file.
+	* linux-aarch64-tdesc.h (initialize_low_tdesc): New declaration.
+
+2017-11-24  Alan Hayward  <alan.hayward@arm.com>
+
+	* configure.srv: Add new file.
+	* linux-aarch64-low.c (initialize_low_arch): Call init func.
+	* linux-aarch64-tdesc-selftest.c: New file.
+	* linux-aarch64-tdesc.h (initialize_low_tdesc): New declaration.
+
+2017-11-24  Alan Hayward  <alan.hayward@arm.com>
+
+	* linux-aarch64-ipa.c (initialize_low_tracepoint): Remove init.
+	* linux-aarch64-low.c (initialize_low_arch): Remove init.
+	* linux-aarch64-tdesc.c (aarch64_linux_read_description): Add init.
+
+2017-11-24  Alan Hayward  <alan.hayward@arm.com>
+
+	* configure.srv: Add new files.
+	* linux-aarch64-ipa.c (get_ipa_tdesc): Call
+	aarch64_linux_read_description.
+	* linux-aarch64-low.c (aarch64_linux_read_description):
+	Merge with aarch64_arch_setup.
+	(aarch64_arch_setup): Call aarch64_linux_read_description.
+	* linux-aarch64-tdesc.c: New file.
+	* linux-aarch64-tdesc.h: New file.
+
+2017-11-24  Yao Qi  <yao.qi@linaro.org>
+
+	* configure.srv: Set $srv_regobj for tic6x-linux.
+	* linux-tic6x-low.c: Include "arch/tic6x.h" and "tdesc.h".
+	(tic6x_read_description): Move some code to tic6x_arch_setup.
+	(tic6x_tdesc_test): New function.
+	(initialize_low_arch): Call selftests::register_test.
+
+2017-11-22  Yao Qi  <yao.qi@linaro.org>
+
+	* remote-utils.c (prepare_resume_reply): Use memcpy.
+
+2017-11-19  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* linux-low.c (kill_one_lwp_callback): Return void, take
+	argument directly, don't filter on pid.
+	(linux_kill): Use for_each_thread.
+
+2017-11-19  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* linux-low.c (need_step_over_p): Return bool, remove dummy
+	argument.
+	(linux_resume, proceed_all_lwps): Use find_thread.
+
+2017-11-19  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* linux-low.c (resume_status_pending_p): Return bool, remove
+	flag_p argument.
+	(linux_resume): Use find_thread.
+
+2017-11-19  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* linux-low.c (struct thread_resume_array): Remove.
+	(linux_set_resume_request): Return void, take arguments
+	directly.
+	(linux_resume): Use for_each_thread.
+
+2017-11-19  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* linux-low.c (stuck_in_jump_pad_callback): Change prototype,
+	return bool, remove data argument.
+	(linux_stabilize_threads): Use find_thread.
+
+2017-11-19  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* linux-low.c (unsuspend_one_lwp): Remove.
+	(unsuspend_all_lwps): Use for_each_thread, inline code from
+	unsuspend_one_lwp.
+
+2017-11-19  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdbthread.h (find_thread): Add overload with ptid_t filter.
+	* linux-low.c (struct iterate_over_lwps_args): Remove.
+	(iterate_over_lwps_filter): Remove.
+	(iterate_over_lwps): Use find_thread.
+
+2017-11-19  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* linux-low.c (reset_lwp_ptrace_options_callback): Remove.
+	(linux_handle_new_gdb_connection): Use for_each_thread, inline
+	code from reset_lwp_ptrace_options_callback.
+
+2017-11-19  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* linux-arm-low.c (struct update_registers_data): Remove.
+	(update_registers_callback): Return void, take arguments
+	directly, don't check thread's pid.
+	(arm_insert_point, arm_remove_point): Use for_each_thread.
+
+2017-11-19  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* win32-low.c (continue_one_thread): Return void, take argument
+	directly.
+	(child_continue): Use for_each_thread.
+
+2017-11-19  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* win32-i386-low.c (update_debug_registers_callback): Rename
+	to ...
+	(update_debug_registers): ... this, return void, remove pid_p arg.
+	(x86_dr_low_set_addr, x86_dr_low_set_control): Use for_each_thread.
+
+2017-11-17  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* inferiors.h (struct process_info): Add constructor, initialize
+	fields..
+	<syscalls_to_catch>: Change type to std::vector<int>.
+	* inferiors.c (add_process): Allocate process_info with new.
+	(remove_process): Free process_info with delete.
+	* linux-low.c (handle_extended_wait): Adjust.
+	(gdb_catching_syscalls_p, gdb_catch_this_syscall_p): Adjust.
+	* server.c (handle_general_set): Adjust.
+
+2017-11-16  Pedro Alves  <palves@redhat.com>
+
+	* remote-utils.c (remote_close): Block SIGIO signals instead of
+	uninstalling the SIGIO handler.
+
+2017-11-16  Alan Hayward  <alan.hayward@arm.com>
+
+	* tdesc.c (tdesc_get_features_xml): Allow null osabi.
+
+2017-11-16  Yao Qi  <yao.qi@linaro.org>
+
+	* linux-tic6x-low.c (tic6x_fill_gregset): Cast buf.
+	(tic6x_store_gregset): Likewise.
+	(tic6x_usrregs_info): Move it up.
+
+2017-11-15  Alan Hayward  <alan.hayward@arm.com>
+
+	* Makefile.in: Update arch rules.
+	* configure.srv: Explicitly mark arch/ files.
+
+2017-11-13  Andreas Schwab  <schwab@suse.de>
+
+	* linux-m68k-low.c (m68k_supports_hardware_single_step): New
+	function.
+	(struct linux_target_ops) <supports_hardware_single_step>: Initialize.
+
+2017-11-06  Pedro Alves  <palves@redhat.com>
+
+	* config.in, configure: Regenerate.
+
+2017-10-27  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* target.c (struct thread_search): Remove.
+	(thread_search_callback): Remove.
+	(prepare_to_access_memory): Use for_each_thread instead of
+	find_inferior.  Inline code from thread_search_callback.
+
+2017-10-27  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* server.c (struct visit_actioned_threads_data): Remove.
+	(visit_actioned_threads): Change prototype to take arguments
+	directly.
+	(resume): Use find_thread instead of find_inferior.
+
+2017-10-27  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* server.c (queue_stop_reply_callback): Change prototype, return
+	void.
+	(find_status_pending_thread_callback): Remove.
+	(handle_status): Replace find_inferior with find_thread and
+	for_each_thread.
+
+2017-10-25  Alan Hayward  <alan.hayward@arm.com>
+
+	* linux-aarch64-low.c (aarch64_fill_gregset): Replace defines
+	with REGNO.
+	(aarch64_store_gregset): Likewise.
+	(aarch64_fill_fpregset): Likewise.
+	(aarch64_store_fpregset): Likewise.
+
+2017-10-21  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* gdbthread.h (find_thread, for_each_thread): New functions.
+	* inferiors.c (thread_of_pid): Remove.
+	(find_any_thread_of_pid): Use find_thread.
+	* linux-low.c (num_lwps): Use for_each_thread.
+
+2017-10-17  Yao Qi  <yao.qi@linaro.org>
+
+	* Makefile.in: Remove one rule.
+	* configure.srv: Rename aarch64-insn.o with arch/aarch64-insn.o.
+
+2017-10-17  Yao Qi  <yao.qi@linaro.org>
+
+	* configure.srv: Rename arm-linux.o with arch/arm-linux.o.
+	Rename arm-get-next-pcs.o with arch/arm-get-next-pcs.o.
+
+2017-10-17  Yao Qi  <yao.qi@linaro.org>
+
+	* configure.srv: Rename arm.o with arch/arm.o.
+
+2017-10-17  Yao Qi  <yao.qi@linaro.org>
+
+	* Makefile.in (CONFIG_SRC_SUBDIR): New variable.
+	(clean): Remove .o files in CONFIG_SRC_SUBDIR.
+	(distclean): Remove DEPDIR in CONFIG_SRC_SUBDIR.
+	(arch-i386.o, arch-amd64.o): Remove rules.
+	(arch/%.o): New rule.
+	Update POSTCOMPILE and COMPILE.pre.
+	* configure.ac: Invoke AC_CONFIG_COMMANDS.
+	* configure: Re-generated.
+	* configure.srv: Replace arch-i386.o with arch/i386.o.
+	Replace arch-amd64.o with arch/amd64.o.
+
+2017-10-16  Yao Qi  <yao.qi@linaro.org>
+
+	* configure: Regenerated.
+
+2017-10-14  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* inferiors.h: (struct inferior_list): Remove.
+	(struct inferior_list_entry); Remove.
+	(add_inferior_to_list, clear_inferior_list, one_inferior_p,
+	A_I_NEXT, ALL_INFERIORS_TYPE, ALL_INFERIORS, remove_inferior,
+	get_first_inferior): Remove.
+	(for_each_inferior, for_each_inferior_with_data, find_inferior,
+	find_inferior_id, find_inferior_in_random): Change signature.
+	* inferiors.c (all_threads): Change type to
+	std::list<thread_info *>.
+	(get_thread): Remove macro.
+	(find_inferior, find_inferior_id): Change signature, implement
+	using find_thread.
+	(find_inferior_in_random): Change signature, implement using
+	find_thread_in_random.
+	(for_each_inferior, for_each_inferior_with_data): Change
+	signature, implement using for_each_thread.
+	(add_inferior_to_list, remove_inferior): Remove.
+	(add_thread, get_first_thread, thread_of_pid,
+	find_any_thread_of_pid, free_one_thread, remove_thread): Update.
+	(get_first_inferior, one_inferior_p, clear_inferior_list):
+	Remove.
+	(clear_inferiors, get_thread_process): Update.
+	* gdbthread.h: Include <list>.
+	(struct thread_info) <entry>: Remove field.
+	<id>: New field.
+	(all_threads): Change type to std::list<thread_info *>.
+	(get_first_inferior): Add doc.
+	(find_thread, for_each_thread, find_thread_in_random): New
+	functions.
+	(current_ptid, pid_of, ptid_of, lwpid_of): Update.
+	* linux-arm-low.c (update_registers_callback): Update.
+	* linux-low.c (second_thread_of_pid_p): Update.
+	(kill_one_lwp_callback, linux_detach_lwp_callback,
+	delete_lwp_callback, status_pending_p_callback, same_lwp,
+	find_lwp_pid, num_lwps, iterate_over_lwps_filter,
+	iterate_over_lwps, not_stopped_callback,
+	resume_stopped_resumed_lwps, count_events_callback,
+	select_singlestep_lwp_callback, select_event_lwp_callback,
+	unsuspend_one_lwp, linux_wait_1, send_sigstop_callback,
+	suspend_and_send_sigstop_callback, wait_for_sigstop,
+	stuck_in_jump_pad_callback, move_out_of_jump_pad_callback,
+	lwp_running, linux_set_resume_request, resume_status_pending_p,
+	need_step_over_p, start_step_over, linux_resume_one_thread,
+	proceed_one_lwp, unsuspend_and_proceed_one_lwp,
+	reset_lwp_ptrace_options_callback): Update.
+	* linux-mips-low.c (update_watch_registers_callback): Update.
+	* regcache.c (regcache_invalidate_one, regcache_invalidate):
+	Update.
+	(free_register_cache_thread_one): Remove.
+	(regcache_release): Update.
+	* server.c (handle_btrace_enable_bts, handle_btrace_enable_pt,
+	handle_qxfer_threads_worker): Update.
+	(handle_query): Update, use list iterator.
+	(visit_actioned_threads, handle_pending_status,
+	queue_stop_reply_callback, gdb_wants_all_threads_stopped,
+	clear_pending_status_callback, set_pending_status_callback,
+	find_status_pending_thread_callback, handle_status,
+	process_serial_event): Update.
+	* target.c (thread_search_callback): Update.
+	* thread-db.c (thread_db_get_tls_address): Update.
+	* tracepoint.c (tracepoint_finished_step, tracepoint_was_hit):
+	Update.
+	* win32-i386-low.c (update_debug_registers_callback): Update.
+	* win32-low.c (delete_thread_info, child_delete_thread,
+	continue_one_thread, suspend_one_thread,
+	get_child_debug_event): Adjust.
+
+2017-10-14  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* gdbthread.h (ptid_of, pid_of, lwpid_of): New functions.
+	* inferiors.h: Include <list>.
+	(struct process_info) <entry>: Remove field.
+	<pid>: New field.
+	(pid_of): Change macro to function.
+	(ptid_of, lwpid_of): Remove macro.
+	(all_processes): Change type to std::list<process_info *>.
+	(ALL_PROCESSES): Remove macro.
+	(for_each_process, find_process): New function.
+	* inferiors.c (all_processes): Change type to
+	std::list<process_info *>.
+	(find_thread_process): Adjust.
+	(add_process): Likewise.
+	(remove_process): Likewise.
+	(find_process_pid): Likewise.
+	(get_first_process): Likewise.
+	(started_inferior_callback): Remove.
+	(have_started_inferiors_p): Adjust.
+	(attached_inferior_callback): Remove.
+	(have_attached_inferiors_p): Adjust.
+	* linux-low.c (check_zombie_leaders): Likewise.
+	* linux-x86-low.c (x86_arch_setup_process_callback): Remove.
+	(x86_linux_update_xmltarget): Adjust.
+	* server.c (handle_query): Likewise.
+	(gdb_reattached_process): Remove.
+	(handle_status): Adjust.
+	(kill_inferior_callback): Likewise.
+	(detach_or_kill_inferior): Remove.
+	(print_started_pid): Likewise.
+	(print_attached_pid): Likewise.
+	(detach_or_kill_for_exit): Update.
+	(process_serial_event): Likewise.
+	* linux-arm-low.c (arm_new_fork): Likewise.
+
+2017-10-14  Simon Marchi  <simon.marchi@polymtl.ca>
+
+	* dll.h: Include <list>.
+	(struct dll_info): Add constructor.
+	<entry>: Remove field.
+	(all_dlls): Change type to std::list<dll_info>.
+	* dll.c: Include <algorithm>.
+	(get_dll): Remove macro.
+	(all_dlls): Change type to std::list<dll_info *>.
+	(free_one_dll): Remove.
+	(match_dll): Likewise.
+	(loaded_dll): Adjust.
+	(unloaded_dll): Adjust to all_dlls type change, use
+	std::find_if.  Inline code from match_dll.
+	(clear_dlls): Adjust to all_dlls type change.
+	* server.c (emit_dll_description): Remove.
+	(handle_qxfer_libraries): Adjust to all_dlls type change,
+	integrate emit_dll_description's functionality.
+
+2017-10-12  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* linux-low.h (struct linux_target_ops) <delete_process>: New
+	field.
+	* linux-low.c (linux_mourn): Call the_low_target.delete_process.
+	* linux-aarch64-low.c (aarch64_linux_delete_process): New.
+	(struct linux_target_ops): Add delete_process callback.
+	* linux-arm-low.c (arm_delete_process): New.
+	(struct linux_target_ops): Add delete_process callback.
+	* linux-bfin-low.c (struct linux_target_ops): Likewise.
+	* linux-crisv32-low.c (struct linux_target_ops): Likewise.
+	* linux-m32r-low.c (struct linux_target_ops): Likewise.
+	* linux-mips-low.c (mips_linux_delete_process): New.
+	(struct linux_target_ops): Add delete_process callback.
+	* linux-ppc-low.c (struct linux_target_ops): Likewise.
+	* linux-s390-low.c (struct linux_target_ops): Likewise.
+	* linux-sh-low.c (struct linux_target_ops): Likewise.
+	* linux-tic6x-low.c (struct linux_target_ops): Likewise.
+	* linux-tile-low.c (struct linux_target_ops): Likewise.
+	* linux-x86-low.c (x86_linux_delete_process): New.
+	(struct linux_target_ops): Add delete_process callback.
+	* linux-xtensa-low.c (struct linux_target_ops): Likewise.
+
+2017-10-12  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* linux-aarch64-low.c (the_low_target): Add thread delete
+	callback.
+	* linux-arm-low.c (arm_delete_thread): New function.
+	(the_low_target): Add thread delete callback.
+	* linux-bfin-low.c (the_low_target): Likewise.
+	* linux-crisv32-low.c (the_low_target): Likewise.
+	* linux-low.c (delete_lwp): Invoke delete_thread callback if
+	set.
+	* linux-low.h (struct linux_target_ops) <delete_thread>: New
+	field.
+	* linux-m32r-low.c (the_low_target): Add thread delete callback.
+	* linux-mips-low.c (mips_linux_delete_thread): New function.
+	(the_low_target): Add thread delete callback.
+	* linux-ppc-low.c (the_low_target): Likewise.
+	* linux-s390-low.c (the_low_target): Likewise.
+	* linux-sh-low.c (the_low_target): Likewise.
+	* linux-tic6x-low.c (the_low_target): Likewise.
+	* linux-tile-low.c (the_low_target): Likewise.
+	* linux-x86-low.c (the_low_target): Likewise.
+	* linux-xtensa-low.c (the_low_target): Likewise.
+
+2017-10-06  Yuanhui Zhang  <asmwarrior@gmail.com>
+
+	* win32-low.c: Include "common-inferior.h".
+
+2017-10-04  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* inferiors.c (set_inferior_cwd): New function.
+	* server.c (handle_general_set): Handle QSetWorkingDir packet.
+	(handle_query): Inform that QSetWorkingDir is supported.
+	* win32-low.c (create_process): Pass the inferior's cwd to
+	CreateProcess.
+
+2017-10-04  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* inferiors.c (current_inferior_cwd): New global variable.
+	(get_inferior_cwd): New function.
+	* inferiors.h (struct process_info) <cwd>: New field.
+
+2017-10-04  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* Makefile.in (SFILES): Add $(srcdir)/common/gdb_tilde_expand.c.
+	(OBS): Add gdb_tilde_expand.o.
+
+2017-10-02  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* lynx-i386-low.c (lynx_i386_arch_setup): Call init_target_desc.
+	* nto-x86-low.c (nto_x86_arch_setup): Likewise.
+
+2017-09-29  Pedro Alves  <palves@redhat.com>
+
+	* ax.c (gdb_parse_agent_expr): Constify.
+	* ax.h (gdb_parse_agent_expr): Constify.
+	* mem-break.c (add_breakpoint_condition, add_breakpoint_commands):
+	Constify.
+	* mem-break.h (add_breakpoint_condition, add_breakpoint_commands): Constify.
+	* remote-utils.c (hex_or_minus_one, read_ptid): Constify.
+	* remote-utils.h (read_ptid): Constify.
+	* server.c (handle_qxfer_exec_file, handle_query, handle_v_cont)
+	(process_point_options, process_serial_event): Constify.
+	* tracepoint.c (add_tracepoint_action, cmd_qtdp, cmd_qtdpsrc)
+	(cmd_qtdv, cmd_qtenable_disable, cmd_qtro, cmd_qtframe, cmd_qtp)
+	(cmd_qtbuffer): Constify.
+
+2017-09-29  Pedro Alves  <palves@redhat.com>
+
+	* proc-service.c (ps_pdread): Return PS_ERR if reading memory
+	fails.
+
+2017-09-29  Pedro Alves  <palves@redhat.com>
+
+	* linux-low.c (handle_extended_wait): Pass parent thread instead
+	of process to thread_db_notice_clone.
+	* linux-low.h (thread_db_notice_clone): Replace parent process
+	parameter with parent thread parameter.
+	* thread-db.c (find_one_thread): Add comment.
+	(thread_db_notice_clone): Replace parent process parameter with
+	parent thread parameter.  Temporarily switch to the parent thread.
+
+2017-09-26  Sergio Durigan Junior  <sergiodj@redhat.com>
+
+	* gdbthread.h: Include "common-gdbthread.h".
+	* inferiors.c (switch_to_thread): Use "gdb_assert" instead of
+	"if" when validating the ptid.
+	* remote-utils.c: Include "gdbthread.h".
+	(prepare_resume_reply): Use "switch_to_thread".
+	* target.c (done_accessing_memory): Likewise.
+
 2017-09-25  Andreas Arnez  <arnez@linux.vnet.ibm.com>
 
 	* configure.srv (s390*-*-linux*): Add s390-gs-linux64.o and

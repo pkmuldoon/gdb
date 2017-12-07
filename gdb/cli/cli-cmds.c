@@ -58,36 +58,6 @@
 #include <algorithm>
 #include <string>
 
-/* Prototypes for local command functions */
-
-static void complete_command (char *, int);
-
-static void echo_command (char *, int);
-
-static void pwd_command (char *, int);
-
-static void show_version (char *, int);
-
-static void help_command (char *, int);
-
-static void show_command (char *, int);
-
-static void info_command (char *, int);
-
-static void show_debug (char *, int);
-
-static void set_debug (char *, int);
-
-static void show_user (char *, int);
-
-static void make_command (char *, int);
-
-static void shell_escape (const char *, int);
-
-static void edit_command (char *, int);
-
-static void list_command (char *, int);
-
 /* Prototypes for local utility functions */
 
 static void print_sal_location (const symtab_and_line &sal);
@@ -222,7 +192,7 @@ error_no_arg (const char *why)
    args.  */
 
 static void
-info_command (char *arg, int from_tty)
+info_command (const char *arg, int from_tty)
 {
   printf_unfiltered (_("\"info\" must be followed by "
 		       "the name of an info command.\n"));
@@ -232,16 +202,17 @@ info_command (char *arg, int from_tty)
 /* The "show" command with no arguments shows all the settings.  */
 
 static void
-show_command (char *arg, int from_tty)
+show_command (const char *arg, int from_tty)
 {
   cmd_show_list (showlist, from_tty, "");
 }
+
 
 /* Provide documentation on command or list given by COMMAND.  FROM_TTY
    is ignored.  */
 
 static void
-help_command (char *command, int from_tty)
+help_command (const char *command, int from_tty)
 {
   help_cmd (command, gdb_stdout);
 }
@@ -251,10 +222,8 @@ help_command (char *command, int from_tty)
    [Is that why this function writes output with *_unfiltered?]  */
 
 static void
-complete_command (char *arg_entry, int from_tty)
+complete_command (const char *arg, int from_tty)
 {
-  const char *arg = arg_entry;
-
   dont_repeat ();
 
   if (max_completions == 0)
@@ -300,6 +269,7 @@ complete_command (char *arg_entry, int from_tty)
     {
       return;
     }
+  END_CATCH
 
   std::string arg_prefix (arg, word - arg);
 
@@ -343,14 +313,14 @@ is_complete_command (struct cmd_list_element *c)
 }
 
 static void
-show_version (char *args, int from_tty)
+show_version (const char *args, int from_tty)
 {
   print_gdb_version (gdb_stdout);
   printf_filtered ("\n");
 }
 
 static void
-show_configuration (char *args, int from_tty)
+show_configuration (const char *args, int from_tty)
 {
   print_gdb_configuration (gdb_stdout);
 }
@@ -358,7 +328,7 @@ show_configuration (char *args, int from_tty)
 /* Handle the quit command.  */
 
 void
-quit_command (char *args, int from_tty)
+quit_command (const char *args, int from_tty)
 {
   int exit_code = 0;
 
@@ -380,7 +350,7 @@ quit_command (char *args, int from_tty)
 }
 
 static void
-pwd_command (char *args, int from_tty)
+pwd_command (const char *args, int from_tty)
 {
   if (args)
     error (_("The \"pwd\" command does not take an argument: %s"), args);
@@ -399,7 +369,7 @@ pwd_command (char *args, int from_tty)
 }
 
 void
-cd_command (char *dir, int from_tty)
+cd_command (const char *dir, int from_tty)
 {
   int len;
   /* Found something other than leading repetitions of "/..".  */
@@ -645,9 +615,9 @@ source_script (const char *file, int from_tty)
 }
 
 static void
-source_command (char *args, int from_tty)
+source_command (const char *args, int from_tty)
 {
-  char *file = args;
+  const char *file = args;
   int search_path = 0;
 
   scoped_restore save_source_verbose = make_scoped_restore (&source_verbose);
@@ -695,7 +665,7 @@ source_command (char *args, int from_tty)
 
 
 static void
-echo_command (char *text, int from_tty)
+echo_command (const char *text, int from_tty)
 {
   const char *p = text;
   int c;
@@ -787,13 +757,13 @@ shell_escape (const char *arg, int from_tty)
 /* Implementation of the "shell" command.  */
 
 static void
-shell_command (char *arg, int from_tty)
+shell_command (const char *arg, int from_tty)
 {
   shell_escape (arg, from_tty);
 }
 
 static void
-edit_command (char *arg, int from_tty)
+edit_command (const char *arg, int from_tty)
 {
   struct symtab_and_line sal;
   struct symbol *sym;
@@ -818,7 +788,7 @@ edit_command (char *arg, int from_tty)
     }
   else
     {
-      char *arg1;
+      const char *arg1;
 
       /* Now should only be one argument -- decode it in SAL.  */
       arg1 = arg;
@@ -893,15 +863,15 @@ edit_command (char *arg, int from_tty)
 }
 
 static void
-list_command (char *arg, int from_tty)
+list_command (const char *arg, int from_tty)
 {
   struct symbol *sym;
-  char *arg1;
+  const char *arg1;
   int no_end = 1;
   int dummy_end = 0;
   int dummy_beg = 0;
   int linenum_beg = 0;
-  char *p;
+  const char *p;
 
   /* Pull in the current default source line if necessary.  */
   if (arg == NULL || ((arg[0] == '+' || arg[0] == '-') && arg[1] == '\0'))
@@ -1084,7 +1054,7 @@ list_command (char *arg, int from_tty)
      turn it into the no-arg variant.  */
 
   if (from_tty)
-    *arg = 0;
+    set_repeat_arguments ("");
 
   if (dummy_beg && sal_end.symtab == 0)
     error (_("No default source file yet.  Do \"help list\"."));
@@ -1207,7 +1177,7 @@ disassemble_current_function (gdb_disassembly_flags flags)
    2) File names and contents for all relevant source files are displayed.  */
 
 static void
-disassemble_command (char *arg, int from_tty)
+disassemble_command (const char *arg, int from_tty)
 {
   struct gdbarch *gdbarch = get_current_arch ();
   CORE_ADDR low, high;
@@ -1297,7 +1267,7 @@ disassemble_command (char *arg, int from_tty)
 }
 
 static void
-make_command (char *arg, int from_tty)
+make_command (const char *arg, int from_tty)
 {
   if (arg == 0)
     shell_escape ("make", from_tty);
@@ -1310,7 +1280,7 @@ make_command (char *arg, int from_tty)
 }
 
 static void
-show_user (char *args, int from_tty)
+show_user (const char *args, int from_tty)
 {
   struct cmd_list_element *c;
   extern struct cmd_list_element *cmdlist;
@@ -1338,7 +1308,7 @@ show_user (char *args, int from_tty)
    regular expression.  */
 
 static void 
-apropos_command (char *searchstr, int from_tty)
+apropos_command (const char *searchstr, int from_tty)
 {
   if (searchstr == NULL)
     error (_("REGEXP string is empty"));
@@ -1407,11 +1377,11 @@ alias_usage_error (void)
 /* Make an alias of an existing command.  */
 
 static void
-alias_command (char *args, int from_tty)
+alias_command (const char *args, int from_tty)
 {
   int i, alias_argc, command_argc;
   int abbrev_flag = 0;
-  char *equals;
+  const char *equals;
   const char *alias, *command;
 
   if (args == NULL || strchr (args, '=') == NULL)
@@ -1619,7 +1589,7 @@ filter_sals (std::vector<symtab_and_line> &sals)
 }
 
 static void
-set_debug (char *arg, int from_tty)
+set_debug (const char *arg, int from_tty)
 {
   printf_unfiltered (_("\"set debug\" must be followed by "
 		       "the name of a debug subcommand.\n"));
@@ -1627,7 +1597,7 @@ set_debug (char *arg, int from_tty)
 }
 
 static void
-show_debug (char *args, int from_tty)
+show_debug (const char *args, int from_tty)
 {
   cmd_show_list (showdebuglist, from_tty, "");
 }
@@ -1693,28 +1663,28 @@ _initialize_cli_cmds (void)
   /* Define the classes of commands.
      They will appear in the help list in alphabetical order.  */
 
-  add_cmd ("internals", class_maintenance, NULL, _("\
+  add_cmd ("internals", class_maintenance, _("\
 Maintenance commands.\n\
 Some gdb commands are provided just for use by gdb maintainers.\n\
 These commands are subject to frequent change, and may not be as\n\
 well documented as user commands."),
 	   &cmdlist);
-  add_cmd ("obscure", class_obscure, NULL, _("Obscure features."), &cmdlist);
-  add_cmd ("aliases", class_alias, NULL,
+  add_cmd ("obscure", class_obscure, _("Obscure features."), &cmdlist);
+  add_cmd ("aliases", class_alias,
 	   _("Aliases of other commands."), &cmdlist);
-  add_cmd ("user-defined", class_user, NULL, _("\
+  add_cmd ("user-defined", class_user, _("\
 User-defined commands.\n\
 The commands in this class are those defined by the user.\n\
 Use the \"define\" command to define a command."), &cmdlist);
-  add_cmd ("support", class_support, NULL, _("Support facilities."), &cmdlist);
+  add_cmd ("support", class_support, _("Support facilities."), &cmdlist);
   if (!dbx_commands)
-    add_cmd ("status", class_info, NULL, _("Status inquiries."), &cmdlist);
-  add_cmd ("files", class_files, NULL, _("Specifying and examining files."),
+    add_cmd ("status", class_info, _("Status inquiries."), &cmdlist);
+  add_cmd ("files", class_files, _("Specifying and examining files."),
 	   &cmdlist);
-  add_cmd ("breakpoints", class_breakpoint, NULL,
+  add_cmd ("breakpoints", class_breakpoint,
 	   _("Making program stop at certain points."), &cmdlist);
-  add_cmd ("data", class_vars, NULL, _("Examining data."), &cmdlist);
-  add_cmd ("stack", class_stack, NULL, _("\
+  add_cmd ("data", class_vars, _("Examining data."), &cmdlist);
+  add_cmd ("stack", class_stack, _("\
 Examining the stack.\n\
 The stack is made up of stack frames.  Gdb assigns numbers to stack frames\n\
 counting from zero for the innermost (currently executing) frame.\n\n\
@@ -1723,7 +1693,7 @@ Variable lookups are done with respect to the selected frame.\n\
 When the program being debugged stops, gdb selects the innermost frame.\n\
 The commands below can be used to select other frames by number or address."),
 	   &cmdlist);
-  add_cmd ("running", class_run, NULL, _("Running the program."), &cmdlist);
+  add_cmd ("running", class_run, _("Running the program."), &cmdlist);
 
   /* Define general commands.  */
 
@@ -1731,9 +1701,11 @@ The commands below can be used to select other frames by number or address."),
 Print working directory.  This is used for your program as well."));
 
   c = add_cmd ("cd", class_files, cd_command, _("\
-Set working directory to DIR for debugger and program being debugged.\n\
-The change does not take effect for the program being debugged\n\
-until the next time it is started."), &cmdlist);
+Set working directory to DIR for debugger.\n\
+The debugger's current working directory specifies where scripts and other\n\
+files that can be loaded by GDB are located.\n\
+In order to change the inferior's current working directory, the recommended\n\
+way is to use the \"set cwd\" command."), &cmdlist);
   set_cmd_completer (c, filename_completer);
 
   add_com ("echo", class_support, echo_command, _("\

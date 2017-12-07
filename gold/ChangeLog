@@ -1,3 +1,224 @@
+2017-12-02  Vladimir Kondratyev  <vladimir@kondratyev.su>
+	    Cary Coutant  <ccoutant@gmail.com>
+
+	PR gold/22540
+	* output.cc (gold_fallocate): Trivial return for len == 0.
+	Add fallback options when posix_fallocate and fallocate return
+	not-supported errors.
+
+2017-12-01  Cary Coutant  <ccoutant@gmail.com>
+
+	PR gold/21090
+	* incremental.cc (Sized_relobj_incr::do_relocate): Fix comment.
+	* options.cc (General_options::finalize): Disallow -pie with
+	incremental linking.
+	* x86_64.cc (Target_x86_64::Scan::local): Don't do mov-to-lea
+	or callq-to-direct optimizations for incremental links.
+	(Target_x86_64::Scan::global): Likewise.
+	(Target_x86_64::Relocate::relocate): Likewise.
+	* testsuite/Makefile.am (incremental_test): Force -no-pie.
+	(incremental_test_2): Likewise.
+	(incremental_test_3): Likewise.
+	(incremental_test_4): Likewise.
+	(incremental_test_5): Likewise.
+	(incremental_test_6): Likewise.
+	(incremental_copy_test): Likewise.
+	(incremental_common_test_1): Likewise.
+	(incremental_comdat_test_1):  Likewise.
+	* testsuite/Makefile.in: Regenerate.
+
+2017-12-01  Cary Coutant  <ccoutant@gmail.com>
+
+	PR gold/21841
+	* testsuite/debug_msg.sh: Adjust expected line numbers.
+	* testsuite/odr_violation2.cc (DummyFunction): New function.
+
+2017-12-01  Cary Coutant  <ccoutant@gmail.com>
+
+	PR gold/22309
+	* testsuite/Makefile.am (two_file_test_1_v1_ndebug.o): Compile with
+	no EH information.
+	(two_file_test_1_ndebug.o): Likewise.
+	* testsuite/Makefile.in: Regenerate.
+	* testsuite/two_file_test_1.cc: Touch to force recompilation with new
+	flags.
+	* testsuite/two_file_test_1_v1.cc: Likewise.
+
+2017-12-01  Cary Coutant  <ccoutant@gmail.com>
+
+	PR gold/22042
+	* options.h (-fuse-ld): Use NULL instead of empty string.
+
+2017-12-01  Benjamin Peterson  <bp@benjamin.pe>
+
+	PR gold/22406
+	* gold.cc (queue_initial_tasks) Check for number of real input files.
+	* options.cc (Command_line::process) Check for unterminated --start-lib
+	options.
+	* testsuite/Makefile.am: Add new test script.
+	* testsuite/Makefile.in: Regenerate.
+	* testsuite/check_empty_command_lines.sh: New test script.
+
+2017-11-17  Stephen Crane  <sjc@immunant.com>
+
+	PR gold/22448
+	* symtab.cc (Symbol_table::add_from_object): Only rescan for
+	undefined symbols in regular, not dynamic, objects.
+
+2017-11-30  Peter Smith  <peter.smith@linaro.org>
+
+	PR gold/20765
+	* aarch64.cc (Aarch64_relobj::update_erratum_address): New method.
+	(AArch64_relobj::scan_errata): Update addresses in stub table after
+	relaxation pass.
+
+2017-11-30  Peter Smith  <peter.smith@linaro.org>
+	    Cary Coutant  <ccoutant@gmail.com>
+
+	PR gold/20765
+	* aarch64.cc (Erratum_stub::invalidate_erratum_stub): Use erratum_insn_
+	instead of relobj_ to invalidate the stub.
+	(Erratum_stub::is_invalidated_erratum_stub): Likewise.
+
+2017-11-30  Peter Smith  <peter.smith@linaro.org>
+
+	PR gold/22233
+	* aarch64.cc (AArch64_relobj::fix_errata_and_relocate_erratum_stubs):
+	Fix calculation of stub address.
+
+2017-11-29  Stefan Stroe  <stroestefan@gmail.com>
+
+	* po/Make-in (datadir): Define as @datadir@.
+	(localedir): Define as @localedir@.
+	(gnulocaledir, gettextsrcdir): Use @datarootdir@.
+
+2017-11-28  Cary Coutant  <ccoutant@gmail.com>
+
+	* resolve.cc (Symbol_table::resolve): Allow multiply-defined absolute
+	symbols when they have the same value.
+
+2017-11-28  Cary Coutant  <ccoutant@gmail.com>
+
+	* object.h (class Sized_relobj_file): Remove discarded_eh_frame_shndx_.
+	* object.cc (Sized_relobj_file::Sized_relobj_file): Likewise.
+	(Sized_relobj_file::layout_eh_frame_section): Likewise.
+	(Sized_relobj_file::do_count_local_symbols): Check for optimized
+	.eh_frame section by other means.
+	(Sized_relobj_file::compute_final_local_value_internal): Likewise.
+
+2017-11-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* testsuite/pr22266_a.c: Add a newline at end of file.
+
+2017-11-27  Cary Coutant  <ccoutant@gmail.com>
+
+	PR gold/19291
+	PR gold/22266
+	* object.cc (Sized_relobj_file::compute_final_local_value_internal):
+	Revert changes from 2017-11-08 patch.  Adjust symbol value in
+	relocatable links for non-section symbols.
+	(Sized_relobj_file::compute_final_local_value): Revert changes from
+	2017-11-08 patch.
+	(Sized_relobj_file::do_finalize_local_symbols): Likewise.
+	(Sized_relobj_file::write_local_symbols): Revert changes from
+	2015-11-25 patch.
+	* object.h (Sized_relobj_file::compute_final_local_value_internal):
+	Revert changes from 2017-11-08 patch.
+	* powerpc.cc (Target_powerpc::relocate_relocs): Adjust addend for
+	relocatable links.
+	* target-reloc.h (relocate_relocs): Adjust addend for relocatable links.
+	* testsuite/pr22266_a.c (hello): New function.
+	* testsuite/pr22266_main.c (main): Add test for merge sections.
+	* testsuite/pr22266_script.t: Add rule for .rodata.
+
+2017-11-19  Ian Lance Taylor  <iant@google.com>
+	    Cary Coutant  <ccoutant@gmail.com>
+
+	* dwarf_reader.h (class Dwarf_info_reader): Add ref_addr_size
+	method.
+	* dwarf_reader.cc (Dwarf_die::read_attributes): Use ref_addr_size
+	for DW_FORM_ref_addr_size.
+	(Dwarf_die::skip_attributes): Likewise.
+
+2017-11-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR gold/22291
+	* layout.cc (Layout::define_section_symbols): Use STV_PROTECTED
+	for __start and __stop symbols.
+	* symtab.cc (Symbol_table::define_special_symbol): Add an
+	argument, visibility.  Ignore definition and reference from
+	a dynamic object, depending on visibility.
+	(Symbol_table::do_define_in_output_data): Pass visibility to
+	define_special_symbol.
+	(Symbol_table::do_define_in_output_segment): Likewise.
+	(Symbol_table::do_define_as_constant): Likewise.
+	(Symbol_table::add_undefined_symbol_from_command_line): Pass
+	STV_DEFAULT to define_special_symbol.
+	* symtab.h (Symbol_table::define_special_symbol): Add an
+	argument, visibility.
+
+2017-11-08  James Clarke  <jrtc27@jrtc27.com>
+
+	PR gold/22266
+	* object.cc (Sized_relobj_file::compute_final_local_value_internal):
+	Drop relocatable parameter and stop adjusting output value based on
+	it.
+	(Sized_relobj_file::compute_final_local_value): Stop passing
+	relocatable to compute_final_local_value_internal.
+	(Sized_relobj_file::do_finalize_local_symbols): Ditto.
+	* object.h (Sized_relobj_file::compute_final_local_value_internal):
+	Drop relocatable parameter.
+
+2017-11-08  Kyle Butt  <iteratee@google.com>
+
+        * object.cc (do_find_special_sections): Fix a thinko with memmem return
+        values and check for !=	NULL rather than == 0.
+
+2017-11-07  Alan Modra  <amodra@gmail.com>
+
+	* system.h (textdomain, bindtextdomain): Use safer "do nothing".
+	(ngettext, dngettext, dcngettext): Define when !ENABLE_NLS.
+
+2017-10-25  Alan Modra  <amodra@gmail.com>
+
+	* symtab.cc (Symbol_table::add_from_relobj): Match "__gnu_lto_slim"
+	optionally prefixed with "_".
+
+2017-10-20  Sriraman Tallam  <tmsriram@google.com>
+
+	* options.h (-z,text_unlikely_segment): New option.
+	* layout.cc (Layout::layout): Create new output section
+	for .text.unlikely sections with the new option.
+	(Layout::segment_precedes): Check for the new option
+	when segment flags match.
+	* testsuite/text_unlikely_segment.cc: New test source.
+	* testsuite/text_unlikely_segment.sh: New test script.
+	* testsuite/Makefile.am (text_unlikely_segment): New test.
+	* testsuite/Makefile.in: Regenerate.
+
+2017-10-19  Umesh Kalappa  <ukalappa@cisco.com>
+
+	* arm.cc (Stub::do_fixed_endian_write):Far call stubs support for arm
+	in the be8 mode.
+	* testsuite/Makefile.am: New test cases.
+	* testsuite/Makefile.in: Regenerate.
+	* testsuite/arm_farcall_arm_arm_be8.sh: New script for arm to arm far
+	call stubs.
+	* testsuite/arm_farcall_thumb_thumb_be8.sh: New script for thumb to
+	thumb far call stubs.
+
+2017-10-18  Kyle Butt  <iteratee@google.com>
+	    Alan Modra  <amodra@gmail.com>
+
+	* powerpc.cc (Target_powerpc::Scan::local): Correct dst_off
+	calculation for TOC16 relocs.
+	(Target_powerpc::Scan::global): Likewise.
+
+2017-09-26  Cary Coutant  <ccoutant@gmail.com>
+
+	PR gold/22213
+	* sparc.cc (Target_sparc): Fix incorrect register mask.
+
 2017-09-22  Jim Wilson  <jim.wilson@linaro.org>
 
 	* aarch64.cc (Target_aarch64::aarch64_info): Set

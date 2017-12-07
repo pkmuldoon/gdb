@@ -34,6 +34,8 @@ if ![check_shared_lib_support] {
 # Add $NOPIE_CFLAGS and $NOPIE_LDFLAGS if non-PIE is required.
 global NOPIE_CFLAGS NOPIE_LDFLAGS
 
+set old_ASFLAGS $ASFLAGS
+
 # This target requires extra GAS options when building code for shared
 # libraries.
 set AFLAGS_PIC ""
@@ -46,6 +48,65 @@ set LFLAGS ""
 if [istarget "tic6x-*-*"] {
     append LFLAGS " -melf32_tic6x_le"
 }
+
+if [is_underscore_target] {
+    set ASFLAGS "$ASFLAGS --defsym UNDERSCORE=1"
+}
+
+run_ld_link_tests [list \
+    [list \
+	"Build pr22471a.so" \
+	"$LFLAGS -shared" \
+	"" \
+	"$AFLAGS_PIC" \
+	{pr22471a.s} \
+	{} \
+	"pr22471a.so" \
+    ] \
+    [list \
+	"Build pr22471b.so" \
+	"$LFLAGS -shared --version-script pr22471.t" \
+	"tmpdir/pr22471a.so" \
+	"$AFLAGS_PIC" \
+	{pr22471a.s} \
+	{} \
+	"pr22471b.so" \
+    ] \
+    [list \
+	"Build pr22471" \
+	"$LFLAGS -rpath-link ." \
+	"tmpdir/pr22471b.so" \
+	"" \
+	{pr22471b.s} \
+	{} \
+	"pr22471" \
+    ] \
+]
+
+run_ld_link_tests [list \
+    [list \
+	"DT_TEXTREL in shared lib" \
+	"$LFLAGS -shared --warn-shared-textrel" \
+	"" \
+	"$AFLAGS_PIC" \
+	{textrel.s} \
+	 {{ld textrel.warn} \
+	  {readelf {-d --wide} textrel.rd}} \
+	"textrel.so" \
+    ] \
+] "xtensa-*-*"
+
+run_ld_link_tests [list \
+    [list \
+	"DT_TEXTREL map file warning" \
+	"$LFLAGS -shared -M" \
+	"" \
+	"$AFLAGS_PIC" \
+	{textrel.s} \
+	 {{ld textrel.map}} \
+	"textrel.so" \
+    ] \
+] "cris*-*-*"
 
 # PR ld/20828 check for correct dynamic symbol table entries where:
 # - symbols have been defined with a linker script,
@@ -135,8 +196,6 @@ if { [check_gc_sections_available] } {
 	    {{readelf --dyn-syms pr21233-l.sd}} \
 	    "libpr21233.so"]]
 
-    setup_kfail "cris*-*-*" "ld/21233"
-
     run_ld_link_tests [list \
 	[list \
 	    "PR ld/21233 dynamic symbols with section GC (--undefined)" \
@@ -145,8 +204,6 @@ if { [check_gc_sections_available] } {
 	    {pr21233.s} \
 	    {{readelf --dyn-syms pr21233.sd}} \
 	    "pr21233-1"]]
-
-    setup_kfail "cris*-*-*" "ld/21233"
 
     run_ld_link_tests [list \
 	[list \
@@ -157,8 +214,6 @@ if { [check_gc_sections_available] } {
 	    {pr21233.s} \
 	    {{readelf --dyn-syms pr21233.sd}} \
 	    "pr21233-2"]]
-
-    setup_kfail "cris*-*-*" "ld/21233"
 
     run_ld_link_tests [list \
 	[list \
@@ -192,6 +247,8 @@ if { [check_gc_sections_available] } {
 	] \
     ]
 }
+
+set ASFLAGS $old_ASFLAGS
 
 # Check to see if the C compiler works
 if { [which $CC] == 0 } {
@@ -458,9 +515,25 @@ set build_tests {
   {"Build pr21964-2b.so"
    "-shared" "-fPIC"
    {pr21964-2b.c} {} "pr21964-2b.so"}
+  {"Dump pr21978.so"
+   "-shared" "-fPIC -g -O2"
+   {pr21978a.c pr21978b.c} {{objdump {-Sl} pr21978.od}} "pr21978.so"}
 }
 
 run_cc_link_tests $build_tests
+
+run_ld_link_tests [list \
+    [list \
+	"Build pr22269-1" \
+	"-pie -e _start --no-dynamic-linker -z text" \
+	"" \
+	"" \
+	{ pr22269-1.c } \
+	{{readelf -rW pr22269-1.rd}} \
+	"pr22269-1" \
+	"-fPIE -O2" \
+    ] \
+]
 
 set run_tests [list \
     [list "Run normal with libfoo.so" \

@@ -50,13 +50,18 @@ srv_linux_obj="linux-low.o linux-osdata.o linux-procfs.o linux-ptrace.o linux-wa
 
 case "${target}" in
   aarch64*-*-linux*)
-			srv_regobj="aarch64.o"
-			srv_regobj="${srv_regobj} arm-with-neon.o"
+			srv_regobj="arm-with-neon.o"
+			if $development; then
+			  srv_regobj="${srv_regobj} aarch64.o"
+			  srv_regobj="${srv_regobj} linux-aarch64-tdesc-selftest.o"
+                        fi
 			srv_tgtobj="linux-aarch64-low.o aarch64-linux-hw-point.o"
 			srv_tgtobj="$srv_tgtobj linux-aarch32-low.o"
-			srv_tgtobj="${srv_tgtobj} arm.o"
+			srv_tgtobj="${srv_tgtobj} arch/arm.o"
 			srv_tgtobj="$srv_tgtobj aarch64-linux.o"
-			srv_tgtobj="$srv_tgtobj aarch64-insn.o"
+			srv_tgtobj="$srv_tgtobj arch/aarch64-insn.o"
+			srv_tgtobj="$srv_tgtobj arch/aarch64.o"
+			srv_tgtobj="$srv_tgtobj linux-aarch64-tdesc.o"
 			srv_tgtobj="${srv_tgtobj} $srv_linux_obj"
 			srv_xmlfiles="aarch64.xml"
 			srv_xmlfiles="${srv_xmlfiles} aarch64-core.xml"
@@ -65,7 +70,9 @@ case "${target}" in
 			srv_xmlfiles="${srv_xmlfiles} arm/arm-with-neon.xml"
 			srv_linux_regsets=yes
 			srv_linux_thread_db=yes
-			ipa_obj="linux-aarch64-ipa.o aarch64-ipa.o"
+			ipa_obj="linux-aarch64-ipa.o"
+			ipa_obj="${ipa_obj} linux-aarch64-tdesc-ipa.o"
+			ipa_obj="${ipa_obj} arch/aarch64-ipa.o"
 			;;
   arm*-*-linux*)	srv_regobj="reg-arm.o arm-with-iwmmxt.o"
 			srv_regobj="${srv_regobj} arm-with-vfpv2.o"
@@ -73,9 +80,9 @@ case "${target}" in
 			srv_regobj="${srv_regobj} arm-with-neon.o"
 			srv_tgtobj="$srv_linux_obj linux-arm-low.o"
 			srv_tgtobj="$srv_tgtobj linux-aarch32-low.o"
-			srv_tgtobj="${srv_tgtobj} arm.o"
-			srv_tgtobj="${srv_tgtobj} arm-linux.o"
-			srv_tgtobj="${srv_tgtobj} arm-get-next-pcs.o"
+			srv_tgtobj="${srv_tgtobj} arch/arm.o"
+			srv_tgtobj="${srv_tgtobj} arch/arm-linux.o"
+			srv_tgtobj="${srv_tgtobj} arch/arm-get-next-pcs.o"
 			srv_xmlfiles="arm/arm-with-iwmmxt.xml"
 			srv_xmlfiles="${srv_xmlfiles} arm/arm-with-vfpv2.xml"
 			srv_xmlfiles="${srv_xmlfiles} arm/arm-with-vfpv3.xml"
@@ -113,7 +120,7 @@ case "${target}" in
 			;;
   i[34567]86-*-cygwin*)	srv_regobj=""
 			srv_tgtobj="x86-low.o x86-dregs.o win32-low.o win32-i386-low.o"
-			srv_tgtobj="${srv_tgtobj} arch-i386.o"
+			srv_tgtobj="${srv_tgtobj} arch/i386.o"
 			srv_xmlfiles="$srv_i386_xmlfiles"
 			;;
   i[34567]86-*-linux*)	srv_regobj="$srv_i386_linux_regobj"
@@ -123,7 +130,7 @@ case "${target}" in
 			    srv_xmlfiles="${srv_xmlfiles} $srv_amd64_linux_xmlfiles"
 			    srv_tgtobj="amd64-linux-siginfo.o"
 			fi
-			srv_tgtobj="${srv_tgtobj} arch-i386.o"
+			srv_tgtobj="${srv_tgtobj} arch/i386.o"
 			srv_tgtobj="${srv_tgtobj} $srv_linux_obj linux-x86-low.o x86-low.o x86-dregs.o i387-fp.o"
 			srv_tgtobj="${srv_tgtobj} linux-x86-tdesc.o"
 			srv_tgtobj="${srv_tgtobj} linux-btrace.o x86-linux.o"
@@ -133,11 +140,11 @@ case "${target}" in
 			srv_linux_thread_db=yes
 			srv_linux_btrace=yes
 			ipa_obj="linux-i386-ipa.o linux-x86-tdesc-ipa.o"
-			ipa_obj="${ipa_obj} i386-ipa.o"
+			ipa_obj="${ipa_obj} arch/i386-ipa.o"
 			;;
   i[34567]86-*-lynxos*)	srv_regobj=""
 			srv_tgtobj="lynx-low.o lynx-i386-low.o fork-child.o fork-inferior.o"
-			srv_tgtobj="${srv_tgtobj} arch-i386.o"
+			srv_tgtobj="${srv_tgtobj} arch/i386.o"
 			srv_xmlfiles="i386/i386.xml"
 			srv_xmlfiles="${srv_xmlfiles} i386/32bit-core.xml"
 			srv_xmlfiles="${srv_xmlfiles} i386/32bit-sse.xml"
@@ -146,7 +153,7 @@ case "${target}" in
   i[34567]86-*-mingw32ce*)
 			srv_regobj=""
 			srv_tgtobj="x86-low.o x86-dregs.o win32-low.o win32-i386-low.o"
-			srv_tgtobj="${srv_tgtobj} arch-i386.o"
+			srv_tgtobj="${srv_tgtobj} arch/i386.o"
 			srv_tgtobj="${srv_tgtobj} wincecompat.o"
 			srv_xmlfiles="$srv_i386_xmlfiles"
 			# hostio_last_error implementation is in win32-low.c
@@ -156,12 +163,12 @@ case "${target}" in
 			;;
   i[34567]86-*-mingw*)	srv_regobj=""
 			srv_tgtobj="x86-low.o x86-dregs.o win32-low.o win32-i386-low.o"
-			srv_tgtobj="${srv_tgtobj} arch-i386.o"
+			srv_tgtobj="${srv_tgtobj} arch/i386.o"
 			srv_xmlfiles="$srv_i386_xmlfiles"
 			srv_mingw=yes
 			;;
   i[34567]86-*-nto*)	srv_regobj=""
-			srv_tgtobj="nto-low.o nto-x86-low.o arch-i386.o"
+			srv_tgtobj="nto-low.o nto-x86-low.o arch/i386.o"
 			srv_xmlfiles="$srv_i386_xmlfiles"
 			srv_qnx="yes"
 			;;
@@ -356,23 +363,25 @@ case "${target}" in
   spu*-*-*)		srv_regobj=reg-spu.o
 			srv_tgtobj="spu-low.o fork-child.o fork-inferior.o"
 			;;
-  tic6x-*-uclinux)	srv_regobj="tic6x-c64xp-linux.o"
-			srv_regobj="${srv_regobj} tic6x-c64x-linux.o"
-			srv_regobj="${srv_regobj} tic6x-c62x-linux.o"
-			srv_xmlfiles="tic6x-c64xp-linux.xml"
-			srv_xmlfiles="${srv_xmlfiles} tic6x-c64x-linux.xml"
-			srv_xmlfiles="${srv_xmlfiles} tic6x-c62x-linux.xml"
+  tic6x-*-uclinux)	if $development; then
+			  srv_regobj="tic6x-c64xp-linux.o"
+			  srv_regobj="${srv_regobj} tic6x-c64x-linux.o"
+			  srv_regobj="${srv_regobj} tic6x-c62x-linux.o"
+                        else
+			  srv_regobj=""
+                        fi
 			srv_xmlfiles="${srv_xmlfiles} tic6x-core.xml"
 			srv_xmlfiles="${srv_xmlfiles} tic6x-gp.xml"
 			srv_xmlfiles="${srv_xmlfiles} tic6x-c6xp.xml"
 			srv_tgtobj="$srv_linux_obj linux-tic6x-low.o"
+			srv_tgtobj="${srv_tgtobj} arch/tic6x.o"
 			srv_linux_regsets=yes
 			srv_linux_usrregs=yes
 			srv_linux_thread_db=yes
 			;;
   x86_64-*-linux*)	srv_regobj="$srv_amd64_linux_regobj $srv_i386_linux_regobj"
 			srv_tgtobj="$srv_linux_obj linux-x86-low.o x86-low.o x86-dregs.o i387-fp.o"
-			srv_tgtobj="${srv_tgtobj} arch-i386.o arch-amd64.o"
+			srv_tgtobj="${srv_tgtobj} arch/i386.o arch/amd64.o"
 			srv_tgtobj="${srv_tgtobj} linux-x86-tdesc.o"
 			srv_tgtobj="${srv_tgtobj} linux-btrace.o x86-linux.o"
 			srv_tgtobj="${srv_tgtobj} x86-linux-dregs.o"
@@ -383,17 +392,17 @@ case "${target}" in
 			srv_linux_thread_db=yes
 			srv_linux_btrace=yes
 			ipa_obj="linux-amd64-ipa.o linux-x86-tdesc-ipa.o"
-			ipa_obj="${ipa_obj} amd64-ipa.o"
+			ipa_obj="${ipa_obj} arch/amd64-ipa.o"
 			;;
   x86_64-*-mingw*)	srv_regobj=""
 			srv_tgtobj="x86-low.o x86-dregs.o i387-fp.o win32-low.o win32-i386-low.o"
-			srv_tgtobj="${srv_tgtobj} arch-amd64.o"
+			srv_tgtobj="${srv_tgtobj} arch/amd64.o"
 			srv_xmlfiles="$srv_i386_xmlfiles $srv_amd64_xmlfiles"
 			srv_mingw=yes
 			;;
   x86_64-*-cygwin*)	srv_regobj=""
 			srv_tgtobj="x86-low.o x86-dregs.o i387-fp.o win32-low.o win32-i386-low.o"
-			srv_tgtobj="${srv_tgtobj} arch-amd64.o"
+			srv_tgtobj="${srv_tgtobj} arch/amd64.o"
 			srv_xmlfiles="$srv_i386_xmlfiles"
 			;;
 

@@ -43,8 +43,6 @@
 #define DEFAULT_DEMANGLING_STYLE AUTO_DEMANGLING_STYLE_STRING
 #endif
 
-static void demangle_command (char *, int);
-
 /* See documentation in gdb-demangle.h.  */
 int demangle = 1;
 
@@ -106,7 +104,8 @@ show_demangling_style_names(struct ui_file *file, int from_tty,
    a malloc'd string, even if it is a null-string.  */
 
 static void
-set_demangling_command (char *ignore, int from_tty, struct cmd_list_element *c)
+set_demangling_command (const char *ignore,
+			int from_tty, struct cmd_list_element *c)
 {
   const struct demangler_engine *dem;
   int i;
@@ -159,7 +158,7 @@ is_cplus_marker (int c)
 /* Demangle the given string in the current language.  */
 
 static void
-demangle_command (char *args, int from_tty)
+demangle_command (const char *args, int from_tty)
 {
   char *demangled;
   const char *name;

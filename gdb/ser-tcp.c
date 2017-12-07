@@ -368,13 +368,13 @@ ser_tcp_send_break (struct serial *scb)
 /* Support for "set tcp" and "show tcp" commands.  */
 
 static void
-set_tcp_cmd (char *args, int from_tty)
+set_tcp_cmd (const char *args, int from_tty)
 {
   help_list (tcp_set_cmdlist, "set tcp ", all_commands, gdb_stdout);
 }
 
 static void
-show_tcp_cmd (char *args, int from_tty)
+show_tcp_cmd (const char *args, int from_tty)
 {
   help_list (tcp_show_cmdlist, "show tcp ", all_commands, gdb_stdout);
 }
@@ -399,7 +399,6 @@ static const struct serial_ops tcp_ops =
   ser_base_copy_tty_state,
   ser_base_set_tty_state,
   ser_base_print_tty_state,
-  ser_base_noflush_set_tty_state,
   ser_base_setbaudrate,
   ser_base_setstopbits,
   ser_base_setparity,

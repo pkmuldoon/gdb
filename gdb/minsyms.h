@@ -159,9 +159,14 @@ void terminate_minimal_symbol_table (struct objfile *objfile);
 
 
 
-/* Return whether MSYMBOL is a function/method.  */
+/* Return whether MSYMBOL is a function/method.  If FUNC_ADDRESS_P is
+   non-NULL, and the MSYMBOL is a function, then *FUNC_ADDRESS_P is
+   set to the function's address, already resolved if MINSYM points to
+   a function descriptor.  */
 
-bool msymbol_is_text (minimal_symbol *msymbol);
+bool msymbol_is_function (struct objfile *objfile,
+			  minimal_symbol *minsym,
+			  CORE_ADDR *func_address_p = NULL);
 
 /* Compute a hash code for the string argument.  */
 
@@ -177,7 +182,7 @@ unsigned int msymbol_hash_iw (const char *);
    requirements.  */
 
 #define SYMBOL_HASH_NEXT(hash, c)			\
-  ((hash) * 67 + tolower ((unsigned char) (c)) - 113)
+  ((hash) * 67 + TOLOWER ((unsigned char) (c)) - 113)
 
 
 
@@ -264,7 +269,7 @@ struct bound_minimal_symbol lookup_minimal_symbol_by_pc (CORE_ADDR);
    USER_DATA as arguments.  */
 
 void iterate_over_minimal_symbols (struct objfile *objf,
-				   const char *name,
+				   const lookup_name_info &name,
 				   void (*callback) (struct minimal_symbol *,
 						     void *),
 				   void *user_data);

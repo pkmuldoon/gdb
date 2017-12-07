@@ -33,9 +33,9 @@
 #define ELF_MAXPAGESIZE		0x1000
 
 /* Rename global functions.  */
-#define _bfd_mn10300_elf_merge_private_bfd_data  _bfd_am33_elf_merge_private_bfd_data
-#define _bfd_mn10300_elf_object_p                _bfd_am33_elf_object_p
-#define _bfd_mn10300_elf_final_write_processing  _bfd_am33_elf_final_write_processing
+#define _bfd_mn10300_elf_merge_private_bfd_data	 _bfd_am33_elf_merge_private_bfd_data
+#define _bfd_mn10300_elf_object_p		 _bfd_am33_elf_object_p
+#define _bfd_mn10300_elf_final_write_processing	 _bfd_am33_elf_final_write_processing
 
 /* Support for core dump NOTE sections.  */
 static bfd_boolean
@@ -101,5 +101,7 @@ elf32_am33lin_grok_psinfo (bfd *abfd, Elf_Internal_Note *note)
 
 #define elf_backend_grok_prstatus	elf32_am33lin_grok_prstatus
 #define elf_backend_grok_psinfo		elf32_am33lin_grok_psinfo
+
+#define elf_backend_linux_prpsinfo32_ugid16	TRUE
 
 #include "elf-m10300.c"

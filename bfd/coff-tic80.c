@@ -42,6 +42,8 @@
 #define COFF_DEFAULT_SECTION_ALIGNMENT_POWER (2)
 #define COFF_ALIGN_IN_SECTION_HEADER 1
 #define COFF_ALIGN_IN_SFLAGS 1
+#define COFF_ENCODE_ALIGNMENT(S,X) ((S).s_flags |= (((unsigned)(X) & 0xf) << 8))
+#define COFF_DECODE_ALIGNMENT(X) (((X) >> 8) & 0xf)
 
 #define GET_SCNHDR_FLAGS H_GET_16
 #define PUT_SCNHDR_FLAGS H_PUT_16
@@ -514,9 +516,9 @@ coff_tic80_relocate_section (bfd *output_bfd,
 	}
 
       /* COFF treats common symbols in one of two ways.  Either the
-         size of the symbol is included in the section contents, or it
-         is not.  We assume that the size is not included, and force
-         the rtype_to_howto function to adjust the addend as needed.  */
+	 size of the symbol is included in the section contents, or it
+	 is not.  We assume that the size is not included, and force
+	 the rtype_to_howto function to adjust the addend as needed.  */
 
       if (sym != NULL && sym->n_scnum != 0)
 	addend = - sym->n_value;
@@ -542,7 +544,7 @@ coff_tic80_relocate_section (bfd *output_bfd,
 	  else
 	    {
 	      sec = sections[symndx];
-              val = (sec->output_section->vma
+	      val = (sec->output_section->vma
 		     + sec->output_offset
 		     + sym->n_value);
 	      if (! obj_pe (output_bfd))
@@ -571,8 +573,8 @@ coff_tic80_relocate_section (bfd *output_bfd,
       addr = rel->r_vaddr - input_section->vma;
 
       /* FIXME: This code assumes little endian, but the PP can
-         apparently be bi-endian.  I don't know if the bi-endianness
-         applies to the instruction set or just to the data.  */
+	 apparently be bi-endian.  I don't know if the bi-endianness
+	 applies to the instruction set or just to the data.  */
       switch (howto->type)
 	{
 	default:

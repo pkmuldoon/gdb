@@ -494,8 +494,10 @@ extern struct program_space *get_frame_program_space (struct frame_info *);
 /* Unwind THIS frame's program space from the NEXT frame.  */
 extern struct program_space *frame_unwind_program_space (struct frame_info *);
 
+class address_space;
+
 /* Return the frame's address space.  */
-extern struct address_space *get_frame_address_space (struct frame_info *);
+extern const address_space *get_frame_address_space (struct frame_info *);
 
 /* For frames where we can not unwind further, describe why.  */
 
@@ -784,18 +786,23 @@ extern void read_frame_arg (struct symbol *sym, struct frame_info *frame,
 extern void read_frame_local (struct symbol *sym, struct frame_info *frame,
 			      struct frame_arg *argp);
 
-extern void info_args_command (char *, int);
+extern void info_args_command (const char *, int);
 
-extern void info_locals_command (char *, int);
+extern void info_locals_command (const char *, int);
 
-extern void return_command (char *, int);
+extern void return_command (const char *, int);
 
 /* Set FRAME's unwinder temporarily, so that we can call a sniffer.
-   Return a cleanup which should be called if unwinding fails, and
-   discarded if it succeeds.  */
+   If sniffing fails, the caller should be sure to call
+   frame_cleanup_after_sniffer.  */
 
-struct cleanup *frame_prepare_for_sniffer (struct frame_info *frame,
-					   const struct frame_unwind *unwind);
+extern void frame_prepare_for_sniffer (struct frame_info *frame,
+				       const struct frame_unwind *unwind);
+
+/* Clean up after a failed (wrong unwinder) attempt to unwind past
+   FRAME.  */
+
+extern void frame_cleanup_after_sniffer (struct frame_info *frame);
 
 /* Notes (cagney/2002-11-27, drow/2003-09-06):
 
@@ -832,14 +839,6 @@ extern struct frame_info *deprecated_safe_get_selected_frame (void);
 /* Create a frame using the specified BASE and PC.  */
 
 extern struct frame_info *create_new_frame (CORE_ADDR base, CORE_ADDR pc);
-
-#if GDB_SELF_TEST
-
-/* Create a frame for unit test.  Its next frame is sentinel frame,
-   created from REGCACHE.  */
-
-extern struct frame_info *create_test_frame (struct regcache *regcache);
-#endif
 
 /* Return true if the frame unwinder for frame FI is UNWINDER; false
    otherwise.  */

@@ -1,11 +1,11 @@
 #as:
 #readelf: -x.rodata -wlL
 #name: DWARF2 5
-# The am33 avr cr16 crx mn10 msp430 nds32 pru rl78 rx and xtensa targets do not evaluate the subtraction of symbols at assembly time.
+# The am33 avr cr16 crx ft32 mn10 msp430 nds32 pru rl78 rx and xtensa targets do not evaluate the subtraction of symbols at assembly time.
 # The mep target tries to relay code sections which breaks symbolic view computations.
 # The riscv targets do not support the subtraction of symbols.
 # The tile targets require 8-byte instructions, but the test only simulates 4-byte instructions.
-#not-target: am3*-* avr-* cr16-* crx-* mep-* mn10*-* msp430-* nds32*-* pru-* riscv*-* rl78-* rx-* tile*-* xtensa-*
+#not-target: am3*-* avr-* cr16-* crx-* ft32*-* mep-* mn10*-* msp430-* nds32*-* pru-* riscv*-* rl78-* rx-* tile*-* xtensa-*
 
 Hex dump of section '\.rodata':
   0x00000000 01010201 010203 *.*
@@ -24,17 +24,17 @@ Raw dump of debug contents of section \.debug_line:
 
  Opcodes:
   Opcode 1 has 0 args
-  Opcode 2 has 1 args
-  Opcode 3 has 1 args
-  Opcode 4 has 1 args
-  Opcode 5 has 1 args
+  Opcode 2 has 1 arg
+  Opcode 3 has 1 arg
+  Opcode 4 has 1 arg
+  Opcode 5 has 1 arg
   Opcode 6 has 0 args
   Opcode 7 has 0 args
   Opcode 8 has 0 args
-  Opcode 9 has 1 args
+  Opcode 9 has 1 arg
   Opcode 10 has 0 args
   Opcode 11 has 0 args
-  Opcode 12 has 1 args
+  Opcode 12 has 1 arg
 
  The Directory Table is empty.
 
@@ -60,7 +60,7 @@ Raw dump of debug contents of section \.debug_line:
   \[0x.*\]  Extended opcode 1: End of Sequence
 
 
-Decoded dump of debug contents of section \.debug_line:
+Contents of the \.debug_line section:
 
 CU: dwarf2-5\.c:
 File name  *Line number  *Starting address  *View

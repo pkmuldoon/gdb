@@ -705,7 +705,7 @@ fake_method::~fake_method ()
 
 /* Helper for evaluating an OP_VAR_VALUE.  */
 
-static value *
+value *
 evaluate_var_value (enum noside noside, const block *blk, symbol *var)
 {
   /* JYG: We used to just return value_zero of the symbol type if
@@ -738,7 +738,7 @@ evaluate_var_value (enum noside noside, const block *blk, symbol *var)
 
 /* Helper for evaluating an OP_VAR_MSYM_VALUE.  */
 
-static value *
+value *
 evaluate_var_msym_value (enum noside noside,
 			 struct objfile *objfile, minimal_symbol *msymbol)
 {
@@ -757,7 +757,7 @@ evaluate_var_msym_value (enum noside noside,
 
 /* Helper for returning a value when handling EVAL_SKIP.  */
 
-static value *
+value *
 eval_skip_value (expression *exp)
 {
   return value_from_longest (builtin_type (exp->gdbarch)->builtin_int, 1);
@@ -1277,15 +1277,10 @@ evaluate_subexp_standard (struct type *expect_type,
       return value_from_longest (exp->elts[pc + 1].type,
 				 exp->elts[pc + 2].longconst);
 
-    case OP_DOUBLE:
+    case OP_FLOAT:
       (*pos) += 3;
-      return value_from_double (exp->elts[pc + 1].type,
-				exp->elts[pc + 2].doubleconst);
-
-    case OP_DECFLOAT:
-      (*pos) += 3;
-      return value_from_decfloat (exp->elts[pc + 1].type,
-				  exp->elts[pc + 2].decfloatconst);
+      return value_from_contents (exp->elts[pc + 1].type,
+				  exp->elts[pc + 2].floatconst);
 
     case OP_ADL_FUNC:
     case OP_VAR_VALUE:

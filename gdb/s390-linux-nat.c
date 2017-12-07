@@ -119,7 +119,7 @@ void
 supply_gregset (struct regcache *regcache, const gregset_t *regp)
 {
 #ifdef __s390x__
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   if (gdbarch_ptr_bit (gdbarch) == 32)
     {
       enum bfd_endian byte_order = gdbarch_byte_order (gdbarch);
@@ -153,7 +153,7 @@ void
 fill_gregset (const struct regcache *regcache, gregset_t *regp, int regno)
 {
 #ifdef __s390x__
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   if (gdbarch_ptr_bit (gdbarch) == 32)
     {
       regcache_collect_regset (&s390_64_gregset, regcache, regno,
@@ -383,7 +383,7 @@ s390_linux_fetch_inferior_registers (struct target_ops *ops,
   if (have_regset_last_break)
     if (regnum == -1 || regnum == S390_LAST_BREAK_REGNUM)
       fetch_regset (regcache, tid, NT_S390_LAST_BREAK, 8,
-		    (gdbarch_ptr_bit (get_regcache_arch (regcache)) == 32
+		    (gdbarch_ptr_bit (regcache->arch ()) == 32
 		     ? &s390_last_break_regset : &s390x_last_break_regset));
 
   if (have_regset_system_call)
@@ -789,6 +789,14 @@ s390_new_thread (struct lwp_info *lp)
   s390_mark_per_info_changed (lp);
 }
 
+/* Function to call when a thread is being deleted.  */
+
+static void
+s390_delete_thread (struct arch_lwp_info *arch_lwp)
+{
+  xfree (arch_lwp);
+}
+
 /* Iterator callback for s390_refresh_per_info.  */
 
 static int
@@ -1050,6 +1058,7 @@ _initialize_s390_nat (void)
   /* Register the target.  */
   linux_nat_add_target (t);
   linux_nat_set_new_thread (t, s390_new_thread);
+  linux_nat_set_delete_thread (t, s390_delete_thread);
   linux_nat_set_prepare_to_resume (t, s390_prepare_to_resume);
   linux_nat_set_forget_process (t, s390_forget_process);
   linux_nat_set_new_fork (t, s390_linux_new_fork);

@@ -303,7 +303,7 @@ fetch_vfp_regs (struct regcache *regcache)
 {
   gdb_byte regbuf[VFP_REGS_SIZE];
   int ret, regno, tid;
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
 
   /* Get the thread id for the ptrace call.  */
@@ -332,7 +332,7 @@ store_vfp_regs (const struct regcache *regcache)
 {
   gdb_byte regbuf[VFP_REGS_SIZE];
   int ret, regno, tid;
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
 
   /* Get the thread id for the ptrace call.  */
@@ -378,7 +378,7 @@ static void
 arm_linux_fetch_inferior_registers (struct target_ops *ops,
 				    struct regcache *regcache, int regno)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
 
   if (-1 == regno)
@@ -416,7 +416,7 @@ static void
 arm_linux_store_inferior_registers (struct target_ops *ops,
 				    struct regcache *regcache, int regno)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
 
   if (-1 == regno)
@@ -1202,6 +1202,14 @@ arm_linux_new_thread (struct lwp_info *lp)
   lp->arch_private = info;
 }
 
+/* Function to call when a thread is being deleted.  */
+
+static void
+arm_linux_delete_thread (struct arch_lwp_info *arch_lwp)
+{
+  xfree (arch_lwp);
+}
+
 /* Called when resuming a thread.
    The hardware debug registers are updated when there is any change.  */
 
@@ -1313,6 +1321,7 @@ _initialize_arm_linux_nat (void)
 
   /* Handle thread creation and exit.  */
   linux_nat_set_new_thread (t, arm_linux_new_thread);
+  linux_nat_set_delete_thread (t, arm_linux_delete_thread);
   linux_nat_set_prepare_to_resume (t, arm_linux_prepare_to_resume);
 
   /* Handle process creation and exit.  */

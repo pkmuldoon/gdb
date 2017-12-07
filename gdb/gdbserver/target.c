@@ -32,52 +32,6 @@ set_desired_thread ()
   return (current_thread != NULL);
 }
 
-/* Structure used to look up a thread to use as current when accessing
-   memory.  */
-
-struct thread_search
-{
-  /* The PTID of the current general thread.  This is an input
-     parameter.  */
-  ptid_t current_gen_ptid;
-
-  /* The first thread found.  */
-  struct thread_info *first;
-
-  /* The first stopped thread found.  */
-  struct thread_info *stopped;
-
-  /* The current general thread, if found.  */
-  struct thread_info *current;
-};
-
-/* Callback for find_inferior.  Search for a thread to use as current
-   when accessing memory.  */
-
-static int
-thread_search_callback (struct inferior_list_entry *entry, void *args)
-{
-  struct thread_info *thread = (struct thread_info *) entry;
-  struct thread_search *s = (struct thread_search *) args;
-
-  if (ptid_get_pid (entry->id) == ptid_get_pid (s->current_gen_ptid)
-      && mythread_alive (ptid_of (thread)))
-    {
-      if (s->stopped == NULL
-	  && the_target->thread_stopped != NULL
-	  && thread_stopped (thread))
-	s->stopped = thread;
-
-      if (s->first == NULL)
-	s->first = thread;
-
-      if (s->current == NULL && ptid_equal (s->current_gen_ptid, entry->id))
-	s->current = thread;
-    }
-
-  return 0;
-}
-
 /* The thread that was current before prepare_to_access_memory was
    called.  done_accessing_memory uses this to restore the previous
    selected thread.  */
@@ -88,11 +42,15 @@ static ptid_t prev_general_thread;
 int
 prepare_to_access_memory (void)
 {
-  struct thread_search search;
-  struct thread_info *thread;
+  /* The first thread found.  */
+  struct thread_info *first = NULL;
+  /* The first stopped thread found.  */
+  struct thread_info *stopped = NULL;
+  /* The current general thread, if found.  */
+  struct thread_info *current = NULL;
 
-  memset (&search, 0, sizeof (search));
-  search.current_gen_ptid = general_thread;
+  /* Save the general thread value, since prepare_to_access_memory could change
+     it.  */
   prev_general_thread = general_thread;
 
   if (the_target->prepare_to_access_memory != NULL)
@@ -104,18 +62,35 @@ prepare_to_access_memory (void)
 	return res;
     }
 
-  find_inferior (&all_threads, thread_search_callback, &search);
+  for_each_thread (prev_general_thread.pid (), [&] (thread_info *thread)
+    {
+      if (mythread_alive (thread->id))
+	{
+	  if (stopped == NULL && the_target->thread_stopped != NULL
+	      && thread_stopped (thread))
+	    stopped = thread;
+
+	  if (first == NULL)
+	    first = thread;
+
+	  if (current == NULL && prev_general_thread == thread->id)
+	    current = thread;
+	}
+    });
+
+  /* The thread we end up choosing.  */
+  struct thread_info *thread;
 
   /* Prefer a stopped thread.  If none is found, try the current
      thread.  Otherwise, take the first thread in the process.  If
      none is found, undo the effects of
      target->prepare_to_access_memory() and return error.  */
-  if (search.stopped != NULL)
-    thread = search.stopped;
-  else if (search.current != NULL)
-    thread = search.current;
-  else if (search.first != NULL)
-    thread = search.first;
+  if (stopped != NULL)
+    thread = stopped;
+  else if (current != NULL)
+    thread = current;
+  else if (first != NULL)
+    thread = first;
   else
     {
       done_accessing_memory ();
@@ -138,7 +113,7 @@ done_accessing_memory (void)
 
   /* Restore the previous selected thread.  */
   general_thread = prev_general_thread;
-  current_thread = find_thread_ptid (general_thread);
+  switch_to_thread (general_thread);
 }
 
 int

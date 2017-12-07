@@ -248,38 +248,24 @@ static void
 update_thread_private_data_name (struct thread_info *new_thread,
 				 const char *newname)
 {
-  int newnamelen;
-  struct private_thread_info *pti;
+  nto_thread_info *pti = get_nto_thread_info (new_thread);
 
   gdb_assert (newname != NULL);
   gdb_assert (new_thread != NULL);
-  newnamelen = strlen (newname);
-  if (!new_thread->priv)
-    {
-      new_thread->priv = xmalloc (offsetof (struct private_thread_info,
-					       name)
-				     + newnamelen + 1);
-      memcpy (new_thread->priv->name, newname, newnamelen + 1);
-    }
-  else if (strcmp (newname, new_thread->priv->name) != 0)
-    {
-      /* Reallocate if neccessary.  */
-      int oldnamelen = strlen (new_thread->priv->name);
 
-      if (oldnamelen < newnamelen)
-	new_thread->priv = xrealloc (new_thread->priv,
-					offsetof (struct private_thread_info,
-						  name)
-					+ newnamelen + 1);
-      memcpy (new_thread->priv->name, newname, newnamelen + 1);
+  if (pti)
+    {
+      pti = new nto_thread_info;
+      new_thread->priv.reset (pti);
     }
+
+  pti->name = newname;
 }
 
 static void 
 update_thread_private_data (struct thread_info *new_thread, 
 			    pthread_t tid, int state, int flags)
 {
-  struct private_thread_info *pti;
   procfs_info pidinfo;
   struct _thread_name *tn;
   procfs_threadctl tctl;
@@ -306,7 +292,7 @@ update_thread_private_data (struct thread_info *new_thread,
 
   update_thread_private_data_name (new_thread, tn->name_buf);
 
-  pti = (struct private_thread_info *) new_thread->priv;
+  nto_thread_info *pti = get_nto_thread_info (new_thread);
   pti->tid = tid;
   pti->state = state;
   pti->flags = flags;
@@ -359,7 +345,7 @@ do_closedir_cleanup (void *dir)
 }
 
 static void
-procfs_pidlist (char *args, int from_tty)
+procfs_pidlist (const char *args, int from_tty)
 {
   DIR *dp = NULL;
   struct dirent *dirp = NULL;
@@ -461,7 +447,7 @@ procfs_pidlist (char *args, int from_tty)
 }
 
 static void
-procfs_meminfo (char *args, int from_tty)
+procfs_meminfo (const char *args, int from_tty)
 {
   procfs_mapinfo *mapinfos = NULL;
   static int num_mapinfos = 0;
@@ -1386,7 +1372,7 @@ procfs_store_registers (struct target_ops *ops,
       if (dev_set == -1)
 	return;
 
-      len = nto_register_area (get_regcache_arch (regcache),
+      len = nto_register_area (regcache->arch (),
 			       regno, regset, &off);
 
       if (len < 1)

@@ -990,7 +990,7 @@ Symbol_table::add_from_object(Object* object,
   // ins.second: true if new entry was inserted, false if not.
 
   Sized_symbol<size>* ret;
-  bool was_undefined;
+  bool was_undefined_in_reg;
   bool was_common;
   if (!ins.second)
     {
@@ -998,7 +998,7 @@ Symbol_table::add_from_object(Object* object,
       ret = this->get_sized_symbol<size>(ins.first->second);
       gold_assert(ret != NULL);
 
-      was_undefined = ret->is_undefined();
+      was_undefined_in_reg = ret->is_undefined() && ret->in_reg();
       // Commons from plugins are just placeholders.
       was_common = ret->is_common() && ret->object()->pluginobj() == NULL;
 
@@ -1049,7 +1049,7 @@ Symbol_table::add_from_object(Object* object,
 	  // it, then change it to NAME/VERSION.
 	  ret = this->get_sized_symbol<size>(insdefault.first->second);
 
-	  was_undefined = ret->is_undefined();
+	  was_undefined_in_reg = ret->is_undefined() && ret->in_reg();
 	  // Commons from plugins are just placeholders.
 	  was_common = ret->is_common() && ret->object()->pluginobj() == NULL;
 
@@ -1061,7 +1061,7 @@ Symbol_table::add_from_object(Object* object,
 	}
       else
 	{
-	  was_undefined = false;
+	  was_undefined_in_reg = false;
 	  was_common = false;
 
 	  Sized_target<size, big_endian>* target =
@@ -1105,9 +1105,10 @@ Symbol_table::add_from_object(Object* object,
 	ret->set_is_default();
     }
 
-  // Record every time we see a new undefined symbol, to speed up
-  // archive groups.
-  if (!was_undefined && ret->is_undefined())
+  // Record every time we see a new undefined symbol, to speed up archive
+  // groups. We only care about symbols undefined in regular objects here
+  // because undefined symbols only in dynamic objects should't trigger rescans.
+  if (!was_undefined_in_reg && ret->is_undefined() && ret->in_reg())
     {
       ++this->saw_undefined_;
       if (parameters->options().has_plugins())
@@ -1185,7 +1186,9 @@ Symbol_table::add_from_relobj(
       const char* name = sym_names + st_name;
 
       if (!parameters->options().relocatable()
-	  && strcmp (name, "__gnu_lto_slim") == 0)
+	  && name[0] == '_'
+	  && name[1] == '_'
+	  && strcmp (name + (name[2] == '_'), "__gnu_lto_slim") == 0)
         gold_info(_("%s: plugin needed to handle lto object"),
 		  relobj->name().c_str());
 
@@ -1759,6 +1762,7 @@ template<int size, bool big_endian>
 Sized_symbol<size>*
 Symbol_table::define_special_symbol(const char** pname, const char** pversion,
 				    bool only_if_ref,
+				    elfcpp::STV visibility,
                                     Sized_symbol<size>** poldsym,
 				    bool* resolve_oldsym, bool is_forced_local)
 {
@@ -1797,8 +1801,21 @@ Symbol_table::define_special_symbol(const char** pname, const char** pversion,
       oldsym = this->lookup(*pname, *pversion);
       if (oldsym == NULL && is_default_version)
 	oldsym = this->lookup(*pname, NULL);
-      if (oldsym == NULL || !oldsym->is_undefined())
+      if (oldsym == NULL)
 	return NULL;
+      if (!oldsym->is_undefined())
+	{
+	  // Skip if the old definition is from a regular object.
+	  if (!oldsym->is_from_dynobj())
+	    return NULL;
+
+	  // If the symbol has hidden or internal visibility, ignore
+	  // definition and reference from a dynamic object.
+	  if ((visibility == elfcpp::STV_HIDDEN
+	       || visibility == elfcpp::STV_INTERNAL)
+	      && !oldsym->in_reg())
+	    return NULL;
+	}
 
       *pname = oldsym->name();
       if (is_default_version)
@@ -1973,7 +1990,9 @@ Symbol_table::do_define_in_output_data(
     {
 #if defined(HAVE_TARGET_32_BIG) || defined(HAVE_TARGET_64_BIG)
       sym = this->define_special_symbol<size, true>(&name, &version,
-						    only_if_ref, &oldsym,
+						    only_if_ref,
+						    visibility,
+						    &oldsym,
 						    &resolve_oldsym,
 						    is_forced_local);
 #else
@@ -1984,7 +2003,9 @@ Symbol_table::do_define_in_output_data(
     {
 #if defined(HAVE_TARGET_32_LITTLE) || defined(HAVE_TARGET_64_LITTLE)
       sym = this->define_special_symbol<size, false>(&name, &version,
-						     only_if_ref, &oldsym,
+						     only_if_ref,
+						     visibility,
+						     &oldsym,
 						     &resolve_oldsym,
 						     is_forced_local);
 #else
@@ -2092,7 +2113,9 @@ Symbol_table::do_define_in_output_segment(
     {
 #if defined(HAVE_TARGET_32_BIG) || defined(HAVE_TARGET_64_BIG)
       sym = this->define_special_symbol<size, true>(&name, &version,
-						    only_if_ref, &oldsym,
+						    only_if_ref,
+						    visibility,
+						    &oldsym,
 						    &resolve_oldsym,
 						    is_forced_local);
 #else
@@ -2103,7 +2126,9 @@ Symbol_table::do_define_in_output_segment(
     {
 #if defined(HAVE_TARGET_32_LITTLE) || defined(HAVE_TARGET_64_LITTLE)
       sym = this->define_special_symbol<size, false>(&name, &version,
-						     only_if_ref, &oldsym,
+						     only_if_ref,
+						     visibility,
+						     &oldsym,
 						     &resolve_oldsym,
 						     is_forced_local);
 #else
@@ -2209,7 +2234,9 @@ Symbol_table::do_define_as_constant(
     {
 #if defined(HAVE_TARGET_32_BIG) || defined(HAVE_TARGET_64_BIG)
       sym = this->define_special_symbol<size, true>(&name, &version,
-						    only_if_ref, &oldsym,
+						    only_if_ref,
+						    visibility,
+						    &oldsym,
 						    &resolve_oldsym,
 						    is_forced_local);
 #else
@@ -2220,7 +2247,9 @@ Symbol_table::do_define_as_constant(
     {
 #if defined(HAVE_TARGET_32_LITTLE) || defined(HAVE_TARGET_64_LITTLE)
       sym = this->define_special_symbol<size, false>(&name, &version,
-						     only_if_ref, &oldsym,
+						     only_if_ref,
+						     visibility,
+						     &oldsym,
 						     &resolve_oldsym,
 						     is_forced_local);
 #else
@@ -2447,7 +2476,9 @@ Symbol_table::add_undefined_symbol_from_command_line(const char* name)
     {
 #if defined(HAVE_TARGET_32_BIG) || defined(HAVE_TARGET_64_BIG)
       sym = this->define_special_symbol<size, true>(&name, &version,
-						    false, &oldsym,
+						    false,
+						    elfcpp::STV_DEFAULT,
+						    &oldsym,
 						    &resolve_oldsym,
 						    false);
 #else
@@ -2458,7 +2489,9 @@ Symbol_table::add_undefined_symbol_from_command_line(const char* name)
     {
 #if defined(HAVE_TARGET_32_LITTLE) || defined(HAVE_TARGET_64_LITTLE)
       sym = this->define_special_symbol<size, false>(&name, &version,
-						     false, &oldsym,
+						     false,
+						     elfcpp::STV_DEFAULT,
+						     &oldsym,
 						     &resolve_oldsym,
 						     false);
 #else

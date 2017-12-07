@@ -61,7 +61,7 @@ struct target_ops *core_target;
 /* Backward compatability with old way of specifying core files.  */
 
 void
-core_file_command (char *filename, int from_tty)
+core_file_command (const char *filename, int from_tty)
 {
   dont_repeat ();		/* Either way, seems bogus.  */
 
@@ -452,11 +452,8 @@ show_gnutarget_string (struct ui_file *file, int from_tty,
 		    _("The current BFD target is \"%s\".\n"), value);
 }
 
-static void set_gnutarget_command (char *, int,
-				   struct cmd_list_element *);
-
 static void
-set_gnutarget_command (char *ignore, int from_tty,
+set_gnutarget_command (const char *ignore, int from_tty,
 		       struct cmd_list_element *c)
 {
   char *gend = gnutarget_string + strlen (gnutarget_string);

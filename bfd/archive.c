@@ -1437,16 +1437,16 @@ normalize (bfd *abfd ATTRIBUTE_UNUSED, const char *file)
 
      Relative path  Reference path  Result
      -------------  --------------  ------
-     bar.o          lib.a           bar.o
-     foo/bar.o      lib.a           foo/bar.o
-     bar.o          foo/lib.a       ../bar.o
-     foo/bar.o      baz/lib.a       ../foo/bar.o
-     bar.o          ../lib.a        <parent of current dir>/bar.o
-   ; ../bar.o       ../lib.a        bar.o
-   ; ../bar.o       lib.a           ../bar.o
-     foo/bar.o      ../lib.a        <parent of current dir>/foo/bar.o
-     bar.o          ../../lib.a     <grandparent>/<parent>/bar.o
-     bar.o          foo/baz/lib.a   ../../bar.o
+     bar.o	    lib.a	    bar.o
+     foo/bar.o	    lib.a	    foo/bar.o
+     bar.o	    foo/lib.a	    ../bar.o
+     foo/bar.o	    baz/lib.a	    ../foo/bar.o
+     bar.o	    ../lib.a	    <parent of current dir>/bar.o
+   ; ../bar.o	    ../lib.a	    bar.o
+   ; ../bar.o	    lib.a	    ../bar.o
+     foo/bar.o	    ../lib.a	    <parent of current dir>/foo/bar.o
+     bar.o	    ../../lib.a	    <grandparent>/<parent>/bar.o
+     bar.o	    foo/baz/lib.a   ../../bar.o
 
    Note - the semicolons above are there to prevent the BFD chew
    utility from interpreting those lines as prototypes to put into
@@ -2018,7 +2018,7 @@ bfd_generic_stat_arch_elt (bfd *abfd, struct stat *buf)
     return -1;
 #define foo(arelt, stelt, size)				\
   buf->stelt = strtol (hdr->arelt, &aloser, size);	\
-  if (aloser == hdr->arelt)	      			\
+  if (aloser == hdr->arelt)				\
     return -1;
 
   /* Some platforms support special notations for large IDs.  */
@@ -2309,7 +2309,7 @@ _bfd_write_archive_contents (bfd *arch)
   return TRUE;
 
  input_err:
-  bfd_set_error (bfd_error_on_input, current, bfd_get_error ());
+  bfd_set_input_error (current, bfd_get_error ());
   return FALSE;
 }
 
@@ -2411,7 +2411,11 @@ _bfd_compute_and_write_armap (bfd *arch, unsigned int elength)
 			  map = new_map;
 			}
 
-		      if (strcmp (syms[src_count]->name, "__gnu_lto_slim") == 0)
+		      if (syms[src_count]->name[0] == '_'
+			  && syms[src_count]->name[1] == '_'
+			  && strcmp (syms[src_count]->name
+				     + (syms[src_count]->name[2] == '_'),
+				     "__gnu_lto_slim") == 0)
 			_bfd_error_handler
 			  (_("%B: plugin needed to handle lto object"),
 			   current);

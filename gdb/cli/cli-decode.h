@@ -107,16 +107,16 @@ struct cmd_list_element
        cagney/2002-02-02: This function signature is evolving.  For
        the moment suggest sticking with either set_cmd_cfunc() or
        set_cmd_sfunc().  */
-    void (*func) (struct cmd_list_element *c, char *args, int from_tty);
+    void (*func) (struct cmd_list_element *c, const char *args, int from_tty);
     /* The command's real callback.  At present func() bounces through
        to one of the below.  */
     union
       {
 	/* If type is not_set_cmd, call it like this: */
-	cmd_cfunc_ftype *cfunc;
+	cmd_const_cfunc_ftype *const_cfunc;
 	/* If type is set_cmd or show_cmd, first set the variables,
 	   and then call this: */
-	cmd_sfunc_ftype *sfunc;
+	cmd_const_sfunc_ftype *sfunc;
       }
     function;
 
@@ -226,7 +226,7 @@ extern void apropos_cmd (struct ui_file *, struct cmd_list_element *,
    function field NULL, the command is interpreted as a help topic, or
    as a class of commands.  */
 
-extern void not_just_help_class_command (char *arg, int from_tty);
+extern void not_just_help_class_command (const char *arg, int from_tty);
 
 /* Exported to cli/cli-setshow.c */
 

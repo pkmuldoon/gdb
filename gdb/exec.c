@@ -45,13 +45,9 @@
 #include "solist.h"
 #include <algorithm>
 
-void (*deprecated_file_changed_hook) (char *);
+void (*deprecated_file_changed_hook) (const char *);
 
 /* Prototypes for local functions */
-
-static void file_command (char *, int);
-
-static void set_section_command (char *, int);
 
 static void exec_files_info (struct target_ops *);
 
@@ -250,8 +246,7 @@ exec_file_attach (const char *filename, int from_tty)
   /* First, acquire a reference to the current exec_bfd.  We release
      this at the end of the function; but acquiring it now lets the
      BFD cache return it if this call refers to the same file.  */
-  gdb_bfd_ref (exec_bfd);
-  gdb_bfd_ref_ptr exec_bfd_holder (exec_bfd);
+  gdb_bfd_ref_ptr exec_bfd_holder = new_bfd_ref (exec_bfd);
 
   /* Remove any previous exec file.  */
   exec_close ();
@@ -398,10 +393,8 @@ exec_file_attach (const char *filename, int from_tty)
    If ARGS is NULL, we just want to close the exec file.  */
 
 static void
-exec_file_command (char *args, int from_tty)
+exec_file_command (const char *args, int from_tty)
 {
-  char *filename;
-
   if (from_tty && target_has_execution
       && !query (_("A program is being debugged already.\n"
 		   "Are you sure you want to change the file? ")))
@@ -433,7 +426,7 @@ exec_file_command (char *args, int from_tty)
    command was added?  */
 
 static void
-file_command (char *arg, int from_tty)
+file_command (const char *arg, int from_tty)
 {
   /* FIXME, if we lose on reading the symbol file, we should revert
      the exec file, but that's rough.  */
@@ -700,20 +693,18 @@ exec_read_partial_read_only (gdb_byte *readbuf, ULONGEST offset,
   return TARGET_XFER_E_IO;
 }
 
-/* Appends all read-only memory ranges found in the target section
+/* Return all read-only memory ranges found in the target section
    table defined by SECTIONS and SECTIONS_END, starting at (and
-   intersected with) MEMADDR for LEN bytes.  Returns the augmented
-   VEC.  */
+   intersected with) MEMADDR for LEN bytes.  */
 
-static VEC(mem_range_s) *
-section_table_available_memory (VEC(mem_range_s) *memory,
-				CORE_ADDR memaddr, ULONGEST len,
+static std::vector<mem_range>
+section_table_available_memory (CORE_ADDR memaddr, ULONGEST len,
 				struct target_section *sections,
 				struct target_section *sections_end)
 {
-  struct target_section *p;
+  std::vector<mem_range> memory;
 
-  for (p = sections; p < sections_end; p++)
+  for (target_section *p = sections; p < sections_end; p++)
     {
       if ((bfd_get_section_flags (p->the_bfd_section->owner,
 				  p->the_bfd_section)
@@ -724,7 +715,6 @@ section_table_available_memory (VEC(mem_range_s) *memory,
       if (mem_ranges_overlap (p->addr, p->endaddr - p->addr, memaddr, len))
 	{
 	  ULONGEST lo1, hi1, lo2, hi2;
-	  struct mem_range *r;
 
 	  lo1 = memaddr;
 	  hi1 = memaddr + len;
@@ -732,10 +722,10 @@ section_table_available_memory (VEC(mem_range_s) *memory,
 	  lo2 = p->addr;
 	  hi2 = p->endaddr;
 
-	  r = VEC_safe_push (mem_range_s, memory, NULL);
+	  CORE_ADDR start = std::max (lo1, lo2);
+	  int length = std::min (hi1, hi2) - start;
 
-	  r->start = std::max (lo1, lo2);
-	  r->length = std::min (hi1, hi2) - r->start;
+	  memory.emplace_back (start, length);
 	}
     }
 
@@ -746,51 +736,37 @@ enum target_xfer_status
 section_table_read_available_memory (gdb_byte *readbuf, ULONGEST offset,
 				     ULONGEST len, ULONGEST *xfered_len)
 {
-  VEC(mem_range_s) *available_memory = NULL;
-  struct target_section_table *table;
-  struct cleanup *old_chain;
-  mem_range_s *r;
-  int i;
+  target_section_table *table = target_get_section_table (&exec_ops);
+  std::vector<mem_range> available_memory
+    = section_table_available_memory (offset, len,
+				      table->sections, table->sections_end);
 
-  table = target_get_section_table (&exec_ops);
-  available_memory = section_table_available_memory (available_memory,
-						     offset, len,
-						     table->sections,
-						     table->sections_end);
+  normalize_mem_ranges (&available_memory);
 
-  old_chain = make_cleanup (VEC_cleanup(mem_range_s),
-			    &available_memory);
-
-  normalize_mem_ranges (available_memory);
-
-  for (i = 0;
-       VEC_iterate (mem_range_s, available_memory, i, r);
-       i++)
+  for (const mem_range &r : available_memory)
     {
-      if (mem_ranges_overlap (r->start, r->length, offset, len))
+      if (mem_ranges_overlap (r.start, r.length, offset, len))
 	{
 	  CORE_ADDR end;
 	  enum target_xfer_status status;
 
 	  /* Get the intersection window.  */
-	  end = std::min<CORE_ADDR> (offset + len, r->start + r->length);
+	  end = std::min<CORE_ADDR> (offset + len, r.start + r.length);
 
 	  gdb_assert (end - offset <= len);
 
-	  if (offset >= r->start)
+	  if (offset >= r.start)
 	    status = exec_read_partial_read_only (readbuf, offset,
 						  end - offset,
 						  xfered_len);
 	  else
 	    {
-	      *xfered_len = r->start - offset;
+	      *xfered_len = r.start - offset;
 	      status = TARGET_XFER_UNAVAILABLE;
 	    }
-	  do_cleanups (old_chain);
 	  return status;
 	}
     }
-  do_cleanups (old_chain);
 
   *xfered_len = len;
   return TARGET_XFER_UNAVAILABLE;
@@ -977,10 +953,10 @@ exec_files_info (struct target_ops *t)
 }
 
 static void
-set_section_command (char *args, int from_tty)
+set_section_command (const char *args, int from_tty)
 {
   struct target_section *p;
-  char *secname;
+  const char *secname;
   unsigned seclen;
   unsigned long secaddr;
   char secprint[100];

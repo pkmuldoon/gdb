@@ -34,7 +34,7 @@
 #include "infcall.h"
 #include "dictionary.h"
 #include "cp-support.h"
-#include "dfp.h"
+#include "target-float.h"
 #include "tracepoint.h"
 #include "observer.h"
 #include "objfiles.h"
@@ -462,24 +462,21 @@ value_cast (struct type *type, struct value *arg2)
 	return v;
     }
 
-  if (code1 == TYPE_CODE_FLT && scalar)
-    return value_from_double (to_type, value_as_double (arg2));
-  else if (code1 == TYPE_CODE_DECFLOAT && scalar)
+  if (is_floating_type (type) && scalar)
     {
-      enum bfd_endian byte_order = gdbarch_byte_order (get_type_arch (type));
-      int dec_len = TYPE_LENGTH (type);
-      gdb_byte dec[16];
+      if (is_floating_value (arg2))
+	{
+	  struct value *v = allocate_value (to_type);
+	  target_float_convert (value_contents (arg2), type2,
+				value_contents_raw (v), type);
+	  return v;
+	}
 
-      if (code2 == TYPE_CODE_FLT)
-	decimal_from_floating (arg2, dec, dec_len, byte_order);
-      else if (code2 == TYPE_CODE_DECFLOAT)
-	decimal_convert (value_contents (arg2), TYPE_LENGTH (type2),
-			 byte_order, dec, dec_len, byte_order);
+      /* The only option left is an integral type.  */
+      if (TYPE_UNSIGNED (type2))
+	return value_from_ulongest (to_type, value_as_long (arg2));
       else
-	/* The only option left is an integral type.  */
-	decimal_from_integral (arg2, dec, dec_len, byte_order);
-
-      return value_from_decfloat (to_type, dec);
+	return value_from_longest (to_type, value_as_long (arg2));
     }
   else if ((code1 == TYPE_CODE_INT || code1 == TYPE_CODE_ENUM
 	    || code1 == TYPE_CODE_RANGE)
@@ -863,19 +860,7 @@ value_one (struct type *type)
   struct type *type1 = check_typedef (type);
   struct value *val;
 
-  if (TYPE_CODE (type1) == TYPE_CODE_DECFLOAT)
-    {
-      enum bfd_endian byte_order = gdbarch_byte_order (get_type_arch (type));
-      gdb_byte v[16];
-
-      decimal_from_string (v, TYPE_LENGTH (type), byte_order, "1");
-      val = value_from_decfloat (type, v);
-    }
-  else if (TYPE_CODE (type1) == TYPE_CODE_FLT)
-    {
-      val = value_from_double (type, (DOUBLEST) 1);
-    }
-  else if (is_integral_type (type1))
+  if (is_integral_type (type1) || is_floating_type (type1))
     {
       val = value_from_longest (type, (LONGEST) 1);
     }

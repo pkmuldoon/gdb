@@ -29,7 +29,6 @@
 #include "dis-asm.h"
 #include "inferior.h"
 #include "osabi.h"
-#include "floatformat.h"
 #include "regcache.h"
 #include "reggroups.h"
 #include "regset.h"
@@ -389,7 +388,7 @@ xtensa_register_write_masked (struct regcache *regcache,
   DEBUGTRACE ("xtensa_register_write_masked ()\n");
 
   /* Copy the masked register to host byte-order.  */
-  if (gdbarch_byte_order (get_regcache_arch (regcache)) == BFD_ENDIAN_BIG)
+  if (gdbarch_byte_order (regcache->arch ()) == BFD_ENDIAN_BIG)
     for (i = 0; i < bytesize; i++)
       {
 	mem >>= 8;
@@ -523,7 +522,7 @@ xtensa_register_read_masked (struct regcache *regcache,
   ptr = value;
   mem = *ptr;
 
-  if (gdbarch_byte_order (get_regcache_arch (regcache)) == BFD_ENDIAN_BIG)
+  if (gdbarch_byte_order (regcache->arch ()) == BFD_ENDIAN_BIG)
     for (i = 0; i < bytesize; i++)
       {
 	if ((i & 3) == 0)
@@ -552,8 +551,6 @@ xtensa_pseudo_register_read (struct gdbarch *gdbarch,
 			     int regnum,
 			     gdb_byte *buffer)
 {
-  enum bfd_endian byte_order = gdbarch_byte_order (gdbarch);
-
   DEBUGTRACE ("xtensa_pseudo_register_read (... regnum = %d (%s) ...)\n",
 	      regnum, xtensa_register_name (gdbarch, regnum));
 
@@ -648,8 +645,6 @@ xtensa_pseudo_register_write (struct gdbarch *gdbarch,
 			      int regnum,
 			      const gdb_byte *buffer)
 {
-  enum bfd_endian byte_order = gdbarch_byte_order (gdbarch);
-
   DEBUGTRACE ("xtensa_pseudo_register_write (... regnum = %d (%s) ...)\n",
 	      regnum, xtensa_register_name (gdbarch, regnum));
 
@@ -848,7 +843,7 @@ xtensa_supply_gregset (const struct regset *regset,
 		       size_t len)
 {
   const xtensa_elf_gregset_t *regs = (const xtensa_elf_gregset_t *) gregs;
-  struct gdbarch *gdbarch = get_regcache_arch (rc);
+  struct gdbarch *gdbarch = rc->arch ();
   int i;
 
   DEBUGTRACE ("xtensa_supply_gregset (..., regnum==%d, ...)\n", regnum);
@@ -1558,7 +1553,7 @@ xtensa_extract_return_value (struct type *type,
 			     struct regcache *regcache,
 			     void *dst)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   bfd_byte *valbuf = (bfd_byte *) dst;
   int len = TYPE_LENGTH (type);
   ULONGEST pc, wb;
@@ -1614,7 +1609,7 @@ xtensa_store_return_value (struct type *type,
 			   struct regcache *regcache,
 			   const void *dst)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   const bfd_byte *valbuf = (const bfd_byte *) dst;
   unsigned int areg;
   ULONGEST pc, wb;

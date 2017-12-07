@@ -28,7 +28,7 @@
 #include "frame.h"
 #include "frame-base.h"
 #include "frame-unwind.h"
-#include "doublest.h"
+#include "target-float.h"
 #include "value.h"
 #include "objfiles.h"
 #include "elf/common.h"		/* for DT_PLTGOT value */
@@ -1228,7 +1228,7 @@ ia64_register_to_value (struct frame_info *frame, int regnum,
 				 in, optimizedp, unavailablep))
     return 0;
 
-  convert_typed_floating (in, ia64_ext_type (gdbarch), out, valtype);
+  target_float_convert (in, ia64_ext_type (gdbarch), out, valtype);
   *optimizedp = *unavailablep = 0;
   return 1;
 }
@@ -1239,7 +1239,7 @@ ia64_value_to_register (struct frame_info *frame, int regnum,
 {
   struct gdbarch *gdbarch = get_frame_arch (frame);
   gdb_byte out[IA64_FP_REGISTER_SIZE];
-  convert_typed_floating (in, valtype, out, ia64_ext_type (gdbarch));
+  target_float_convert (in, valtype, out, ia64_ext_type (gdbarch));
   put_frame_register (frame, regnum, out);
 }
 
@@ -2553,7 +2553,7 @@ ia64_access_rse_reg (unw_addr_space_t as, unw_regnum_t uw_regnum,
   int regnum = ia64_uw2gdb_regnum (uw_regnum);
   unw_word_t bsp, sof, cfm, psr, ip;
   struct regcache *regcache = (struct regcache *) arg;
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   enum bfd_endian byte_order = gdbarch_byte_order (gdbarch);
   long new_sof, old_sof;
   
@@ -3195,7 +3195,7 @@ static void
 ia64_extract_return_value (struct type *type, struct regcache *regcache,
 			   gdb_byte *valbuf)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   struct type *float_elt_type;
 
   float_elt_type = is_float_or_hfa_type (type);
@@ -3209,8 +3209,8 @@ ia64_extract_return_value (struct type *type, struct regcache *regcache,
       while (n-- > 0)
 	{
 	  regcache_cooked_read (regcache, regnum, from);
-	  convert_typed_floating (from, ia64_ext_type (gdbarch),
-				  (char *)valbuf + offset, float_elt_type);
+	  target_float_convert (from, ia64_ext_type (gdbarch),
+				valbuf + offset, float_elt_type);
 	  offset += TYPE_LENGTH (float_elt_type);
 	  regnum++;
 	}
@@ -3260,7 +3260,7 @@ static void
 ia64_store_return_value (struct type *type, struct regcache *regcache, 
 			 const gdb_byte *valbuf)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   struct type *float_elt_type;
 
   float_elt_type = is_float_or_hfa_type (type);
@@ -3273,8 +3273,8 @@ ia64_store_return_value (struct type *type, struct regcache *regcache,
 
       while (n-- > 0)
 	{
-	  convert_typed_floating ((char *)valbuf + offset, float_elt_type,
-				  to, ia64_ext_type (gdbarch));
+	  target_float_convert (valbuf + offset, float_elt_type,
+				to, ia64_ext_type (gdbarch));
 	  regcache_cooked_write (regcache, regnum, to);
 	  offset += TYPE_LENGTH (float_elt_type);
 	  regnum++;
@@ -3560,7 +3560,7 @@ find_extant_func_descr (struct gdbarch *gdbarch, CORE_ADDR faddr)
 static CORE_ADDR
 find_func_descr (struct regcache *regcache, CORE_ADDR faddr, CORE_ADDR *fdaptr)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   enum bfd_endian byte_order = gdbarch_byte_order (gdbarch);
   CORE_ADDR fdesc;
 
@@ -3829,9 +3829,9 @@ ia64_push_dummy_call (struct gdbarch *gdbarch, struct value *function,
 	  while (len > 0 && floatreg < IA64_FR16_REGNUM)
 	    {
 	      gdb_byte to[IA64_FP_REGISTER_SIZE];
-	      convert_typed_floating (value_contents (arg) + argoffset,
-				      float_elt_type, to,
-				      ia64_ext_type (gdbarch));
+	      target_float_convert (value_contents (arg) + argoffset,
+				    float_elt_type, to,
+				    ia64_ext_type (gdbarch));
 	      regcache_cooked_write (regcache, floatreg, to);
 	      floatreg++;
 	      argoffset += TYPE_LENGTH (float_elt_type);

@@ -760,9 +760,19 @@ update_solib_list (int from_tty)
 	 have not opened a symbol file, we may be able to get its
 	 symbols now!  */
       if (inf->attach_flag && symfile_objfile == NULL)
-	catch_errors (ops->open_symbol_file_object, &from_tty,
-		      "Error reading attached process's symbol file.\n",
-		      RETURN_MASK_ALL);
+	{
+	  TRY
+	    {
+	      ops->open_symbol_file_object (from_tty);
+	    }
+	  CATCH (ex, RETURN_MASK_ALL)
+	    {
+	      exception_fprintf (gdb_stderr, ex,
+				 "Error reading attached "
+				 "process's symbol file.\n");
+	    }
+	  END_CATCH
+	}
     }
 
   /* GDB and the inferior's dynamic linker each maintain their own
@@ -841,7 +851,7 @@ update_solib_list (int from_tty)
 	  /* Unless the user loaded it explicitly, free SO's objfile.  */
 	  if (gdb->objfile && ! (gdb->objfile->flags & OBJF_USERLOADED)
 	      && !solib_used (gdb))
-	    free_objfile (gdb->objfile);
+	    delete gdb->objfile;
 
 	  /* Some targets' section tables might be referring to
 	     sections from so->abfd; remove them.  */
@@ -1035,7 +1045,7 @@ solib_add (const char *pattern, int from_tty, int readsyms)
    all.  */
 
 static void
-info_sharedlibrary_command (char *pattern, int from_tty)
+info_sharedlibrary_command (const char *pattern, int from_tty)
 {
   struct so_list *so = NULL;	/* link map state variable */
   int so_missing_debug_info = 0;
@@ -1236,7 +1246,7 @@ in_solib_dynsym_resolve_code (CORE_ADDR pc)
 /* Implements the "sharedlibrary" command.  */
 
 static void
-sharedlibrary_command (char *args, int from_tty)
+sharedlibrary_command (const char *args, int from_tty)
 {
   dont_repeat ();
   solib_add (args, from_tty, 1);
@@ -1248,7 +1258,7 @@ sharedlibrary_command (char *args, int from_tty)
    are not discarded.  Also called from remote.c.  */
 
 void
-no_shared_libraries (char *ignored, int from_tty)
+no_shared_libraries (const char *ignored, int from_tty)
 {
   /* The order of the two routines below is important: clear_solib notifies
      the solib_unloaded observers, and some of these observers might need
@@ -1324,7 +1334,7 @@ reload_shared_libraries_1 (int from_tty)
 	{
 	  if (so->objfile && ! (so->objfile->flags & OBJF_USERLOADED)
 	      && !solib_used (so))
-	    free_objfile (so->objfile);
+	    delete so->objfile;
 	  remove_target_sections (so);
 	  clear_so (so);
 	}
@@ -1359,7 +1369,7 @@ reload_shared_libraries_1 (int from_tty)
 }
 
 static void
-reload_shared_libraries (char *ignored, int from_tty,
+reload_shared_libraries (const char *ignored, int from_tty,
 			 struct cmd_list_element *e)
 {
   const struct target_so_ops *ops;
@@ -1414,7 +1424,7 @@ reload_shared_libraries (char *ignored, int from_tty,
    at the start of gdb_sysroot with "target:".  */
 
 static void
-gdb_sysroot_changed (char *ignored, int from_tty,
+gdb_sysroot_changed (const char *ignored, int from_tty,
 		     struct cmd_list_element *e)
 {
   const char *old_prefix = "remote:";

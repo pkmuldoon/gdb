@@ -17,6 +17,9 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
+#ifndef COMMON_FORMAT_H
+#define COMMON_FORMAT_H
+
 #if defined(__MINGW32__) && !defined(PRINTF_HAS_LONG_LONG)
 # define USE_PRINTF_I64 1
 # define PRINTF_HAS_LONG_LONG
@@ -35,7 +38,8 @@ enum argclass
     literal_piece,
     int_arg, long_arg, long_long_arg, ptr_arg,
     string_arg, wide_string_arg, wide_char_arg,
-    double_arg, long_double_arg, decfloat_arg
+    double_arg, long_double_arg,
+    dec32float_arg, dec64float_arg, dec128float_arg
   };
 
 /* A format piece is a section of the format string that may include a
@@ -61,3 +65,5 @@ extern void free_format_pieces (struct format_piece *frags);
 /* Freeing, cast as a cleanup.  */
 
 extern void free_format_pieces_cleanup (void *);
+
+#endif /* COMMON_FORMAT_H */

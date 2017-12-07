@@ -292,9 +292,8 @@ cmdscm_destroyer (struct cmd_list_element *self, void *context)
 
 static void
 cmdscm_function (struct cmd_list_element *command,
-		 char *args_entry, int from_tty)
+		 const char *args, int from_tty)
 {
-  const char *args = args_entry;
   command_smob *c_smob/*obj*/ = (command_smob *) get_cmd_context (command);
   SCM arg_scm, tty_scm, result;
 
@@ -386,7 +385,7 @@ cmdscm_completer (struct cmd_list_element *command,
 {
   command_smob *c_smob/*obj*/ = (command_smob *) get_cmd_context (command);
   SCM completer_result_scm;
-  SCM text_scm, word_scm, result_scm;
+  SCM text_scm, word_scm;
 
   gdb_assert (c_smob != NULL);
   gdb_assert (gdbscm_is_procedure (c_smob->complete));
@@ -747,7 +746,7 @@ gdbscm_register_command_x (SCM self)
 {
   command_smob *c_smob
     = cmdscm_get_command_smob_arg_unsafe (self, SCM_ARG1, FUNC_NAME);
-  char *cmd_name, *pfx_name;
+  char *cmd_name;
   struct cmd_list_element **cmd_list;
   struct cmd_list_element *cmd = NULL;
 
@@ -774,7 +773,7 @@ gdbscm_register_command_x (SCM self)
       else
 	{
 	  cmd = add_cmd (c_smob->cmd_name, c_smob->cmd_class,
-			 NULL, c_smob->doc, cmd_list);
+			 c_smob->doc, cmd_list);
 	}
     }
   CATCH (except, RETURN_MASK_ALL)

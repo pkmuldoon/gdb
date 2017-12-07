@@ -66,7 +66,7 @@
 #define port_type_array_t mach_port_array_t
 
 static void
-info_mach_tasks_command (char *args, int from_tty)
+info_mach_tasks_command (const char *args, int from_tty)
 {
   int sysControl[4];
   int count, index;
@@ -109,7 +109,7 @@ info_mach_tasks_command (char *args, int from_tty)
 }
 
 static task_t
-get_task_from_args (char *args)
+get_task_from_args (const char *args)
 {
   task_t task;
   char *eptr;
@@ -118,7 +118,10 @@ get_task_from_args (char *args)
     {
       if (ptid_equal (inferior_ptid, null_ptid))
 	printf_unfiltered (_("No inferior running\n"));
-      return current_inferior ()->priv->task;
+
+      darwin_inferior *priv = get_darwin_inferior (current_inferior ());
+
+      return priv->task;
     }
   if (strcmp (args, "gdb") == 0)
     return mach_task_self ();
@@ -132,7 +135,7 @@ get_task_from_args (char *args)
 }
 
 static void
-info_mach_task_command (char *args, int from_tty)
+info_mach_task_command (const char *args, int from_tty)
 {
   union
   {
@@ -189,7 +192,7 @@ info_mach_task_command (char *args, int from_tty)
 }
 
 static void
-info_mach_ports_command (char *args, int from_tty)
+info_mach_ports_command (const char *args, int from_tty)
 {
   port_name_array_t names;
   port_type_array_t types;
@@ -257,36 +260,31 @@ info_mach_ports_command (char *args, int from_tty)
 	  else if (!ptid_equal (inferior_ptid, null_ptid))
 	    {
 	      struct inferior *inf = current_inferior ();
+	      darwin_inferior *priv = get_darwin_inferior (inf);
 
-	      if (port == inf->priv->task)
+	      if (port == priv->task)
 		printf_unfiltered (_(" inferior-task"));
-	      else if (port == inf->priv->notify_port)
+	      else if (port == priv->notify_port)
 		printf_unfiltered (_(" inferior-notify"));
 	      else
 		{
-		  int k;
-		  darwin_thread_t *t;
-
-		  for (k = 0; k < inf->priv->exception_info.count; k++)
-		    if (port == inf->priv->exception_info.ports[k])
+		  for (int k = 0; k < priv->exception_info.count; k++)
+		    if (port == priv->exception_info.ports[k])
 		      {
 			printf_unfiltered (_(" inferior-excp-port"));
 			break;
 		      }
 
-		  if (inf->priv->threads)
+		  for (darwin_thread_t *t : priv->threads)
 		    {
-		      for (k = 0;
-			   VEC_iterate(darwin_thread_t,
-				       inf->priv->threads, k, t);
-			   k++)
-			if (port == t->gdb_port)
-			  {
-			    printf_unfiltered (_(" inferior-thread for 0x%x"),
-					       inf->priv->task);
-			    break;
-			  }
+		      if (port == t->gdb_port)
+			{
+			  printf_unfiltered (_(" inferior-thread for 0x%x"),
+					     priv->task);
+			  break;
+			}
 		    }
+
 		}
 	    }
 	}
@@ -326,7 +324,7 @@ darwin_debug_port_info (task_t task, mach_port_t port)
 }
 
 static void
-info_mach_port_command (char *args, int from_tty)
+info_mach_port_command (const char *args, int from_tty)
 {
   task_t task;
   mach_port_t port;
@@ -338,7 +336,7 @@ info_mach_port_command (char *args, int from_tty)
 }
 
 static void
-info_mach_threads_command (char *args, int from_tty)
+info_mach_threads_command (const char *args, int from_tty)
 {
   thread_array_t threads;
   unsigned int thread_count;
@@ -365,7 +363,7 @@ info_mach_threads_command (char *args, int from_tty)
 }
 
 static void
-info_mach_thread_command (char *args, int from_tty)
+info_mach_thread_command (const char *args, int from_tty)
 {
   union
   {
@@ -696,7 +694,7 @@ darwin_debug_region (task_t task, mach_vm_address_t address)
 }
 
 static void
-info_mach_regions_command (char *args, int from_tty)
+info_mach_regions_command (const char *args, int from_tty)
 {
   task_t task;
 
@@ -708,7 +706,7 @@ info_mach_regions_command (char *args, int from_tty)
 }
 
 static void
-info_mach_regions_recurse_command (char *args, int from_tty)
+info_mach_regions_recurse_command (const char *args, int from_tty)
 {
   task_t task;
 
@@ -720,7 +718,7 @@ info_mach_regions_recurse_command (char *args, int from_tty)
 }
 
 static void
-info_mach_region_command (char *exp, int from_tty)
+info_mach_region_command (const char *exp, int from_tty)
 {
   struct value *val;
   mach_vm_address_t address;
@@ -738,7 +736,8 @@ info_mach_region_command (char *exp, int from_tty)
     error (_("Inferior not available"));
 
   inf = current_inferior ();
-  darwin_debug_region (inf->priv->task, address);
+  darwin_inferior *priv = get_darwin_inferior (inf);
+  darwin_debug_region (priv->task, address);
 }
 
 static void
@@ -792,7 +791,7 @@ disp_exception (const darwin_exception_info *info)
 }
 
 static void
-info_mach_exceptions_command (char *args, int from_tty)
+info_mach_exceptions_command (const char *args, int from_tty)
 {
   int i;
   task_t task;
@@ -807,7 +806,10 @@ info_mach_exceptions_command (char *args, int from_tty)
 	{
 	  if (ptid_equal (inferior_ptid, null_ptid))
 	    printf_unfiltered (_("No inferior running\n"));
-	  disp_exception (&current_inferior ()->priv->exception_info);
+
+	  darwin_inferior *priv = get_darwin_inferior (current_inferior ());
+
+	  disp_exception (&priv->exception_info);
 	  return;
 	}
       else if (strcmp (args, "host") == 0)
@@ -830,8 +832,10 @@ info_mach_exceptions_command (char *args, int from_tty)
 	printf_unfiltered (_("No inferior running\n"));
       inf = current_inferior ();
       
+      darwin_inferior *priv = get_darwin_inferior (inf);
+
       kret = task_get_exception_ports
-	(inf->priv->task, EXC_MASK_ALL, info.masks,
+	(priv->task, EXC_MASK_ALL, info.masks,
 	 &info.count, info.ports, info.behaviors, info.flavors);
       MACH_CHECK_ERROR (kret);
       disp_exception (&info);

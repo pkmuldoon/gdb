@@ -1,3 +1,497 @@
+2017-12-06  Jim Wilson  <jimw@sifive.com>
+
+	PR 22465
+	* objcopy.c (copy_section): New local extra.  If isection->lma not
+	exactly divisible by interleave, then bias from.  Also adjust
+	osection->lma if necessary.
+
+2017-12-06  Alan Modra  <amodra@gmail.com>
+
+	PR 22552
+	* readelf.c (process_file_header): Don't assume XINDEX case
+	value for e_shstrndx is within bounds.
+	(load_debug_section): Sanity test e_shstrndx before attempting
+	to read .shstrtab.  Wrap long lines.
+
+2017-12-01  Oleksandr Pikozh  <o.pikozh@gmail.com>
+
+	* doc/binutils.texi: Add --strip-unneeded to objcopy synopsis.
+
+2017-11-30  Nick Clifton  <nickc@redhat.com>
+
+	PR 22510
+	* readelf.c (load_debug_section): Fail if there are no section
+	headers available.
+
+2017-11-29  Nick Clifton  <nickc@redhat.com>
+
+	PR 22508
+	* objdump.c (dump_relocs_in_section): Also check the section's
+	relocation count to make sure that it is reasonable before
+	attempting to allocate space for the relocs.
+
+2017-11-29  Stefan Stroe  <stroestefan@gmail.com>
+
+	* po/Make-in (datadir): Define as @datadir@.
+	(localedir): Define as @localedir@.
+	(gnulocaledir, gettextsrcdir): Use @datarootdir@.
+
+2017-11-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/22490
+	* readelf.c (process_notes_at): Add an argument for note
+	alignment.  If note alignment is less than 4, use 4 byte
+	alignment.  Otherwise, skip notes if alignment isn't 4 nor
+	8 bytes.
+	(process_corefile_note_segments): Pass segment alignment to
+	process_notes_at.
+	(process_note_sections): Pass section alignment to
+	process_notes_at.
+	(process_object): Call load_separate_debug_file only if
+	e_shstrndx != SHN_UNDEF.
+
+2017-11-27  Nick Clifton  <nickc@redhat.com>
+
+	PR 22490
+	* readelf.c (dump_section_as_bytes): Check for a NULL string
+	section pointer.
+	(process_notes_at): Compute the alignment to use if displaying
+	notes from a segment.
+
+2017-11-26  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* dwarf.c (load_separate_debug_info): Rename argument name from
+	link to xlink.
+
+2017-11-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/22444
+	* readelf.c (process_notes_at): Use ELF_NOTE_DESC_OFFSET to get
+	the offset of the note descriptor.  Use ELF_NOTE_NEXT_OFFSET to
+	get the offset of the next note entry.
+
+2017-11-23  Pavel I. Kryukov  <kryukov@frtk.ru>
+
+	PR 22485
+	* readelf.c (process_archive): Use memset to initiaise
+	thin_filedata structure.
+
+2017-11-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR binutils/22451
+	* testsuite/binutils-all/x86-64/objects.exp: New file.
+	* testsuite/binutils-all/x86-64/pr22451.o.bz2: Likewise.
+
+2017-11-21  Claudiu Zissulescu  <claziss@synopsys.com>
+
+	* testsuite/binutils-all/arc/objdump.exp: Update pattern matching
+	expression.
+
+2017-11-21  Nick Clifton  <nickc@redhat.com>
+
+	* dwarf.c (dwo_name, dwo_dir, dwo_id, dwo_id_len): New variables.
+	(read_and_display_attr_value): Record dwo variables if requested.
+	(display_augmentation_data): Rename to display_data and make
+	generic.
+	(load_dwo_file): New function.  Loads a separate dwarf object
+	file.
+	(load_separate_debug_file): Add reporting and loading of separate
+	dwarf objet files.
+	* readelf.c (process_section_headers): Add do_debug_links to list
+	of flags requiring a debug dump.
+	(display_debug_section): Tidy up code.
+	* doc/debug.options.texi: Add note that dwo links will also be
+	followed.
+	* testsuite/binutils-all/debuglink.s: Tidy code.
+	* testsuite/binutils-all/dwo.s: New test file.
+	* testsuite/binutils-all/readelf.wk2: New file - expected output
+	from readelf.
+	* testsuite/binutils-all/readelf.exp: Run the new test.
+
+2017-11-18  Alan Modra  <amodra@gmail.com>
+
+	PR 22443
+	* nm.c (sort_symbols_by_size): Don't attempt to access
+	section symbol internal_elf_sym.
+	(print_symbol): Likewise.  Don't call bfd_get_symbol_version_string
+	for section symbols.
+	* objdump.c (compare_symbols): Don't attempt to access
+	section symbol internal_elf_sym.
+	(objdump_print_symname): Don't call bfd_get_symbol_version_string
+	for section symbols.
+
+2017-11-17  Jim Wilson  <jimw@sifive.com>
+
+	* readelf.c (elf/riscv.h): Alphabetize include.
+	(is_32bit_inplace_add_reloc, is_32bit_inplace_sub_reloc)
+	(is_64bit_inplace_add_reloc, is_64bit_inplace_sub_reloc)
+	(is_16bit_inplace_add_reloc, is_16bit_inplace_sub_reloc)
+	(is_8bit_inplace_add_reloc, is_8bit_inplace_sub_reloc): New.
+	(apply_relocations): New locals reloc_inplace and reloc_subtract.
+	Call the new functions and set the new locals.  Call byte_get if
+	reloc_inplace.  Subtract sym->st_value if reloc_subtract.
+
+2017-11-17  Nick Clifton  <nickc@redhat.com>
+
+	PR 22449
+	* ar.c (write_archive): Free the temporary file name.
+
+2017-11-17  Nick Clifton  <nickc@redhat.com>
+
+	* readelf.c (process_archive): Include member name in the
+	file_name of the filedata structure.
+
+2017-11-15  Alan Modra  <amodra@gmail.com>
+
+	PR 22426
+	* objcopy.c (copy_main): Free tmpname.
+
+2017-11-15  Nick Clifton  <nickc@redhat.com>
+
+	PR 15152
+	* dwarf.h (enum dwarf_section_display_enum): Add gnu_debuglink,
+	gnu_debugaltlink and separate_debug_str.
+	(struct dwarf_section): Add filename field.
+	Add prototypes for load_separate_debug_file, close_debug_file and
+	open_debug_file.
+	* dwarf.c (do_debug_links): New.
+	(do_follow_links): New.
+	(separate_debug_file, separate_debug_filename): New.
+	(fetch_alt_indirect_string): New function.  Retrieves a string
+	from the debug string table in the separate debug info file.
+	(read_and_display_attr_value): Use it with DW_FORM_GNU_strp_alt.
+	(load_debug_section_with_follow): New function.  Like
+	load_debug_section, but if the first attempt fails, then tries
+	again in the separate debug info file.
+	(introduce): New function.
+	(process_debug_info): Use load_debug_section_with_follow and
+	introduce.
+	(load_debug_info): Likewise.
+	(display_debug_lines_raw): Likewise.
+	(display_debug_lines_decoded): Likewise.
+	(display_debug_macinfo): Likewise.
+	(display_debug_macro): Likewise.
+	(display_debug_abbrev): Likewise.
+	(display_debug_loc): Likewise.
+	(display_debug_str): Likewise.
+	(display_debug_aranges): Likewise.
+	(display_debug_addr); Likewise.
+	(display_debug_frames): Likewise.
+	(display_gdb_index): Likewise.
+	(process_cu_tu_index): Likewise.
+	(load_cu_tu_indexes): Likewise.
+	(display_debug_links): New function.  Displays the contents of a
+	.gnu_debuglink or .gnu_debugaltlink section.
+	(calc_gnu_debuglink_ctc32):New function.  Calculates a CRC32
+	value.
+	(check_gnu_debuglink): New function.  Checks the CRC of a
+	potential separate debug info file.
+	(parse_gnu_debuglink): New function.  Reads a CRC value out of a
+	.gnu_debuglink section.
+	(check_gnu_debugaltlink): New function.
+	(parse_gnu_debugaltlink): New function.  Reads the build-id value
+	out of a .gnu_debugaltlink section.
+	(load_separate_debug_info): New function.  Finds and loads a
+	separate debug info file.
+	(load_separate_debug_file): New function. Attempts to find and
+	follow a link to a separate debug info file.
+	(free_debug_memory): Free the separate debug info file
+	information.
+	(opts_table): Add "follow-links" and "links".
+	(dwarf_select_sections_by_letters): Add "k" and "K".
+	(debug_displays): Reformat.  Add .gnu-debuglink and
+	.gnu_debugaltlink.
+	Add an extra entry for .debug_str in a separate debug info file.
+	* doc/binutils.texi: Move description of debug dump features
+	common to both readelf and objdump into...
+	* objdump.c (usage): Add -Wk and -WK.
+	(load_specific_debug_section): Initialise the filename field in
+	the dwarf_section structure.
+	(close_debug_file): New function.
+	(open_debug_file): New function.
+	(dump_dwarf): Load and dump the separate debug info sections.
+	* readelf.c (struct filedata): New structure.  Contains various
+	variables that used to be global:
+	(current_file_size, string_table, string_table_length, elf_header)
+	(section_headers, program_headers, dump_sects, num_dump_sects):
+	Move into filedata structure.
+	(cmdline): New global variable.  Contains list of sections to dump
+	by number, as specified on the command line.
+	Add filedata parameter to most functions.
+	(load_debug_section): Load the string table if it has not already
+	been retrieved.
+	(close_file): New function.
+	(close_debug_file): New function.
+	(open_file): New function.
+	(open_debug_file): New function.
+	(process_object): Process sections in any separate debug info files.
+	* doc/debug.options.texi: New file.  Add description of =links and
+	=follow-links options.
+	* NEWS: Mention the new feature.
+	* elfcomm.c: Have the byte get functions take a const pointer.
+	* elfcomm.h: Update prototypes.
+	* testsuite/binutils-all/dw5.W: Update expected output.
+	* testsuite/binutils-all/objdump.WL: Update expected output.
+	* testsuite/binutils-all/objdump.exp: Add test of -WK and -Wk.
+	* testsuite/binutils-all/readelf.exp: Add test of -wK and -wk.
+	* testsuite/binutils-all/readelf.k: New file.
+	* testsuite/binutils-all/objdump.Wk: New file.
+	* testsuite/binutils-all/objdump.WK2: New file.
+	* testsuite/binutils-all/linkdebug.s: New file.
+	* testsuite/binutils-all/debuglink.s: New file.
+
+2017-11-10  Jim Wilson  <jimw@sifive.com>
+
+	* testsuite/binutils-all/objdump.exp: Expect the debug_ranges test to
+	pass.
+
+2017-11-07  Jim Wilson  <jimw@sifive.com>
+
+	* MAINTAINERS (RISC-V): Fix typo in my email address.
+
+2017-11-07  Palmer Dabbelt  <palmer@sifive.com>
+
+	* MAINTAINERS (RISC-V): Add Jim Wilson as a maintainer.
+	Clean up Andrew's entry (remove trailing space, add tabs).
+	Change Palmer's email address, and clean up entry (add tabs).
+
+2017-11-07  Alan Modra  <amodra@gmail.com>
+
+	* dwarf.c (read_uleb128): Properly pluralize messages.
+	(display_debug_lines_raw, display_debug_loc): Likewise.
+	(display_debug_names, process_cu_tu_index): Likewise.
+	* od-macho.c (dump_code_signature_superblob): Likewise.
+	* readelf.c (process_program_headers): Likewise.
+	(process_section_header, process_relocs): Likewise.
+	(hppa_process_unwind, arm_process_unwind): Likewise.
+	(process_dynamic_section, process_version_sections): Likewise.
+	(process_symbol_table, process_syminfo): Likewise.
+	(apply_relocations, process_mips_specific): Likewise.
+	(process_gnu_liblist, process_notes_at): Likewise.
+	(process_archive): Likewise.
+	* testsuite/binutils-all/dw2-1.W,
+	* testsuite/binutils-all/dw2-3.W,
+	* testsuite/binutils-all/dw2-3gabi.W,
+	* testsuite/binutils-all/dw5.S,
+	* testsuite/binutils-all/dw5.W,
+	* testsuite/binutils-all/i386/compressed-1a.d,
+	* testsuite/binutils-all/libdw2-compressedgabi.out,
+	* testsuite/binutils-all/objdump.W,
+	* testsuite/binutils-all/readelf.r,
+	* testsuite/binutils-all/readelf.r-64,
+	* testsuite/binutils-all/x86-64/compressed-1a.d: Update
+	for pluralization fixes.
+
+2017-11-07  Alan Modra  <amodra@gmail.com>
+
+	* sysdep.h (textdomain, bindtextdomain): Use safer "do nothing".
+	(ngettext, dngettext, dcngettext): Define when !ENABLE_NLS.
+
+2017-11-03  Claudiu Zissulescu  <claziss@synopsys.com>
+
+	* doc/binutils.texi (ARC): Update disassembler options.
+	* testsuite/binutils-all/arc/hexprint.s: New file.
+	* testsuite/binutils-all/arc/objdump.exp: Test hex printing
+	feature.
+
+2017-11-03  Mingi Cho  <mgcho.minic@gmail.com>
+	    Nick Clifton  <nickc@redhat.com>
+
+	PR 22386
+	* dwarf.c (read_cie): Use bfd_size_type for
+	augmentation_data_len.
+	(display_augmentation_data): New function.
+	(display_debug_frames): Use it.
+	Check for integer overflow when testing augmentation_data_len.
+
+2017-11-02  Mingi Cho  <mgcho.minic@gmail.com>
+
+	PR 22384
+	* readelf.c (print_gnu_property_note): Improve overflow checks so
+	that they will work on a 32-bit host.
+
+2017-11-01  James Bowman  <james.bowman@ftdichip.com>
+
+	* readelf.c (is_16bit_abs_reloc): Add entry for FT32.
+
+2017-10-31  Nick Clifton  <nickc@redhat.com>
+
+	* readelf.c (process_relocs): Tell users if no static relocs were
+	found, but if they had added --use-dynamic to the command line
+	then relocs would have been displayed.
+
+2017-10-28  Alan Modra  <amodra@gmail.com>
+
+	PR 22361
+	* readelf.c (process_archive_index_and_symbols): Ensure ar_size
+	field is zero terminated for strtoul.
+	(setup_archive, get_archive_member_name): Likewise.
+
+2017-10-27  Simon Marchi  <simon.marchi@ericsson.com>
+
+	* dwarf.c (struct Frame_Chunk) <cfa_reg>: Change type to
+	unsigned int.
+	(display_debug_frames): Read CFA reg as an unsigned number.
+
+2017-10-25  Alan Modra  <amodra@gmail.com>
+
+	* nm.c (filter_symbols): Match "__gnu_lto_slim" optionally prefixed
+	with "_".
+
+2017-10-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* MAINTAINERS: Add myself as Visium maintainer.
+
+2017-10-18  Nick Clifton  <nickc@redhat.com>
+
+	* README-how-to-make-a-release: A note about checking file and
+	directory permissions.
+
+	* MAINTAINERS: Move Svein Seldal to Past Maintainers section.
+
+2017-10-18  Alan Modra  <amodra@gmail.com>
+
+	PR 22303
+	* readelf.c (print_core_note): Ensure "count" sanity check
+	calculation doesn't overflow.
+	(process_notes_at): Perform note namesz and descsz checks
+	using unsigned comparisons against data remaining.  Catch
+	alignment overflow of namesz and descsz too.  Don't allocate a
+	temp for terminating "name" when there is space available
+	before descdata.
+
+2017-10-17  Tom Tromey  <tom@tromey.com>
+
+	* MAINTAINERS: Add myself as dwarf-mode.el maintainer.
+
+2017-10-11  Peeter Joot  <peeter.joot@lzlabs.com>
+	Nick Clifton  <nickc@redhat.com>
+
+	* dwarf.c (read_and_display_attr_value): Handle DW_AT_endianity,
+	DW_END_default, DW_END_big, DW_END_little, DW_ATE_UCS,
+	DW_ATE_ASCII, DW_CC_pass_by_reference, DW_CC_pass_by_value,
+	DW_CC_GNU_renesas_sh, DW_CC_GNU_borland_fastcall_i386,
+	DW_AT_decimal_sign, DW_AT_defaulted, DW_AT_discr_list.
+	(get_TAG_name): Report user generated tag values.
+	* testsuite/binutils-all/dwarf-attributes.S: New test.
+	* testsuite/binutils-all/dwarf-attributes.W. Expected output from
+	readelf.
+	* testsuite/binutils-all/readelf.exp: Run the new test.
+
+2017-10-10  Tom Tromey  <tom@tromey.com>
+
+	* dwarf-mode.el: Bump to version 1.4.
+
+2017-10-10  Tom Tromey  <tom@tromey.com>
+
+	* dwarf-mode.el (dwarf--process, dwarf--deletion-region): New
+	defvar.
+	(dwarf--check-running, dwarf--sentinel, dwarf--invoke)
+	(dwarf--filter): New functions.
+	(dwarf-do-insert-substructure, dwarf-do-refresh): Call
+	dwarf--check-running, dwarf--invoke.
+	(dwarf-browse): Initialize new variables.
+
+2017-10-10  Tom Tromey  <tom@tromey.com>
+
+	* dwarf-mode.el: Set lexical-binding.
+
+2017-10-10  Tom Tromey  <tom@tromey.com>
+
+	* dwarf-mode.el (dwarf-mode-map): New defvar.
+
+2017-10-10  Tom Tromey  <tromey@sourceware.org>
+
+	PR 22249
+	* dwarf.c (process_debug_info): Skip any comp unit that ends
+	before dwarf_start_die.
+
+2017-10-06  Alan Modra  <amodra@gmail.com>
+
+	* dwarf.c (process_debug_info): Consolidate header length checks.
+	(display_debug_pubnames_worker): Use "start" to read header.
+	Properly check header length and report errors earlier.
+	Simplify loop printing pubnames.
+	(get_line_filename_and_dirname): Catch small negative "length"
+	values.
+	(display_debug_aranges): Likewise.  Report header errors
+	earlier using standardized message.
+	(display_debug_names): Likewise.
+
+2017-10-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* readelf.c (decode_arm_unwind): Initialize res to TRUE.
+
+2017-10-05  Nick Clifton  <nickc@redhat.com>
+
+	PR 22260
+	* objcopy.c (strip_main): Add 'M' character to short options list
+	when calling getopt_long.
+
+2017-10-05  Nick Clifton  <nickc@redhat.com>
+
+	PR 22262
+	* readelf.c (dump_relocations): Do not truncate reloc names when
+	displaying output in wide mode.
+
+2017-10-05  Nick Clifton  <nickc@redhat.com>
+
+	* README-how-to-make-a-release: Merge steps 3, 4 and 5, and insert
+	the git tag operation at the correct location.
+
+2017-10-05  Alan Modra  <amodra@gmail.com>
+
+	PR 22239
+	* dwarf.c (read_cie): Don't compare "start" and "end" pointers
+	after adding a possibly wild length to "start", compare the length
+	to the difference of the pointers instead.  Remove now redundant
+	"negative" length test.
+
+2017-10-05  Tristan Gingold  <tgingold@free.fr>
+
+	* MAINTAINERS: Update email address.  Redirect release maintainer
+	to global maitainers.
+
+2017-10-01  Alan Modra  <amodra@gmail.com>
+
+	PR 22232
+	PR 22230
+	* objdump.c (load_specific_debug_section): Introduce a temp to
+	stop bfd_get_full_section_contents NULLing out section->start.
+
+2017-10-01  Alan Modra  <amodra@gmail.com>
+
+	PR 22230
+	* objdump.c (load_specific_debug_section): Allocate an extra byte
+	for a terminating NUL.
+
+2017-09-30  Alan Modra  <amodra@gmail.com>
+
+	PR 21978
+	* objdump.c: Formatting.
+	(show_line): Reset prev_line when function name changes.
+
+2017-09-27  Nick Clifton  <nickc@redhat.com>
+
+	PR 22219
+	* dwarf.c (process_debug_info): Add a check for a negative
+	cu_length field.
+
+2017-09-27  Alan Modra  <amodra@gmail.com>
+
+	PR 22216
+	* readelf.c (process_symbol_table): Check that DT_HASH symbol
+	chains are only visited once, and report an error if not.  Display
+	invalid symbol index if chain is out of range.  Use the same logic
+	when calculating histograms rather than the PR 17531 fix.  Delete
+	bogus check that chained index is less than number of buckets.
+
+2017-09-26  Nick Clifton  <nickc@redhat.com>
+
+	PR 22154
+	* dwarf.c (get_line_filename_and_dirname): Add extra checks for
+	buffer overruns.
+
 2017-09-26  Nick Clifton  <nickc@redhat.com>
 
 	* README-how-to-make-a-release: New file.

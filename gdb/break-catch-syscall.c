@@ -104,8 +104,6 @@ insert_catch_syscall (struct bp_location *bl)
     {
       for (int iter : c->syscalls_to_be_caught)
 	{
-          int elem;
-
 	  if (iter >= inf_data->syscalls_counts.size ())
 	    inf_data->syscalls_counts.resize (iter + 1);
 	  ++inf_data->syscalls_counts[iter];
@@ -115,8 +113,7 @@ insert_catch_syscall (struct bp_location *bl)
   return target_set_syscall_catchpoint (ptid_get_pid (inferior_ptid),
 					inf_data->total_syscalls_count != 0,
 					inf_data->any_syscall_count,
-					inf_data->syscalls_counts.size (),
-					inf_data->syscalls_counts.data ());
+					inf_data->syscalls_counts);
 }
 
 /* Implement the "remove" breakpoint_ops method for syscall
@@ -137,7 +134,6 @@ remove_catch_syscall (struct bp_location *bl, enum remove_bp_reason reason)
     {
       for (int iter : c->syscalls_to_be_caught)
 	{
-          int elem;
 	  if (iter >= inf_data->syscalls_counts.size ())
 	    /* Shouldn't happen.  */
 	    continue;
@@ -148,8 +144,7 @@ remove_catch_syscall (struct bp_location *bl, enum remove_bp_reason reason)
   return target_set_syscall_catchpoint (ptid_get_pid (inferior_ptid),
 					inf_data->total_syscalls_count != 0,
 					inf_data->any_syscall_count,
-					inf_data->syscalls_counts.size (),
-					inf_data->syscalls_counts.data ());
+					inf_data->syscalls_counts);
 }
 
 /* Implement the "breakpoint_hit" breakpoint_ops method for syscall
@@ -157,7 +152,7 @@ remove_catch_syscall (struct bp_location *bl, enum remove_bp_reason reason)
 
 static int
 breakpoint_hit_catch_syscall (const struct bp_location *bl,
-			      struct address_space *aspace, CORE_ADDR bp_addr,
+			      const address_space *aspace, CORE_ADDR bp_addr,
 			      const struct target_waitstatus *ws)
 {
   /* We must check if we are catching specific syscalls in this
@@ -382,7 +377,7 @@ create_syscall_event_catchpoint (int tempflag, std::vector<int> &&filter,
 /* Splits the argument using space as delimiter.  */
 
 static std::vector<int>
-catch_syscall_split_args (char *arg)
+catch_syscall_split_args (const char *arg)
 {
   std::vector<int> result;
   struct gdbarch *gdbarch = target_gdbarch ();
@@ -457,7 +452,7 @@ catch_syscall_split_args (char *arg)
 /* Implement the "catch syscall" command.  */
 
 static void
-catch_syscall_command_1 (char *arg, int from_tty, 
+catch_syscall_command_1 (const char *arg, int from_tty, 
 			 struct cmd_list_element *command)
 {
   int tempflag;
@@ -560,11 +555,8 @@ catch_syscall_completer (struct cmd_list_element *cmd,
                          const char *text, const char *word)
 {
   struct gdbarch *gdbarch = get_current_arch ();
-  struct cleanup *cleanups = make_cleanup (null_cleanup, NULL);
-  const char **group_list = NULL;
-  const char **syscall_list = NULL;
+  gdb::unique_xmalloc_ptr<const char *> group_list;
   const char *prefix;
-  int i;
 
   /* Completion considers ':' to be a word separator, so we use this to
      verify whether the previous word was a group prefix.  If so, we
@@ -575,34 +567,34 @@ catch_syscall_completer (struct cmd_list_element *cmd,
   if (startswith (prefix, "g:") || startswith (prefix, "group:"))
     {
       /* Perform completion inside 'group:' namespace only.  */
-      group_list = get_syscall_group_names (gdbarch);
+      group_list.reset (get_syscall_group_names (gdbarch));
       if (group_list != NULL)
-	complete_on_enum (tracker, group_list, word, word);
+	complete_on_enum (tracker, group_list.get (), word, word);
     }
   else
     {
       /* Complete with both, syscall names and groups.  */
-      syscall_list = get_syscall_names (gdbarch);
-      group_list = get_syscall_group_names (gdbarch);
+      gdb::unique_xmalloc_ptr<const char *> syscall_list
+	(get_syscall_names (gdbarch));
+      group_list.reset (get_syscall_group_names (gdbarch));
+
+      const char **group_ptr = group_list.get ();
+
+      /* Hold on to strings while we're using them.  */
+      std::vector<std::string> holders;
 
       /* Append "group:" prefix to syscall groups.  */
-      for (i = 0; group_list[i] != NULL; i++)
-	{
-	  char *prefixed_group = xstrprintf ("group:%s", group_list[i]);
+      for (int i = 0; group_ptr[i] != NULL; i++)
+	holders.push_back (string_printf ("group:%s", group_ptr[i]));
 
-	  group_list[i] = prefixed_group;
-	  make_cleanup (xfree, prefixed_group);
-	}
+      for (int i = 0; group_ptr[i] != NULL; i++)
+	group_ptr[i] = holders[i].c_str ();
 
       if (syscall_list != NULL)
-	complete_on_enum (tracker, syscall_list, word, word);
+	complete_on_enum (tracker, syscall_list.get (), word, word);
       if (group_list != NULL)
-	complete_on_enum (tracker, group_list, word, word);
+	complete_on_enum (tracker, group_ptr, word, word);
     }
-
-  xfree (syscall_list);
-  xfree (group_list);
-  do_cleanups (cleanups);
 }
 
 static void

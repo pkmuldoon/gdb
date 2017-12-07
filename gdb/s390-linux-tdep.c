@@ -30,7 +30,6 @@
 #include "gdbcore.h"
 #include "gdbcmd.h"
 #include "objfiles.h"
-#include "floatformat.h"
 #include "regcache.h"
 #include "trad-frame.h"
 #include "frame-base.h"
@@ -158,7 +157,7 @@ s390_cannot_store_register (struct gdbarch *gdbarch, int regnum)
 static void
 s390_write_pc (struct regcache *regcache, CORE_ADDR pc)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
 
   regcache_cooked_write_unsigned (regcache, tdep->pc_regnum, pc);
@@ -731,7 +730,7 @@ s390_is_partial_instruction (struct gdbarch *gdbarch, CORE_ADDR loc, int *len)
 static std::vector<CORE_ADDR>
 s390_software_single_step (struct regcache *regcache)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   CORE_ADDR loc = regcache_read_pc (regcache);
   enum bfd_endian byte_order = gdbarch_byte_order (gdbarch);
   int len;
@@ -1376,8 +1375,8 @@ s390_store (struct s390_prologue_data *data,
 
 
   /* Check whether we are storing a register into the stack.  */
-  if (!pv_area_store_would_trash (data->stack, addr))
-    pv_area_store (data->stack, addr, size, value);
+  if (!data->stack->store_would_trash (addr))
+    data->stack->store (addr, size, value);
 
 
   /* Note: If this is some store we cannot identify, you might think we
@@ -1414,11 +1413,11 @@ s390_load (struct s390_prologue_data *data,
     }
 
   /* Check whether we are accessing one of our save slots.  */
-  return pv_area_fetch (data->stack, addr, size);
+  return data->stack->fetch (addr, size);
 }
 
 /* Function for finding saved registers in a 'struct pv_area'; we pass
-   this to pv_area_scan.
+   this to pv_area::scan.
 
    If VALUE is a saved register, ADDR says it was saved at a constant
    offset from the frame base, and SIZE indicates that the whole
@@ -1487,11 +1486,12 @@ s390_analyze_prologue (struct gdbarch *gdbarch,
   /* The address of the next instruction after that.  */
   CORE_ADDR next_pc;
 
+  pv_area stack (S390_SP_REGNUM, gdbarch_addr_bit (gdbarch));
+  scoped_restore restore_stack = make_scoped_restore (&data->stack, &stack);
+
   /* Set up everything's initial value.  */
   {
     int i;
-
-    data->stack = make_pv_area (S390_SP_REGNUM, gdbarch_addr_bit (gdbarch));
 
     /* For the purpose of prologue tracking, we consider the GPR size to
        be equal to the ABI word size, even if it is actually larger
@@ -1731,10 +1731,7 @@ s390_analyze_prologue (struct gdbarch *gdbarch,
     }
 
   /* Record where all the registers were saved.  */
-  pv_area_scan (data->stack, s390_check_for_saved, data);
-
-  free_pv_area (data->stack);
-  data->stack = NULL;
+  data->stack->scan (s390_check_for_saved, data);
 
   return result;
 }
@@ -1864,6 +1861,8 @@ is_non_branch_ril (gdb_byte *insn)
   return 0;
 }
 
+typedef buf_displaced_step_closure s390_displaced_step_closure;
+
 /* Implementation of gdbarch_displaced_step_copy_insn.  */
 
 static struct displaced_step_closure *
@@ -1872,8 +1871,9 @@ s390_displaced_step_copy_insn (struct gdbarch *gdbarch,
 			       struct regcache *regs)
 {
   size_t len = gdbarch_max_insn_length (gdbarch);
-  gdb_byte *buf = (gdb_byte *) xmalloc (len);
-  struct cleanup *old_chain = make_cleanup (xfree, buf);
+  std::unique_ptr<s390_displaced_step_closure> closure
+    (new s390_displaced_step_closure (len));
+  gdb_byte *buf = closure->buf.data ();
 
   read_memory (from, buf, len);
 
@@ -1901,7 +1901,7 @@ s390_displaced_step_copy_insn (struct gdbarch *gdbarch,
 				  "RIL instruction: offset %s out of range\n",
 				  plongest (offset));
 	    }
-	  do_cleanups (old_chain);
+
 	  return NULL;
 	}
 
@@ -1917,20 +1917,21 @@ s390_displaced_step_copy_insn (struct gdbarch *gdbarch,
       displaced_step_dump_bytes (gdb_stdlog, buf, len);
     }
 
-  discard_cleanups (old_chain);
-  return (struct displaced_step_closure *) buf;
+  return closure.release ();
 }
 
 /* Fix up the state of registers and memory after having single-stepped
    a displaced instruction.  */
 static void
 s390_displaced_step_fixup (struct gdbarch *gdbarch,
-			   struct displaced_step_closure *closure,
+			   struct displaced_step_closure *closure_,
 			   CORE_ADDR from, CORE_ADDR to,
 			   struct regcache *regs)
 {
   /* Our closure is a copy of the instruction.  */
-  gdb_byte *insn = (gdb_byte *) closure;
+  s390_displaced_step_closure *closure
+    = (s390_displaced_step_closure *) closure_;
+  gdb_byte *insn = closure->buf.data ();
   static int s390_instrlen[] = { 2, 4, 4, 6 };
   int insnlen = s390_instrlen[insn[0] >> 6];
 
@@ -2696,7 +2697,7 @@ static struct linux_record_tdep s390x_linux_record_tdep;
 static int
 s390_all_but_pc_registers_record (struct regcache *regcache)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
   int i;
 
@@ -2898,7 +2899,7 @@ s390_canonicalize_syscall (int syscall, enum s390_abi_kind abi)
 static int
 s390_linux_syscall_record (struct regcache *regcache, LONGEST syscall_native)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
   int ret;
   enum gdb_syscall syscall_gdb;

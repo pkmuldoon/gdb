@@ -95,7 +95,16 @@ extern unsigned int cp_entire_prefix_len (const char *name);
 
 extern char *cp_func_name (const char *full_name);
 
-extern char *cp_remove_params (const char *demangled_name);
+extern gdb::unique_xmalloc_ptr<char> cp_remove_params
+  (const char *demanged_name);
+
+/* DEMANGLED_NAME is the name of a function, (optionally) including
+   parameters and (optionally) a return type.  Return the name of the
+   function without parameters or return type, or NULL if we can not
+   parse the name.  If COMPLETION_MODE is true, then tolerate a
+   non-existing or unbalanced parameter list.  */
+extern gdb::unique_xmalloc_ptr<char> cp_remove_params_if_any
+  (const char *demangled_name, bool completion_mode);
 
 extern struct symbol **make_symbol_overload_list (const char *,
 						  const char *);
@@ -106,6 +115,18 @@ extern struct symbol **make_symbol_overload_list_adl (struct type **arg_types,
 
 extern struct type *cp_lookup_rtti_type (const char *name,
 					 struct block *block);
+
+/* Produce an unsigned hash value from SEARCH_NAME that is compatible
+   with cp_symbol_name_matches.  Only the last component in
+   "foo::bar::function()" is considered for hashing purposes (i.e.,
+   the entire prefix is skipped), so that later on looking up for
+   "function" or "bar::function" in all namespaces is possible.  */
+extern unsigned int cp_search_name_hash (const char *search_name);
+
+/* Implement the "la_get_symbol_name_matcher" language_defn method for
+   C++.  */
+extern symbol_name_matcher_ftype *cp_get_symbol_name_matcher
+  (const lookup_name_info &lookup_name);
 
 /* Functions/variables from cp-namespace.c.  */
 

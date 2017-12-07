@@ -83,7 +83,7 @@ struct tdesc_parsing_data
   int next_regnum;
 
   /* The struct or union we are currently parsing, or last parsed.  */
-  struct tdesc_type *current_type;
+  tdesc_type_with_fields *current_type;
 
   /* The byte size of the current struct/flags type, if specified.  Zero
      if not specified.  Flags values must specify a size.  */
@@ -244,11 +244,11 @@ tdesc_start_struct (struct gdb_xml_parser *parser,
 {
   struct tdesc_parsing_data *data = (struct tdesc_parsing_data *) user_data;
   char *id = (char *) xml_find_attribute (attributes, "id")->value;
-  struct tdesc_type *type;
   struct gdb_xml_value *attr;
 
-  type = tdesc_create_struct (data->current_feature, id);
-  data->current_type = type;
+  tdesc_type_with_fields *type_with_fields
+    = tdesc_create_struct (data->current_feature, id);
+  data->current_type = type_with_fields;
   data->current_type_size = 0;
 
   attr = xml_find_attribute (attributes, "size");
@@ -262,7 +262,7 @@ tdesc_start_struct (struct gdb_xml_parser *parser,
 			 _("Struct size %s is larger than maximum (%d)"),
 			 pulongest (size), MAX_FIELD_SIZE);
 	}
-      tdesc_set_struct_size (type, size);
+      tdesc_set_struct_size (type_with_fields, size);
       data->current_type_size = size;
     }
 }
@@ -276,7 +276,6 @@ tdesc_start_flags (struct gdb_xml_parser *parser,
   char *id = (char *) xml_find_attribute (attributes, "id")->value;
   ULONGEST size = * (ULONGEST *)
     xml_find_attribute (attributes, "size")->value;
-  struct tdesc_type *type;
 
   if (size > MAX_FIELD_SIZE)
     {
@@ -284,9 +283,8 @@ tdesc_start_flags (struct gdb_xml_parser *parser,
 		     _("Flags size %s is larger than maximum (%d)"),
 		     pulongest (size), MAX_FIELD_SIZE);
     }
-  type = tdesc_create_flags (data->current_feature, id, size);
 
-  data->current_type = type;
+  data->current_type = tdesc_create_flags (data->current_feature, id, size);
   data->current_type_size = size;
 }
 
@@ -299,7 +297,6 @@ tdesc_start_enum (struct gdb_xml_parser *parser,
   char *id = (char *) xml_find_attribute (attributes, "id")->value;
   int size = * (ULONGEST *)
     xml_find_attribute (attributes, "size")->value;
-  struct tdesc_type *type;
 
   if (size > MAX_FIELD_SIZE)
     {
@@ -307,9 +304,8 @@ tdesc_start_enum (struct gdb_xml_parser *parser,
 		     _("Enum size %s is larger than maximum (%d)"),
 		     pulongest (size), MAX_FIELD_SIZE);
     }
-  type = tdesc_create_enum (data->current_feature, id, size);
 
-  data->current_type = type;
+  data->current_type = tdesc_create_enum (data->current_feature, id, size);
   data->current_type_size = 0;
 }
 
@@ -375,7 +371,7 @@ tdesc_start_field (struct gdb_xml_parser *parser,
 
   if (start != -1)
     {
-      struct tdesc_type *t = data->current_type;
+      tdesc_type_with_fields *t = data->current_type;
 
       /* Older versions of gdb can't handle elided end values.
          Stick with that for now, to help ensure backward compatibility.
@@ -673,24 +669,16 @@ tdesc_parse_xml (const char *document, xml_fetch_another fetcher,
 const struct target_desc *
 file_read_description_xml (const char *filename)
 {
-  struct target_desc *tdesc;
-  char *tdesc_str;
-  struct cleanup *back_to;
-
-  tdesc_str = xml_fetch_content_from_file (filename, NULL);
+  gdb::unique_xmalloc_ptr<char> tdesc_str
+    = xml_fetch_content_from_file (filename, NULL);
   if (tdesc_str == NULL)
     {
       warning (_("Could not open \"%s\""), filename);
       return NULL;
     }
 
-  back_to = make_cleanup (xfree, tdesc_str);
-
-  tdesc = tdesc_parse_xml (tdesc_str, xml_fetch_content_from_file,
-			   (void *) ldirname (filename).c_str ());
-  do_cleanups (back_to);
-
-  return tdesc;
+  return tdesc_parse_xml (tdesc_str.get (), xml_fetch_content_from_file,
+			  (void *) ldirname (filename).c_str ());
 }
 
 /* Read a string representation of available features from the target,
@@ -700,7 +688,7 @@ file_read_description_xml (const char *filename)
    is "target.xml".  Other calls may be performed for the DTD or
    for <xi:include>.  */
 
-static char *
+static gdb::unique_xmalloc_ptr<char>
 fetch_available_features_from_target (const char *name, void *baton_)
 {
   struct target_ops *ops = (struct target_ops *) baton_;
@@ -719,21 +707,14 @@ fetch_available_features_from_target (const char *name, void *baton_)
 const struct target_desc *
 target_read_description_xml (struct target_ops *ops)
 {
-  struct target_desc *tdesc;
-  char *tdesc_str;
-  struct cleanup *back_to;
-
-  tdesc_str = fetch_available_features_from_target ("target.xml", ops);
+  gdb::unique_xmalloc_ptr<char> tdesc_str
+    = fetch_available_features_from_target ("target.xml", ops);
   if (tdesc_str == NULL)
     return NULL;
 
-  back_to = make_cleanup (xfree, tdesc_str);
-  tdesc = tdesc_parse_xml (tdesc_str,
-			   fetch_available_features_from_target,
-			   ops);
-  do_cleanups (back_to);
-
-  return tdesc;
+  return tdesc_parse_xml (tdesc_str.get (),
+			  fetch_available_features_from_target,
+			  ops);
 }
 
 /* Fetches an XML target description using OPS,  processing
@@ -755,10 +736,8 @@ target_fetch_description_xml (struct target_ops *ops)
 
   return {};
 #else
-  struct target_desc *tdesc;
-
   gdb::unique_xmalloc_ptr<char>
-    tdesc_str (fetch_available_features_from_target ("target.xml", ops));
+    tdesc_str = fetch_available_features_from_target ("target.xml", ops);
   if (tdesc_str == NULL)
     return {};
 

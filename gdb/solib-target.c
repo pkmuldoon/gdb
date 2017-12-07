@@ -248,27 +248,18 @@ static struct so_list *
 solib_target_current_sos (void)
 {
   struct so_list *new_solib, *start = NULL, *last = NULL;
-  char *library_document;
-  struct cleanup *old_chain;
   VEC(lm_info_target_p) *library_list;
   lm_info_target *info;
   int ix;
 
   /* Fetch the list of shared libraries.  */
-  library_document = target_read_stralloc (&current_target,
-					   TARGET_OBJECT_LIBRARIES,
-					   NULL);
+  gdb::unique_xmalloc_ptr<char> library_document
+    = target_read_stralloc (&current_target, TARGET_OBJECT_LIBRARIES, NULL);
   if (library_document == NULL)
     return NULL;
 
-  /* solib_target_parse_libraries may throw, so we use a cleanup.  */
-  old_chain = make_cleanup (xfree, library_document);
-
   /* Parse the list.  */
-  library_list = solib_target_parse_libraries (library_document);
-
-  /* library_document string is not needed behind this point.  */
-  do_cleanups (old_chain);
+  library_list = solib_target_parse_libraries (library_document.get ());
 
   if (library_list == NULL)
     return NULL;
@@ -452,7 +443,7 @@ Could not relocate shared library \"%s\": bad offsets"), so->so_name);
 }
 
 static int
-solib_target_open_symbol_file_object (void *from_ttyp)
+solib_target_open_symbol_file_object (int from_tty)
 {
   /* We can't locate the main symbol file based on the target's
      knowledge; the user has to specify it.  */

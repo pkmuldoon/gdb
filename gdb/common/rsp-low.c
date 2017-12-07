@@ -92,8 +92,8 @@ pack_hex_byte (char *pkt, int byte)
 
 /* See rsp-low.h.  */
 
-char *
-unpack_varlen_hex (char *buff,	/* packet to parse */
+const char *
+unpack_varlen_hex (const char *buff,	/* packet to parse */
 		   ULONGEST *result)
 {
   int nibble;
@@ -128,6 +128,19 @@ hex2bin (const char *hex, gdb_byte *bin, int count)
       hex += 2;
     }
   return i;
+}
+
+/* See rsp-low.h.  */
+
+gdb::byte_vector
+hex2bin (const char *hex)
+{
+  size_t bin_len = strlen (hex) / 2;
+  gdb::byte_vector bin (bin_len);
+
+  hex2bin (hex, bin.data (), bin_len);
+
+  return bin;
 }
 
 /* See rsp-low.h.  */

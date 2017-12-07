@@ -1501,7 +1501,6 @@ allocate_piece_closure (struct dwarf2_per_cu_data *per_cu,
 			struct frame_info *frame)
 {
   struct piece_closure *c = new piece_closure;
-  int i;
 
   c->refc = 1;
   c->per_cu = per_cu;
@@ -2179,7 +2178,6 @@ indirect_pieced_value (struct value *value)
     = (struct piece_closure *) value_computed_closure (value);
   struct type *type;
   struct frame_info *frame;
-  struct dwarf2_locexpr_baton baton;
   int i, bit_length;
   LONGEST bit_offset;
   struct dwarf_expr_piece *piece = NULL;
@@ -2387,7 +2385,6 @@ dwarf2_evaluate_loc_desc_full (struct type *type, struct frame_info *frame,
     {
       struct piece_closure *c;
       ULONGEST bit_size = 0;
-      int i;
 
       for (dwarf_expr_piece &piece : ctx.pieces)
 	bit_size += piece.size;
@@ -2478,7 +2475,6 @@ dwarf2_evaluate_loc_desc_full (struct type *type, struct frame_info *frame,
 	    size_t len = TYPE_LENGTH (subobj_type);
 	    size_t max = TYPE_LENGTH (type);
 	    struct gdbarch *objfile_gdbarch = get_objfile_arch (objfile);
-	    struct cleanup *cleanup;
 
 	    if (subobj_byte_offset + len > max)
 	      invalid_synthetic_pointer ();
@@ -2488,7 +2484,7 @@ dwarf2_evaluate_loc_desc_full (struct type *type, struct frame_info *frame,
 	       below.  */
 	    value_incref (value);
 	    free_values.free_to_mark ();
-	    cleanup = make_cleanup_value_free (value);
+	    gdb_value_up value_holder (value);
 
 	    retval = allocate_value (subobj_type);
 
@@ -2498,8 +2494,6 @@ dwarf2_evaluate_loc_desc_full (struct type *type, struct frame_info *frame,
 
 	    memcpy (value_contents_raw (retval),
 		    value_contents_all (value) + subobj_byte_offset, len);
-
-	    do_cleanups (cleanup);
 	  }
 	  break;
 

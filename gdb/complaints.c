@@ -148,7 +148,7 @@ find_complaint (struct complaints *complaints, const char *file,
    before we stop whining about it?  Default is no whining at all,
    since so many systems have ill-constructed symbol files.  */
 
-static int stop_whining = 0;
+int stop_whining = 0;
 
 /* Print a complaint, and link the complaint block into a chain for
    later handling.  */
@@ -192,16 +192,14 @@ vcomplaint (struct complaints **c, const char *file,
 	vwarning (fmt, args);
       else
 	{
-	  char *msg;
-	  struct cleanup *cleanups;
-	  msg = xstrvprintf (fmt, args);
-	  cleanups = make_cleanup (xfree, msg);
+	  std::string msg = string_vprintf (fmt, args);
 	  wrap_here ("");
 	  if (series != SUBSEQUENT_MESSAGE)
 	    begin_line ();
 	  /* XXX: i18n */
 	  fprintf_filtered (gdb_stderr, "%s%s%s",
-			    complaints->explanation[series].prefix, msg,
+			    complaints->explanation[series].prefix,
+			    msg.c_str (),
 			    complaints->explanation[series].postfix);
 	  /* Force a line-break after any isolated message.  For the
              other cases, clear_complaints() takes care of any missing
@@ -214,7 +212,6 @@ vcomplaint (struct complaints **c, const char *file,
 	    fputs_filtered ("\n", gdb_stderr);
 	  else
 	    wrap_here ("");
-	  do_cleanups (cleanups);
 	}
     }
 
@@ -239,7 +236,7 @@ vcomplaint (struct complaints **c, const char *file,
 }
 
 void
-complaint (struct complaints **complaints, const char *fmt, ...)
+complaint_internal (struct complaints **complaints, const char *fmt, ...)
 {
   va_list args;
 

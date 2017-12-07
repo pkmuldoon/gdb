@@ -237,7 +237,6 @@ elf_symtab_read (minimal_symbol_reader &reader,
   /* Name of the last file symbol.  This is either a constant string or is
      saved on the objfile's filename cache.  */
   const char *filesymname = "";
-  struct dbx_symfile_info *dbx = DBX_SYMFILE_INFO (objfile);
   int stripped = (bfd_get_symcount (objfile->obfd) == 0);
   int elf_make_msymbol_special_p
     = gdbarch_elf_make_msymbol_special_p (gdbarch);
@@ -923,9 +922,10 @@ elf_gnu_ifunc_resolver_stop (struct breakpoint *b)
       sal.pc = prev_pc;
       sal.section = find_pc_overlay (sal.pc);
       sal.explicit_pc = 1;
-      b_return = set_momentary_breakpoint (get_frame_arch (prev_frame), sal,
-					   prev_frame_id,
-					   bp_gnu_ifunc_resolver_return);
+      b_return
+	= set_momentary_breakpoint (get_frame_arch (prev_frame), sal,
+				    prev_frame_id,
+				    bp_gnu_ifunc_resolver_return).release ();
 
       /* set_momentary_breakpoint invalidates PREV_FRAME.  */
       prev_frame = NULL;
@@ -1170,7 +1170,8 @@ elf_symfile_read (struct objfile *objfile, symfile_add_flags symfile_flags)
   struct elfinfo ei;
 
   memset ((char *) &ei, 0, sizeof (ei));
-  bfd_map_over_sections (abfd, elf_locate_sections, (void *) & ei);
+  if (!(objfile->flags & OBJF_READNEVER))
+    bfd_map_over_sections (abfd, elf_locate_sections, (void *) & ei);
 
   elf_read_minimal_symbols (objfile, symfile_flags, &ei);
 
@@ -1323,7 +1324,7 @@ elf_get_probes (struct objfile *objfile)
 
       /* Here we try to gather information about all types of probes from the
 	 objfile.  */
-      for (const probe_ops *ops : all_probe_ops)
+      for (const static_probe_ops *ops : all_static_probe_ops)
 	ops->get_probes (probes_per_bfd, objfile);
 
       set_bfd_data (objfile->obfd, probe_key, probes_per_bfd);
@@ -1340,8 +1341,8 @@ probe_key_free (bfd *abfd, void *d)
 {
   std::vector<probe *> *probes = (std::vector<probe *> *) d;
 
-  for (struct probe *probe : *probes)
-    probe->pops->destroy (probe);
+  for (probe *p : *probes)
+    delete p;
 
   delete probes;
 }

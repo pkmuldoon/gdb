@@ -76,6 +76,9 @@ enum explicit_location_match_type
     /* The name of a function or method.  */
     MATCH_FUNCTION,
 
+    /* The fully-qualified name of a function or method.  */
+    MATCH_QUALIFIED,
+
     /* A line number.  */
     MATCH_LINE,
 
@@ -151,7 +154,6 @@ filename_completer (struct cmd_list_element *ignore,
 		    const char *text, const char *word)
 {
   int subsequent_name;
-  VEC (char_ptr) *return_val = NULL;
 
   subsequent_name = 0;
   while (1)
@@ -426,7 +428,6 @@ static void
 complete_files_symbols (completion_tracker &tracker,
 			const char *text, const char *word)
 {
-  int ix;
   completion_list fn_list;
   const char *p;
   int quote_found = 0;
@@ -499,6 +500,7 @@ complete_files_symbols (completion_tracker &tracker,
     {
       collect_file_symbol_completion_matches (tracker,
 					      complete_symbol_mode::EXPRESSION,
+					      symbol_name_match_type::EXPRESSION,
 					      symbol_start, word,
 					      file_to_match);
       xfree (file_to_match);
@@ -509,6 +511,7 @@ complete_files_symbols (completion_tracker &tracker,
 
       collect_symbol_completion_matches (tracker,
 					 complete_symbol_mode::EXPRESSION,
+					 symbol_name_match_type::EXPRESSION,
 					 symbol_start, word);
       /* If text includes characters which cannot appear in a file
 	 name, they cannot be asking for completion on files.  */
@@ -519,8 +522,6 @@ complete_files_symbols (completion_tracker &tracker,
 
   if (!fn_list.empty () && !tracker.have_completions ())
     {
-      char *fn;
-
       /* If we only have file names as possible completion, we should
 	 bring them in sync with what rl_complete expects.  The
 	 problem is that if the user types "break /foo/b TAB", and the
@@ -551,6 +552,7 @@ complete_files_symbols (completion_tracker &tracker,
 	 on the entire text as a symbol.  */
       collect_symbol_completion_matches (tracker,
 					 complete_symbol_mode::EXPRESSION,
+					 symbol_name_match_type::EXPRESSION,
 					 orig_text, word);
     }
 }
@@ -576,7 +578,8 @@ complete_source_filenames (const char *text)
 
 static void
 complete_address_and_linespec_locations (completion_tracker &tracker,
-					 const char *text)
+					 const char *text,
+					 symbol_name_match_type match_type)
 {
   if (*text == '*')
     {
@@ -588,7 +591,7 @@ complete_address_and_linespec_locations (completion_tracker &tracker,
     }
   else
     {
-      linespec_complete (tracker, text);
+      linespec_complete (tracker, text, match_type);
     }
 }
 
@@ -599,6 +602,7 @@ static const char *const explicit_options[] =
   {
     "-source",
     "-function",
+    "-qualified",
     "-line",
     "-label",
     NULL
@@ -635,6 +639,9 @@ collect_explicit_location_matches (completion_tracker &tracker,
   const struct explicit_location *explicit_loc
     = get_explicit_location (location);
 
+  /* True if the option expects an argument.  */
+  bool needs_arg = true;
+
   /* Note, in the various MATCH_* below, we complete on
      explicit_loc->foo instead of WORD, because only the former will
      have already skipped past any quote char.  */
@@ -653,10 +660,14 @@ collect_explicit_location_matches (completion_tracker &tracker,
       {
 	const char *function = string_or_empty (explicit_loc->function_name);
 	linespec_complete_function (tracker, function,
+				    explicit_loc->func_name_match_type,
 				    explicit_loc->source_filename);
       }
       break;
 
+    case MATCH_QUALIFIED:
+      needs_arg = false;
+      break;
     case MATCH_LINE:
       /* Nothing to offer.  */
       break;
@@ -667,6 +678,7 @@ collect_explicit_location_matches (completion_tracker &tracker,
 	linespec_complete_label (tracker, language,
 				 explicit_loc->source_filename,
 				 explicit_loc->function_name,
+				 explicit_loc->func_name_match_type,
 				 label);
       }
       break;
@@ -675,7 +687,7 @@ collect_explicit_location_matches (completion_tracker &tracker,
       gdb_assert_not_reached ("unhandled explicit_location_match_type");
     }
 
-  if (tracker.completes_to_completion_word (word))
+  if (!needs_arg || tracker.completes_to_completion_word (word))
     {
       tracker.discard_completions ();
       tracker.advance_custom_word_point_by (strlen (word));
@@ -864,7 +876,7 @@ location_completer (struct cmd_list_element *ignore,
       tracker.advance_custom_word_point_by (1);
     }
 
-  if (location != NULL)
+  if (completion_info.saw_explicit_location_option)
     {
       if (*copy != '\0')
 	{
@@ -904,10 +916,29 @@ location_completer (struct cmd_list_element *ignore,
 
 	}
     }
+  /* This is an address or linespec location.  */
+  else if (location != NULL)
+    {
+      /* Handle non-explicit location options.  */
+
+      int keyword = skip_keyword (tracker, explicit_options, &text);
+      if (keyword == -1)
+	complete_on_enum (tracker, explicit_options, text, text);
+      else
+	{
+	  tracker.advance_custom_word_point_by (copy - text);
+	  text = copy;
+
+	  symbol_name_match_type match_type
+	    = get_explicit_location (location.get ())->func_name_match_type;
+	  complete_address_and_linespec_locations (tracker, text, match_type);
+	}
+    }
   else
     {
-      /* This is an address or linespec location.  */
-      complete_address_and_linespec_locations (tracker, text);
+      /* No options.  */
+      complete_address_and_linespec_locations (tracker, text,
+					       symbol_name_match_type::WILD);
     }
 
   /* Add matches for option names, if either:
@@ -1046,7 +1077,6 @@ complete_expression (completion_tracker &tracker,
     }
   else if (fieldname && code != TYPE_CODE_UNDEF)
     {
-      VEC (char_ptr) *result;
       struct cleanup *cleanup = make_cleanup (xfree, fieldname);
 
       collect_symbol_completion_matches_type (tracker, fieldname, fieldname,
@@ -1104,6 +1134,7 @@ symbol_completer (struct cmd_list_element *ignore,
 		  const char *text, const char *word)
 {
   collect_symbol_completion_matches (tracker, complete_symbol_mode::EXPRESSION,
+				     symbol_name_match_type::EXPRESSION,
 				     text, word);
 }
 
@@ -1266,10 +1297,13 @@ complete_line_internal_1 (completion_tracker &tracker,
       word = tmp_command + point - strlen (text);
     }
 
-  if (point == 0)
+  /* Move P up to the start of the command.  */
+  p = skip_spaces (p);
+
+  if (*p == '\0')
     {
-      /* An empty line we want to consider ambiguous; that is, it
-	 could be any command.  */
+      /* An empty line is ambiguous; that is, it could be any
+	 command.  */
       c = CMD_LIST_AMBIGUOUS;
       result_list = 0;
     }
@@ -1447,6 +1481,7 @@ complete_line_internal (completion_tracker &tracker,
       if (except.error != MAX_COMPLETIONS_REACHED_ERROR)
 	throw_exception (except);
     }
+  END_CATCH
 }
 
 /* See completer.h.  */
@@ -1494,7 +1529,9 @@ completion_tracker::~completion_tracker ()
 /* See completer.h.  */
 
 bool
-completion_tracker::maybe_add_completion (gdb::unique_xmalloc_ptr<char> name)
+completion_tracker::maybe_add_completion
+  (gdb::unique_xmalloc_ptr<char> name,
+   completion_match_for_lcd *match_for_lcd)
 {
   void **slot;
 
@@ -1507,7 +1544,13 @@ completion_tracker::maybe_add_completion (gdb::unique_xmalloc_ptr<char> name)
   slot = htab_find_slot (m_entries_hash, name.get (), INSERT);
   if (*slot == HTAB_EMPTY_ENTRY)
     {
-      const char *match_for_lcd_str = name.get ();
+      const char *match_for_lcd_str = NULL;
+
+      if (match_for_lcd != NULL)
+	match_for_lcd_str = match_for_lcd->finish ();
+
+      if (match_for_lcd_str == NULL)
+	match_for_lcd_str = name.get ();
 
       recompute_lowest_common_denominator (match_for_lcd_str);
 
@@ -1521,9 +1564,10 @@ completion_tracker::maybe_add_completion (gdb::unique_xmalloc_ptr<char> name)
 /* See completer.h.  */
 
 void
-completion_tracker::add_completion (gdb::unique_xmalloc_ptr<char> name)
+completion_tracker::add_completion (gdb::unique_xmalloc_ptr<char> name,
+				    completion_match_for_lcd *match_for_lcd)
 {
-  if (!maybe_add_completion (std::move (name)))
+  if (!maybe_add_completion (std::move (name), match_for_lcd))
     throw_error (MAX_COMPLETIONS_REACHED_ERROR, _("Max completions reached."));
 }
 

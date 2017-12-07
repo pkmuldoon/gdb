@@ -1037,6 +1037,16 @@ Read each symbol file's entire symbol table immediately, rather than
 the default, which is to read it incrementally as it is needed.
 This makes startup slower, but makes future operations faster.
 
+@item --readnever
+@anchor{--readnever}
+@cindex @code{--readnever}, command-line option
+Do not read each symbol file's symbolic debug information.  This makes
+startup faster but at the expense of not being able to perform
+symbolic debugging.  DWARF unwind information is also not read,
+meaning backtraces may become incomplete or inaccurate.  One use of
+this is when a user simply wants to do the following sequence: attach,
+dump core, detach.  Loading the debugging information in this case is
+an unnecessary cause of delay.
 @end table
 
 @node Mode Options
@@ -1638,39 +1648,56 @@ its notion of a word.  To permit word completion to work in this
 situation, you may enclose words in @code{'} (single quote marks) in
 @value{GDBN} commands.
 
-The most likely situation where you might need this is in typing the
-name of a C@t{++} function.  This is because C@t{++} allows function
-overloading (multiple definitions of the same function, distinguished
-by argument type).  For example, when you want to set a breakpoint you
-may need to distinguish whether you mean the version of @code{name}
-that takes an @code{int} parameter, @code{name(int)}, or the version
-that takes a @code{float} parameter, @code{name(float)}.  To use the
-word-completion facilities in this situation, type a single quote
+A likely situation where you might need this is in typing an
+expression that involves a C@t{++} symbol name with template
+parameters.  This is because when completing expressions, GDB treats
+the @samp{<} character as word delimiter, assuming that it's the
+less-than comparison operator (@pxref{C Operators, , C and C@t{++}
+Operators}).
+
+For example, when you want to call a C@t{++} template function
+interactively using the @code{print} or @code{call} commands, you may
+need to distinguish whether you mean the version of @code{name} that
+was specialized for @code{int}, @code{name<int>()}, or the version
+that was specialized for @code{float}, @code{name<float>()}.  To use
+the word-completion facilities in this situation, type a single quote
 @code{'} at the beginning of the function name.  This alerts
 @value{GDBN} that it may need to consider more information than usual
 when you press @key{TAB} or @kbd{M-?} to request word completion:
 
 @smallexample
-(@value{GDBP}) b 'bubble( @kbd{M-?}
-bubble(double,double)    bubble(int,int)
-(@value{GDBP}) b 'bubble(
+(@value{GDBP}) p 'func< @kbd{M-?}
+func<int>()    func<float>()
+(@value{GDBP}) p 'func<
 @end smallexample
 
-In some cases, @value{GDBN} can tell that completing a name requires using
-quotes.  When this happens, @value{GDBN} inserts the quote for you (while
-completing as much as it can) if you do not type the quote in the first
-place:
+When setting breakpoints however (@pxref{Specify Location}), you don't
+usually need to type a quote before the function name, because
+@value{GDBN} understands that you want to set a breakpoint on a
+function:
 
 @smallexample
-(@value{GDBP}) b bub @key{TAB}
-@exdent @value{GDBN} alters your input line to the following, and rings a bell:
-(@value{GDBP}) b 'bubble(
+(@value{GDBP}) b func< @kbd{M-?}
+func<int>()    func<float>()
+(@value{GDBP}) b func<
 @end smallexample
 
-@noindent
-In general, @value{GDBN} can tell that a quote is needed (and inserts it) if
-you have not yet started typing the argument list when you ask for
-completion on an overloaded symbol.
+This is true even in the case of typing the name of C@t{++} overloaded
+functions (multiple definitions of the same function, distinguished by
+argument type).  For example, when you want to set a breakpoint you
+don't need to distinguish whether you mean the version of @code{name}
+that takes an @code{int} parameter, @code{name(int)}, or the version
+that takes a @code{float} parameter, @code{name(float)}.
+
+@smallexample
+(@value{GDBP}) b bubble( @kbd{M-?}
+bubble(int)    bubble(double)
+(@value{GDBP}) b bubble(dou @kbd{M-?}
+bubble(double)
+@end smallexample
+
+See @ref{quoting names} for a description of other scenarios that
+require quoting.
 
 For more information about overloaded functions, see @ref{C Plus Plus
 Expressions, ,C@t{++} Expressions}.  You can use the command @code{set
@@ -2057,9 +2084,12 @@ environment} to change parts of the environment that affect
 your program.  @xref{Environment, ,Your Program's Environment}.
 
 @item The @emph{working directory.}
-Your program inherits its working directory from @value{GDBN}.  You can set
-the @value{GDBN} working directory with the @code{cd} command in @value{GDBN}.
-@xref{Working Directory, ,Your Program's Working Directory}.
+You can set your program's working directory with the command
+@kbd{set cwd}.  If you do not set any working directory with this
+command, your program will inherit @value{GDBN}'s working directory if
+native debugging, or the remote server's working directory if remote
+debugging.  @xref{Working Directory, ,Your Program's Working
+Directory}.
 
 @item The @emph{standard input and output.}
 Your program normally uses the same device for standard input and
@@ -2434,22 +2464,52 @@ variables to files that are only run when you sign on, such as
 @section Your Program's Working Directory
 
 @cindex working directory (of your program)
-Each time you start your program with @code{run}, it inherits its
-working directory from the current working directory of @value{GDBN}.
-The @value{GDBN} working directory is initially whatever it inherited
-from its parent process (typically the shell), but you can specify a new
-working directory in @value{GDBN} with the @code{cd} command.
-
-The @value{GDBN} working directory also serves as a default for the commands
-that specify files for @value{GDBN} to operate on.  @xref{Files, ,Commands to
-Specify Files}.
+Each time you start your program with @code{run}, the inferior will be
+initialized with the current working directory specified by the
+@kbd{set cwd} command.  If no directory has been specified by this
+command, then the inferior will inherit @value{GDBN}'s current working
+directory as its working directory if native debugging, or it will
+inherit the remote server's current working directory if remote
+debugging.
 
 @table @code
+@kindex set cwd
+@cindex change inferior's working directory
+@anchor{set cwd command}
+@item set cwd @r{[}@var{directory}@r{]}
+Set the inferior's working directory to @var{directory}, which will be
+@code{glob}-expanded in order to resolve tildes (@file{~}).  If no
+argument has been specified, the command clears the setting and resets
+it to an empty state.  This setting has no effect on @value{GDBN}'s
+working directory, and it only takes effect the next time you start
+the inferior.  The @file{~} in @var{directory} is a short for the
+@dfn{home directory}, usually pointed to by the @env{HOME} environment
+variable.  On MS-Windows, if @env{HOME} is not defined, @value{GDBN}
+uses the concatenation of @env{HOMEDRIVE} and @env{HOMEPATH} as
+fallback.
+
+You can also change @value{GDBN}'s current working directory by using
+the @code{cd} command.
+@xref{cd command}
+
+@kindex show cwd
+@cindex show inferior's working directory
+@item show cwd
+Show the inferior's working directory.  If no directory has been
+specified by @kbd{set cwd}, then the default inferior's working
+directory is the same as @value{GDBN}'s working directory.
+
 @kindex cd
-@cindex change working directory
+@cindex change @value{GDBN}'s working directory
+@anchor{cd command}
 @item cd @r{[}@var{directory}@r{]}
 Set the @value{GDBN} working directory to @var{directory}.  If not
 given, @var{directory} uses @file{'~'}.
+
+The @value{GDBN} working directory serves as a default for the
+commands that specify files for @value{GDBN} to operate on.
+@xref{Files, ,Commands to Specify Files}.
+@xref{set cwd command}
 
 @kindex pwd
 @item pwd
@@ -3894,15 +3954,17 @@ Num     Type           Disp Enb  Address    What
 1.2                         y    0x080486ca in void foo<double>() at t.cc:8
 @end smallexample
 
-Each location can be individually enabled or disabled by passing
+You cannot delete the individual locations from a breakpoint.  However,
+each location can be individually enabled or disabled by passing
 @var{breakpoint-number}.@var{location-number} as argument to the
-@code{enable} and @code{disable} commands.  Note that you cannot
-delete the individual locations from the list, you can only delete the
-entire list of locations that belong to their parent breakpoint (with
-the @kbd{delete @var{num}} command, where @var{num} is the number of
-the parent breakpoint, 1 in the above example).  Disabling or enabling
-the parent breakpoint (@pxref{Disabling}) affects all of the locations
-that belong to that breakpoint.
+@code{enable} and @code{disable} commands.  It's also possible to
+@code{enable} and @code{disable} a range of @var{location-number}
+locations using a @var{breakpoint-number} and two @var{location-number}s,
+in increasing order, separated by a hyphen, like
+@kbd{@var{breakpoint-number}.@var{location-number1}-@var{location-number2}},
+in which case @value{GDBN} acts on all the locations in the range (inclusive).
+Disabling or enabling the parent breakpoint (@pxref{Disabling}) affects
+all of the locations that belong to that breakpoint.
 
 @cindex pending breakpoints
 It's quite common to have a breakpoint inside a shared library.
@@ -7866,6 +7928,22 @@ name of @file{/build/trunk/gcc/expr.c}, but not
 Specifies the line that begins the body of the function @var{function}.
 For example, in C, this is the line with the open brace.
 
+By default, in C@t{++} and Ada, @var{function} is interpreted as
+specifying all functions named @var{function} in all scopes.  For
+C@t{++}, this means in all namespaces and classes.  For Ada, this
+means in all packages.
+
+For example, assuming a program with C@t{++} symbols named
+@code{A::B::func} and @code{B::func}, both commands @w{@kbd{break
+func}} and @w{@kbd{break B::func}} set a breakpoint on both symbols.
+
+Commands that accept a linespec let you override this with the
+@code{-qualified} option.  For example, @w{@kbd{break -qualified
+func}} sets a breakpoint on a free-function named @code{func} ignoring
+any C@t{++} class methods and namespace functions called @code{func}.
+
+@xref{Explicit Locations}.
+
 @item @var{function}:@var{label}
 Specifies the line where @var{label} appears in @var{function}.
 
@@ -7930,6 +8008,31 @@ on function locations unmodified by other options (such as @code{-label}
 or @code{-line}) refer to the line that begins the body of the function.
 In C, for example, this is the line with the open brace.
 
+By default, in C@t{++} and Ada, @var{function} is interpreted as
+specifying all functions named @var{function} in all scopes.  For
+C@t{++}, this means in all namespaces and classes.  For Ada, this
+means in all packages.
+
+For example, assuming a program with C@t{++} symbols named
+@code{A::B::func} and @code{B::func}, both commands @w{@kbd{break
+-function func}} and @w{@kbd{break -function B::func}} set a
+breakpoint on both symbols.
+
+You can use the @kbd{-qualified} flag to override this (see below).
+
+@item -qualified
+
+This flag makes @value{GDBN} interpret a function name specified with
+@kbd{-function} as a complete fully-qualified name.
+
+For example, assuming a C@t{++} program with symbols named
+@code{A::B::func} and @code{B::func}, the @w{@kbd{break -qualified
+-function B::func}} command sets a breakpoint on @code{B::func}, only.
+
+(Note: the @kbd{-qualified} option can precede a linespec as well
+(@pxref{Linespec Locations}), so the particular example above could be
+simplified as @w{@kbd{break -qualified B::func}}.)
+
 @item -label @var{label}
 The value specifies the name of a label.  When the function
 name is not specified, the label is searched in the function of the currently
@@ -7943,7 +8046,7 @@ relative to the current line.
 @end table
 
 Explicit location options may be abbreviated by omitting any non-unique
-trailing characters from the option name, e.g., @code{break -s main.c -li 3}.
+trailing characters from the option name, e.g., @w{@kbd{break -s main.c -li 3}}.
 
 @node Address Locations
 @subsection Address Locations
@@ -11491,7 +11594,9 @@ this writing, @sc{gnu}/Linux, FreeBSD, Solaris, and S390).
 
 On @sc{gnu}/Linux, this command can take into account the value of the
 file @file{/proc/@var{pid}/coredump_filter} when generating the core
-dump (@pxref{set use-coredump-filter}).
+dump (@pxref{set use-coredump-filter}), and by default honors the
+@code{VM_DONTDUMP} flag for mappings where it is present in the file
+@file{/proc/@var{pid}/smaps} (@pxref{set dump-excluded-mappings}).
 
 @kindex set use-coredump-filter
 @anchor{set use-coredump-filter}
@@ -11521,6 +11626,16 @@ value is currently @code{0x33}, which means that bits @code{0}
 (anonymous private mappings), @code{1} (anonymous shared mappings),
 @code{4} (ELF headers) and @code{5} (private huge pages) are active.
 This will cause these memory mappings to be dumped automatically.
+
+@kindex set dump-excluded-mappings
+@anchor{set dump-excluded-mappings}
+@item set dump-excluded-mappings on
+@itemx set dump-excluded-mappings off
+If @code{on} is specified, @value{GDBN} will dump memory mappings
+marked with the @code{VM_DONTDUMP} flag.  This flag is represented in
+the file @file{/proc/@var{pid}/smaps} with the acronym @code{dd}.
+
+The default value is @code{off}.
 @end table
 
 @node Character Sets
@@ -11868,6 +11983,8 @@ giant words (eight bytes)
 All values are interpreted in the current language.
 This means, for example, that if the current source language is C/C@t{++}
 then searching for the string ``hello'' includes the trailing '\0'.
+The null terminator can be removed from searching by using casts,
+e.g.: @samp{@{char[5]@}"hello"}.
 
 If the value size is not specified, it is taken from the
 value's type in the current language.
@@ -11917,7 +12034,11 @@ you get during debugging:
 (gdb) find &hello[0], +sizeof(hello), 'h', 'e', 'l', 'l', 'o'
 0x8049567 <hello.1620>
 0x804956d <hello.1620+6>
-2 patterns found
+2 patterns found.
+(gdb) find &hello[0], +sizeof(hello), @{char[5]@}"hello"
+0x8049567 <hello.1620>
+0x804956d <hello.1620+6>
+2 patterns found.
 (gdb) find /b1 &hello[0], +sizeof(hello), 'h', 0x65, 'l'
 0x8049567 <hello.1620>
 1 pattern found
@@ -15029,6 +15150,49 @@ the same notation that is used to declare such symbols in C@t{++}: type
 also use the @value{GDBN} command-line word completion facilities to list the
 available choices, or to finish the type list for you.
 @xref{Completion,, Command Completion}, for details on how to do this.
+
+@item @r{Breakpoints in functions with ABI tags}
+
+The GNU C@t{++} compiler introduced the notion of ABI ``tags'', which
+correspond to changes in the ABI of a type, function, or variable that
+would not otherwise be reflected in a mangled name.  See
+@url{https://developers.redhat.com/blog/2015/02/05/gcc5-and-the-c11-abi/}
+for more detail.
+
+The ABI tags are visible in C@t{++} demangled names.  For example, a
+function that returns a std::string:
+
+@smallexample
+std::string function(int);
+@end smallexample
+
+@noindent
+when compiled for the C++11 ABI is marked with the @code{cxx11} ABI
+tag, and @value{GDBN} displays the symbol like this:
+
+@smallexample
+function[abi:cxx11](int)
+@end smallexample
+
+You can set a breakpoint on such functions simply as if they had no
+tag.  For example:
+
+@smallexample
+(gdb) b function(int)
+Breakpoint 2 at 0x40060d: file main.cc, line 10.
+(gdb) info breakpoints
+Num     Type           Disp Enb Address    What
+1       breakpoint     keep y   0x0040060d in function[abi:cxx11](int)
+                                           at main.cc:10
+@end smallexample
+
+On the rare occasion you need to disambiguate between different ABI
+tags, you can do so by simply including the ABI tag in the function
+name, like:
+
+@smallexample
+(@value{GDBP}) b ambiguous[abi:other_tag](int)
+@end smallexample
 @end table
 
 @node Decimal Floating Point
@@ -15411,9 +15575,6 @@ features from being implemented by @value{GDBN}:
 
 @item
 Method calls cannot be made via traits.
-
-@item
-Trait objects cannot be created or inspected.
 
 @item
 Operator overloading is not implemented.
@@ -16855,6 +17016,7 @@ file-management commands (@pxref{Files, ,Commands to Specify Files}).
 @cindex symbol names
 @cindex names of symbols
 @cindex quoting names
+@anchor{quoting names}
 Occasionally, you may need to refer to symbols that contain unusual
 characters, which @value{GDBN} ordinarily treats as word delimiters.  The
 most frequent case is in referring to static variables in other
@@ -18433,6 +18595,15 @@ tables by using the @samp{-readnow} option with any of the commands that
 load symbol table information, if you want to be sure @value{GDBN} has the
 entire symbol table available.
 
+@cindex @code{-readnever}, option for symbol-file command
+@cindex never read symbols
+@cindex symbols, never read
+@item symbol-file @r{[} -readnever @r{]} @var{filename}
+@itemx file @r{[} -readnever @r{]} @var{filename}
+You can instruct @value{GDBN} to never read the symbolic information
+contained in @var{filename} by using the @samp{-readnever} option.
+@xref{--readnever}.
+
 @c FIXME: for now no mention of directories, since this seems to be in
 @c flux.  13mar1992 status is that in theory GDB would look either in
 @c current dir or in same dir as myprog; but issues like competing
@@ -18461,7 +18632,7 @@ the program is running.  To do this, use the @code{kill} command
 @kindex add-symbol-file
 @cindex dynamic linking
 @item add-symbol-file @var{filename} @var{address}
-@itemx add-symbol-file @var{filename} @var{address} @r{[} -readnow @r{]}
+@itemx add-symbol-file @var{filename} @var{address} @r{[} -readnow @r{|} -readnever @r{]}
 @itemx add-symbol-file @var{filename} @var{address} -s @var{section} @var{address} @dots{}
 The @code{add-symbol-file} command reads additional symbol table
 information from the file @var{filename}.  You would use this command
@@ -20973,6 +21144,10 @@ are:
 @item @code{environment-reset}
 @tab @code{QEnvironmentReset}
 @tab @code{Reset the inferior environment (i.e., unset user-set variables)}
+
+@item @code{set-working-dir}
+@tab @code{QSetWorkingDir}
+@tab @code{set cwd}
 
 @item @code{conditional-breakpoints-packet}
 @tab @code{Z0 and Z1}
@@ -27144,7 +27319,9 @@ thread was last seen on.  This field is optional.
 Whenever a @code{*stopped} record is emitted because the program
 stopped after hitting an exception catchpoint (@pxref{Set Catchpoints}),
 @value{GDBN} provides the name of the exception that was raised via
-the @code{exception-name} field.
+the @code{exception-name} field.  Also, for exceptions that were raised
+with an exception message, @value{GDBN} provides that message via
+the @code{exception-message} field.
 
 @c %%%%%%%%%%%%%%%%%%%%%%%%%%%% SECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 @node GDB/MI Simple Examples
@@ -34231,6 +34408,21 @@ Branch trace (@pxref{Branch Trace Format},
 @pxref{Branch Trace Configuration Format})
 @end itemize
 
+@item MPFR
+@anchor{MPFR}
+@value{GDBN} can use the GNU MPFR multiple-precision floating-point
+library.  This library may be included with your operating system
+distribution; if it is not, you can get the latest version from
+@url{http://www.mpfr.org}.  The @file{configure} script will search
+for this library in several standard locations; if it is installed
+in an unusual path, you can use the @option{--with-libmpfr-prefix}
+option to specify its location.
+
+GNU MPFR is used to emulate target floating-point arithmetic during
+expression evaluation when the target uses different floating-point
+formats than the host.  If GNU MPFR it is not available, @value{GDBN}
+will fall back to using host floating-point arithmetic.
+
 @item zlib
 @cindex compressed debug sections 
 @value{GDBN} will use the @samp{zlib} library, if available, to read
@@ -36830,6 +37022,28 @@ by supplying an appropriate @samp{qSupported} response
 (@pxref{qSupported}).  This should only be done on targets that
 actually support passing environment variables to the starting
 inferior.
+
+@item QSetWorkingDir:@r{[}@var{directory}@r{]}
+@anchor{QSetWorkingDir packet}
+@cindex set working directory, remote request
+@cindex @samp{QSetWorkingDir} packet
+This packet is used to inform the remote server of the intended
+current working directory for programs that are going to be executed.
+
+The packet is composed by @var{directory}, an hex encoded
+representation of the directory that the remote inferior will use as
+its current working directory.  If @var{directory} is an empty string,
+the remote server should reset the inferior's current working
+directory to its original, empty value.
+
+This packet is only available in extended mode (@pxref{extended
+mode}).
+
+Reply:
+@table @samp
+@item OK
+The request succeeded.
+@end table
 
 @item qfThreadInfo
 @itemx qsThreadInfo
@@ -40746,18 +40960,17 @@ The formal DTD for memory map format is given below:
 <!-- .................................... .............. -->
 <!-- memory-map.dtd -->
 <!-- memory-map: Root element with versioning -->
-<!ELEMENT memory-map (memory | property)>
+<!ELEMENT memory-map (memory)*>
 <!ATTLIST memory-map    version CDATA   #FIXED  "1.0.0">
-<!ELEMENT memory (property)>
+<!ELEMENT memory (property)*>
 <!-- memory: Specifies a memory region,
              and its type, or device. -->
-<!ATTLIST memory        type    CDATA   #REQUIRED
+<!ATTLIST memory        type    (ram|rom|flash) #REQUIRED
                         start   CDATA   #REQUIRED
-                        length  CDATA   #REQUIRED
-                        device  CDATA   #IMPLIED>
+                        length  CDATA   #REQUIRED>
 <!-- property: Generic attribute tag -->
 <!ELEMENT property (#PCDATA | property)*>
-<!ATTLIST property      name    CDATA   #REQUIRED>
+<!ATTLIST property      name    (blocksize) #REQUIRED>
 @end smallexample
 
 @node Thread List Format
@@ -42835,7 +43048,7 @@ Richard M. Stallman and Roland H. Pesch, July 1991.
 
 @format
 @c man begin SYNOPSIS gcore
-gcore [-o @var{filename}] @var{pid}
+gcore [-a] [-o @var{filename}] @var{pid}
 @c man end
 @end format
 
@@ -42849,6 +43062,13 @@ running without any change.
 
 @c man begin OPTIONS gcore
 @table @env
+@item -a
+Dump all memory mappings.  The actual effect of this option depends on
+the Operating System.  On @sc{gnu}/Linux, it will disable
+@code{use-coredump-filter} (@pxref{set use-coredump-filter}) and
+enable @code{dump-excluded-mappings} (@pxref{set
+dump-excluded-mappings}).
+
 @item -o @var{filename}
 The optional argument
 @var{filename} specifies the file name where to put the core dump.

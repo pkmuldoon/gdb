@@ -93,26 +93,13 @@ regcache_invalidate_thread (struct thread_info *thread)
   regcache->registers_valid = 0;
 }
 
-static int
-regcache_invalidate_one (struct inferior_list_entry *entry,
-			 void *pid_p)
-{
-  struct thread_info *thread = (struct thread_info *) entry;
-  int pid = *(int *) pid_p;
-
-  /* Only invalidate the regcaches of threads of this process.  */
-  if (ptid_get_pid (entry->id) == pid)
-    regcache_invalidate_thread (thread);
-
-  return 0;
-}
-
 /* See regcache.h.  */
 
 void
 regcache_invalidate_pid (int pid)
 {
-  find_inferior (&all_threads, regcache_invalidate_one, &pid);
+  /* Only invalidate the regcaches of threads of this process.  */
+  for_each_thread (pid, regcache_invalidate_thread);
 }
 
 /* See regcache.h.  */
@@ -121,7 +108,7 @@ void
 regcache_invalidate (void)
 {
   /* Only update the threads of the current process.  */
-  int pid = ptid_get_pid (current_thread->entry.id);
+  int pid = current_thread->id.pid ();
 
   regcache_invalidate_pid (pid);
 }
@@ -220,8 +207,6 @@ registers_to_string (struct regcache *regcache, char *buf)
 
   for (int i = 0; i < tdesc->reg_defs.size (); ++i)
     {
-      struct reg *reg = tdesc->reg_defs[i];
-
       if (regcache->register_status[i] == REG_VALID)
 	{
 	  bin2hex (registers, buf, register_size (tdesc, i));
@@ -290,19 +275,11 @@ free_register_cache_thread (struct thread_info *thread)
     }
 }
 
-static void
-free_register_cache_thread_one (struct inferior_list_entry *entry)
-{
-  struct thread_info *thread = (struct thread_info *) entry;
-
-  free_register_cache_thread (thread);
-}
-
 void
 regcache_release (void)
 {
   /* Flush and release all pre-existing register caches.  */
-  for_each_inferior (&all_threads, free_register_cache_thread_one);
+  for_each_thread (free_register_cache_thread);
 }
 #endif
 

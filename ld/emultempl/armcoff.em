@@ -140,7 +140,8 @@ gld${EMULATION_NAME}_after_open (void)
 	 These will only be created if the output format is an arm format,
 	 hence we do not support linking and changing output formats at the
 	 same time.  Use a link followed by objcopy to change output formats.  */
-      einfo ("%F%X%P: error: cannot change output format whilst linking ARM binaries\n");
+      einfo (_("%F%X%P: error: cannot change output format "
+	       "whilst linking ARM binaries\n"));
       return;
     }
 
@@ -260,6 +261,7 @@ struct ld_emulation_xfer_struct ld_${EMULATION_NAME}_emulation =
   hll_default,
   after_parse_default,
   gld${EMULATION_NAME}_after_open,
+  after_check_relocs_default,
   after_allocation_default,
   set_output_arch_default,
   ldemul_default_target,

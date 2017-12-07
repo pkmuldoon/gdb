@@ -203,7 +203,6 @@ static struct serial *serial_open_ops_1 (const struct serial_ops *ops,
 struct serial *
 serial_open (const char *name)
 {
-  struct serial *scb;
   const struct serial_ops *ops;
   const char *open_name = name;
 
@@ -514,14 +513,6 @@ serial_print_tty_state (struct serial *scb,
 }
 
 int
-serial_noflush_set_tty_state (struct serial *scb,
-			      serial_ttystate new_ttystate,
-			      serial_ttystate old_ttystate)
-{
-  return scb->ops->noflush_set_tty_state (scb, new_ttystate, old_ttystate);
-}
-
-int
 serial_setbaudrate (struct serial *scb, int rate)
 {
   return scb->ops->setbaudrate (scb, rate);
@@ -627,7 +618,7 @@ static struct cmd_list_element *serial_set_cmdlist;
 static struct cmd_list_element *serial_show_cmdlist;
 
 static void
-serial_set_cmd (char *args, int from_tty)
+serial_set_cmd (const char *args, int from_tty)
 {
   printf_unfiltered ("\"set serial\" must be followed "
 		     "by the name of a command.\n");
@@ -635,7 +626,7 @@ serial_set_cmd (char *args, int from_tty)
 }
 
 static void
-serial_show_cmd (char *args, int from_tty)
+serial_show_cmd (const char *args, int from_tty)
 {
   cmd_show_list (serial_show_cmdlist, from_tty, "");
 }
@@ -669,7 +660,7 @@ static const char *parity = parity_none;
 /* Set serial_parity value.  */
 
 static void
-set_parity (char *ignore_args, int from_tty, struct cmd_list_element *c)
+set_parity (const char *ignore_args, int from_tty, struct cmd_list_element *c)
 {
   if (parity == parity_odd)
     serial_parity = GDBPARITY_ODD;

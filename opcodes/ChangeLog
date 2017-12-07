@@ -1,3 +1,507 @@
+2017-12-03  Alan Modra  <amodra@gmail.com>
+
+	* ppc-opc.c (extract_li20): Rewrite.
+
+2017-12-01  Peter Bergner  <bergner@vnet.ibm.com>
+
+	* opcodes/ppc-dis.c (disassemble_init_powerpc): Fix white space.
+	(operand_value_powerpc): Update return and argument type.
+	<value, top>: Update type.
+	(skip_optional_operands): Update argument type.
+	(lookup_powerpc): Likewise.
+	(lookup_vle): Likewise.
+	<table_opcd, table_mask, insn2>: Update type.
+	(lookup_spe2): Update argument type.
+	<table_opcd, table_mask, insn2>: Update type.
+	(print_insn_powerpc) <insn, value>: Update type.
+	Use PPC_INT_FMT for printing instructions and operands.
+	* opcodes/ppc-opc.c (insert_arx, extract_arx, insert_ary, extract_ary,
+	insert_rx, extract_rx, insert_ry, extract_ry, insert_bat, extract_bat,
+	insert_bba, extract_bba, insert_bdm, extract_bdm, insert_bdp,
+	extract_bdp, valid_bo_pre_v2, valid_bo_post_v2, valid_bo, insert_bo,
+	extract_bo, insert_boe, extract_boe, insert_dcmxs, extract_dcmxs,
+	insert_dxd, extract_dxd, insert_dxdn, extract_dxdn, insert_fxm,
+	extract_fxm, insert_li20, extract_li20, insert_ls, extract_ls,
+	insert_esync, extract_esync, insert_mbe, extract_mbe, insert_mb6,
+	extract_mb6, extract_nb, insert_nbi, insert_nsi, extract_nsi,
+	insert_ral, extract_ral, insert_ram, extract_ram, insert_raq,
+	extract_raq, insert_ras, extract_ras, insert_rbs, extract_rbs,
+	insert_rbx, extract_rbx, insert_sci8, extract_sci8, insert_sci8n,
+	extract_sci8n, insert_sd4h, extract_sd4h, insert_sd4w, extract_sd4w,
+	insert_oimm, extract_oimm, insert_sh6, extract_sh6, insert_spr,
+	extract_spr, insert_sprg, extract_sprg, insert_tbr, extract_tbr,
+	insert_xt6, extract_xt6, insert_xtq6, extract_xtq6, insert_xa6,
+	extract_xa6, insert_xb6, extract_xb6, insert_xb6s, extract_xb6s,
+	insert_xc6, extract_xc6, insert_dm, extract_dm, insert_vlesi,
+	extract_vlesi, insert_vlensi, extract_vlensi, insert_vleui,
+	extract_vleui, insert_vleil, extract_vleil, insert_evuimm1_ex0,
+	extract_evuimm1_ex0, insert_evuimm2_ex0, extract_evuimm2_ex0,
+	insert_evuimm4_ex0, extract_evuimm4_ex0, insert_evuimm8_ex0,
+	extract_evuimm8_ex0, insert_evuimm_lt8, extract_evuimm_lt8,
+	insert_evuimm_lt16, extract_evuimm_lt16, insert_rD_rS_even,
+	extract_rD_rS_even, insert_off_lsp, extract_off_lsp, insert_off_spe2,
+	extract_off_spe2, insert_Ddd, extract_Ddd): Update types.
+	(OP, OPTO, OPL, OPVUP, OPVUPRT, A, AFRALFRC_MASK, B, BD8, BD8IO, BD15,
+	BD24, BBO, Y_MASK  , AT1_MASK, AT2_MASK, BBOCB, C_LK, C, CTX, UCTX,
+	DX, EVSEL, IA16, I16A, I16L, IM7, LI20, MME, MD, MDS, SC, SC_MASK,
+	SCI8, SCI8BF, SD4, SE_IM5, SE_R, SE_RR, VX, VX_LSP, VX_RA_CONST,
+	VX_RB_CONST, VX_SPE_CRFD, VX_SPE2_CLR, VX_SPE2_SPLATB, VX_SPE2_OCTET,
+	VX_SPE2_DDHH, VX_SPE2_HH, VX_SPE2_EVMAR, VX_SPE2_EVMAR_MASK, VXA,
+	VXR, VXASH, X, EX, XX2, XX3, XX3RC, XX4, Z, XWRA_MASK, XLRT_MASK,
+	XRLARB_MASK, XLRAND_MASK, XRTLRA_MASK, XRTLRARB_MASK, XRTARARB_MASK,
+	XRTBFRARB_MASK, XOPL, XOPL2, XRCL, XRT, XRTRA, XCMP_MASK, XCMPL_MASK,
+	XTO, XTLB, XSYNC, XEH_MASK, XDSS, XFL, XISEL, XL, XLO, XLYLK, XLOCB,
+	XMBAR, XO, XOPS, XS, XFXM, XSPR, XUC, XW, APU): Update types in casts.
+
+2017-11-29  Jan Beulich  <jbeulich@suse.com>
+
+	* i386-gen.c (active_cpu_flags, active_isstring, enum stage):
+	New.
+	(output_cpu_flags): Update active_cpu_flags.
+	(process_i386_opcode_modifier): Update active_isstring.
+	(output_operand_type): Rename "macro" 	parameter to "stage",
+	changing its type.
+	(process_i386_operand_type): Likewise. Track presence of
+	BaseIndex and emit DispN accordingly.
+	(output_i386_opcode, process_i386_registers,
+	process_i386_initializers): Adjust calls to
+	process_i386_operand_type() for its changed parameter type.
+	* i386-opc.tbl: Drop Disp8, Disp16, Disp32, and Disp32S from
+	all insns operands having BaseIndex set.
+	* i386-tbl.h: Re-generate.
+
+2017-11-29  Jan Beulich  <jbeulich@suse.com>
+
+	* i386-gen.c (operand_type_init): Remove OPERAND_TYPE_VEC_DISP8
+	entry.
+	(operand_types): Remove Vec_Disp8 entry.
+	* i386-opc.h (Vec_Disp8): Delete.
+	(union i386_operand_type): Remove vec_disp8.
+	(i386-opc.tbl): Remove Vec_Disp8.
+	* i386-init.h, i386-tbl.h: Re-generate.
+
+2017-11-29  Stefan Stroe  <stroestefan@gmail.com>
+
+	* po/Make-in (datadir): Define as @datadir@.
+	(localedir): Define as @localedir@.
+	(gnulocaledir, gettextsrcdir): Use @datarootdir@.
+
+2017-11-27  Nick Clifton  <nickc@redhat.com>
+
+	* po/zh_CN.po: Updated simplified Chinese translation.
+
+2017-11-24  Jan Beulich  <jbeulich@suse.com>
+
+	* i386-dis.c (float_mem): Add suffixes to fi* in the "de" and
+	"df" groups.
+
+2017-11-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* i386-opc.tbl: Add Disp8MemShift for AVX512 VAES instructions.
+	* i386-tbl.h: Regenerate.
+
+2017-11-23  Jan Beulich  <jbeulich@suse.com>
+
+	* i386-dis.c (OP_E_memory): Also shift the 8-bit immediate in
+	the 16-bit addressing case.
+
+2017-11-23  Jan Beulich  <jbeulich@suse.com>
+
+	* i386-dis.c (dis386_twobyte): Correct ud1. Add ud0.
+	(twobyte_has_modrm): Set flag for index 0xb9 and 0xff.
+	* i386-opc.tbl (ud1, ud2b): Add operands.
+	(ud0): New.
+	* i386-tbl.h: Re-generate.
+
+2017-11-22  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* i386-opc.tbl: Remove Vec_Disp8 from vgf2p8mulb.
+	* i386-tbl.h: Regenerate.
+
+2017-11-22  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* i386-opc.tbl: Remove Vec_Disp8 from vpcompressb and vpexpandb.
+	* i386-tbl.h: Regenerate.
+
+2017-11-22  Claudiu Zissulescu  <claziss@synopsys.com>
+
+	*arc-opc (insert_rhv2): Check h-regs range.
+
+2017-11-21  Claudiu Zissulescu <claziss@synopsys.com>
+
+	* arc-dis.c (print_insn_arc): Pretty print pc-relative offsets.
+	* arc-opc.c (SIMM21_A16_5): Make it pc-relative.
+
+2017-11-16  Tamar Christina  <tamar.christina@arm.com>
+
+	* aarch64-tbl.h (aarch64_feature_fp_16_v8_2): Require AARCH64_FEATURE_F16_FML
+	and AARCH64_FEATURE_F16.
+
+2017-11-16  Tamar Christina  <tamar.christina@arm.com>
+
+	* aarch64-tbl.h (sha512h, sha512h2, sha512su0, sha512su1, eor3): New.
+	(rax1, xar, bcax, sm3ss1, sm3tt1a, sm3tt1b, sm3tt2a, sm3tt2b): New.
+	(sm3partw1, sm3partw2, sm4e, sm4ekey, fmlal, fmlsl): New.
+	(fmlal2, fmlsl2, cfinv, rmif, setf8, setf16, stlurb): New.
+	(ldapurb, ldapursb, stlurh, ldapurh, ldapursh, stlur): New.
+	(ldapur, ldapursw, stlur): New.
+	* aarch64-dis-2.c: Regenerate.
+
+2017-11-16  Jan Beulich  <jbeulich@suse.com>
+
+	(get_valid_dis386): Never flag bad opcode when
+	vex.register_specifier is beyond 7. Always store all four
+	bits of it. Move 16-/32-bit override in EVEX handling after
+	all to be overridden bits have been set.
+	(OP_VEX): Mask vex.register_specifier outside of 64-bit mode.
+	Use rex to determine GPR register set.
+	(OP_EX_VexReg, OP_Vex_2src_1, OP_Vex_2src_2, OP_REG_VexI4,
+	OP_LWP_E): Mask vex.register_specifier outside of 64-bit mode.
+
+2017-11-15  Jan Beulich  <jbeulich@suse.com>
+
+	* i386-dis.c (OP_VEX, OP_LWPCB_E, OP_LWP_E): Use rex to
+	determine GPR register set.
+
+2017-11-15  Jan Beulich  <jbeulich@suse.com>
+
+	* i386-dis.c (VEXI4_Fixup, VexI4): Delete.
+	(prefix_table, xop_table, vex_len_table): Remove VexI4 uses.
+	(OP_EX_VexW): Move setting of vex_w_done. Update codep on 2nd
+	pass.
+	(OP_REG_VexI4): Drop low 4 bits check.
+
+2017-11-15  Jan Beulich  <jbeulich@suse.com>
+
+	* i386-reg.tbl (axl): Remove Acc and Byte.
+	* i386-tbl.h: Re-generate.
+
+2017-11-14  Jan Beulich  <jbeulich@suse.com>
+
+	* i386-dis.c (VPCOM_Fixup, VPCOM, xop_cmp_op): New.
+	(vex_len_table): Use VPCOM.
+
+2017-11-14  Jan Beulich  <jbeulich@suse.com>
+
+	* i386-dis-evex.h (evex_table[EVEX_W_0F3A3E_P_2]): Use VPCMP.
+	(evex_table[EVEX_W_0F3A3F_P_2]): Likewise.
+	* i386-opc.tbl (vpcmpeqb, vpcmpgtb, vpcmpeqw, vpcmpgtw, vpcmpuw,
+	vpcmpw): Move up.
+	(vpcmpeqb, vpcmpleb, vpcmpltb, vpcmpneqb, vpcmpnleb, vpcmpnltb,
+	vpcmpequb, vpcmpleub, vpcmpltub, vpcmpnequb, vpcmpnleub,
+	vpcmpnltub, vpcmpeqw, vpcmplew, vpcmpltw, vpcmpneqw, vpcmpnlew,
+	vpcmpnltw, vpcmpequw, vpcmpleuw, vpcmpltuw, vpcmpnequw, vpcmpnleuw,
+	vpcmpnltuw): New.
+	* i386-tbl.h: Re-generate.
+
+2017-11-14  Jan Beulich  <jbeulich@suse.com>
+
+	* i386-opc.tbl (cmps, ins, lods, movs, outs, scas, scmp, slod,
+	smov, ssca, stos, ssto, xlat): Drop Disp*.
+	* i386-tbl.h: Re-generate.
+
+2017-11-13  Jan Beulich  <jbeulich@suse.com>
+
+	* i386-opc.tbl (fxsave64, fxrstor64, xsave64, xrstor64,
+	xsaveopt64): Add No_qSuf.
+	* i386-tbl.h: Re-generate.
+
+2017-11-09  Tamar Christina  <tamar.christina@arm.com>
+
+	* aarch64-opc.c (aarch64_sys_regs): Add ARMv8.4-a registers;
+	dit, vstcr_el2, vsttbr_el2, cnthvs_tval_el2, cnthvs_cval_el2,
+	cnthvs_ctl_el2, cnthps_tval_el2, cnthps_cval_el2, cnthps_ctl_el2,
+	sder32_el2, vncr_el2.
+	(aarch64_sys_reg_supported_p): Likewise.
+	(aarch64_pstatefields): Add dit register.
+	(aarch64_pstatefield_supported_p): Likewise.
+	(aarch64_sys_regs_tlbi): Add vmalle1os, vae1os, aside1os, vaae1os,
+	vale1os, vaale1os, ipas2e1os, ipas2le1os, vae2os, vale2os, vmalls12e1os,
+	vae3os, vale3os, alle2os, alle1os, alle3os, rvae1, rvaae1, rvale1,
+	rvaale1, rvae1is, rvaae1is, rvale1is, rvaale1is, rvae1os, rvaae1os,
+	rvale1os, rvaale1os, ripas2e1is, ripas2le1is, ripas2e1, ripas2le1,
+	ripas2e1os, ripas2le1os, rvae2, rvale2, rvae2is, rvale2is, rvae2os,
+	rvale2os, rvae3, rvale3, rvae3is, rvale3is, rvae3os, rvale3os.
+
+2017-11-09  Tamar Christina  <tamar.christina@arm.com>
+
+	* aarch64-tbl.h (QL_SHA512UPT, QL_V2SAME2D, QL_V3SAME2D): New.
+	(QL_V4SAME16B, QL_V4SAME4S, QL_XAR, QL_SM3TT, QL_V3FML2S): New.
+	(QL_V3FML4S, QL_V2FML2S, QL_V2FML4S, QL_RMIF, QL_SETF): New.
+	(QL_STLW, QL_STLX): New.
+
+2017-11-09  Tamar Christina  <tamar.christina@arm.com>
+
+	* aarch64-asm.h (ins_addr_offset): New.
+	* aarch64-asm.c (aarch64_ins_reglane): Add cryptosm3.
+	(aarch64_ins_addr_offset): New.
+	* aarch64-asm-2.c: Regenerate.
+	* aarch64-dis.h (ext_addr_offset): New.
+	* aarch64-dis.c (aarch64_ext_reglane): Add cryptosm3.
+	(aarch64_ext_addr_offset): New.
+	* aarch64-dis-2.c: Regenerate.
+	* aarch64-opc.h (aarch64_field_kind): Add FLD_imm6_2,
+	FLD_imm4_2 and FLD_SM3_imm2.
+	* aarch64-opc.c (fields): Add FLD_imm6_2,
+	FLD_imm4_2 and FLD_SM3_imm2.
+	(operand_general_constraint_met_p): Add AARCH64_OPND_ADDR_OFFSET.
+	(aarch64_print_operand): Add AARCH64_OPND_Va, AARCH64_OPND_SM3_IMM2,
+	AARCH64_OPND_MASK, AARCH64_OPND_IMM_2 and AARCH64_OPND_ADDR_OFFSET.
+	* aarch64-opc-2.c (Va, MASK, IMM_2, ADDR_OFFSET, SM3_IMM2): New.
+	* aarch64-tbl.h
+	(aarch64_opcode_table): Add Va, MASK, IMM_2, ADDR_OFFSET, SM3_IMM2.
+
+2017-11-09 Tamar Christina  <tamar.christina@arm.com>
+
+	* aarch64-tbl.h
+	(aarch64_feature_v8_4, aarch64_feature_crypto_v8_2): New.
+	(aarch64_feature_sm4, aarch64_feature_sha3): New.
+	(aarch64_feature_fp_16_v8_2): New.
+	(ARMV8_4, SHA3, SM4, CRYPTO_V8_2, FP_F16_V8_2): New.
+	(V8_4_INSN, CRYPTO_V8_2_INSN): New.
+	(SHA3_INSN, SM4_INSN, FP16_V8_2_INSN): New.
+
+2017-11-08  Tamar Christina  <tamar.christina@arm.com>
+
+	* aarch64-tbl.h (aarch64_feature_crypto): Add AES and SHA2.
+	(aarch64_feature_sha2, aarch64_feature_aes): New.
+	(SHA2, AES): New.
+	(AES_INSN, SHA2_INSN): New.
+	(pmull, pmull2, aese, aesd, aesmc, aesimc): Change to AES_INS.
+	(sha1h, sha1su1, sha256su0, sha1c, sha1p,
+	 sha1m, sha1su0, sha256h, sha256h2, sha256su1):
+	Change to SHA2_INS.
+
+2017-11-08  Jiong Wang  <jiong.wang@arm.com>
+	    Tamar Christina <tamar.christina@arm.com>
+
+	* arm-dis.c (coprocessor_opcodes): New entries for ARMv8.2-A new
+	FP16 instructions, including vfmal.f16 and vfmsl.f16.
+
+2017-11-07  Andrew Burgess  <andrew.burgess@embecosm.com>
+
+	* arc-nps400-tbl.h: Change incorrect use of NONE to MISC.
+
+2017-11-07  Alan Modra  <amodra@gmail.com>
+
+	* opintl.h: Formatting, comment fixes.
+	(gettext, ngettext): Redefine when ENABLE_NLS.
+	(ngettext, dngettext, dcngettext): Define when !ENABLE_NLS.
+	(_): Define using gettext.
+	(textdomain, bindtextdomain): Use safer "do nothing".
+
+2017-11-03  Claudiu Zissulescu  <claziss@synopsys.com>
+
+	* arc-dis.c (print_hex): New variable.
+	(parse_option): Check for hex option.
+	(print_insn_arc): Use hexadecimal representation for short
+	immediate values when requested.
+	(print_arc_disassembler_options): Add hex option to the list.
+
+2017-11-03  Claudiu Zissulescu  <claziss@synopsys.com>
+
+	* arc-tbl.h (abss, abssh, adc, adcs, adds, aslacc, asls, aslsacc)
+	(asrs, asrsr, cbflyhf0r, cbflyhf1r, cmacchfr, cmacchnfr, cmachfr)
+	(cmachnfr, cmpychfr, cmpychnfr, cmpyhfmr, cmpyhfr, cmpyhnfr, divf)
+	(dmachbl, dmachbm, dmachf, dmachfr, dmacwhf, dmpyhbl, dmpyhbm)
+	(dmpyhf, dmpyhfr, dmpyhwf, dmpywhf, dsync, flagacc, getacc, macdf)
+	(macf, macfr, macwhfl, macwhflr, macwhfm, macwhfmr, macwhkl)
+	(macwhkul, macwhl, macwhul, mpydf, mpyf, mpyfr, mpywhfl, mpywhflr)
+	(mpywhfm, mpywhfmr, mpywhkl, mpywhkul, mpywhl, mpywhul, msubdf)
+	(msubf, msubfr, msubwhfl, msubwhflr, msubwhfm, msubwhfmr, mul64)
+	(negs, negsh, normacc, qmachf, qmpyh, qmpyhf, rndh, satf, sath)
+	(sbcs, setacc, sflag, sqrt, sqrtf, subs, swi_s, vabs2h, vabss2h)
+	(vadd4b, vadds2, vadds2h, vadds4h, vaddsubs, vaddsubs2h)
+	(vaddsubs4h, valgn2h, vasl2h, vasls2h, vasr2h, vasrs2h, vasrsr2h)
+	(vext2bhl, vext2bhlf, vext2bhm, vext2bhmf, vlsr2h, vmac2hf)
+	(vmac2hfr, vmac2hnfr, vmax2h, vmin2h, vmpy2h, vmpy2hf, vmpy2hfr)
+	(vmpy2hwf, vmsub2hf, vmsub2hfr, vmsub2hnfr, vneg2h, vnegs2h)
+	(vnorm2h, vpack2hbl, vpack2hblf, vpack2hbm, vpack2hbmf, vpack2hl)
+	(vpack2hm, vperm, vrep2hl, vrep2hm, vsext2bhl, vsext2bhm, vsub4b)
+	(vsubadds, vsubadds2h, vsubadds4h, vsubs2, vsubs2h, vsubs4h):
+	Changed opcodes.
+	(prealloc, prefetch*): Place them before ld instruction.
+	* arc-opc.c (skip_this_opcode): Add ARITH class.
+
+2017-10-25  Alan Modra  <amodra@gmail.com>
+
+	PR 22348
+	* cr16-dis.c (cr16_cinvs, instruction, cr16_currInsn): Make static.
+	(cr16_words, cr16_allWords, processing_argument_number): Likewise.
+	(imm4flag, size_changed): Likewise.
+	* crx-dis.c (crx_cinvs, NUMCINVS, instruction, currInsn): Likewise.
+	(words, allWords, processing_argument_number): Likewise.
+	(cst4flag, size_changed): Likewise.
+	* crx-opc.c (crx_cst4_map): Rename from cst4_map.
+	(crx_cst4_maps): Rename from cst4_maps.
+	(crx_no_op_insn): Rename from no_op_insn.
+
+2017-10-24  Andrew Waterman  <andrew@sifive.com>
+
+	* riscv-opc.c (match_c_addi16sp) : New function.
+	(match_c_addi4spn): New function.
+	(match_c_lui): Don't allow 0-immediate encodings.
+	(riscv_opcodes) <addi>: Use the above functions.
+	<add>: Likewise.
+	<c.addi4spn>: Likewise.
+	<c.addi16sp>: Likewise.
+
+2017-10-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* i386-init.h: Regenerate
+	* i386-tbl.h: Likewise
+
+2017-10-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* i386-dis.c (enum): Add PREFIX_EVEX_0F3854, PREFIX_EVEX_0F388F.
+	(enum): Add EVEX_W_0F3854_P_2.
+	* i386-dis-evex.h (evex_table): Updated.
+	* i386-gen.c (cpu_flag_init): Add CPU_AVX512_BITALG,
+	CPU_ANY_AVX512_BITALG_FLAGS. Update CPU_ANY_AVX512F_FLAGS.
+	(cpu_flags): Add CpuAVX512_BITALG.
+	* i386-opc.h (enum): Add CpuAVX512_BITALG.
+	(i386_cpu_flags): Add cpuavx512_bitalg..
+	* i386-opc.tbl: Add Intel AVX512_BITALG instructions.
+	* i386-init.h: Regenerate.
+	* i386-tbl.h: Likewise.
+
+2017-10-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* i386-dis.c (enum): Add PREFIX_EVEX_0F3850, PREFIX_EVEX_0F3851.
+	* i386-dis-evex.h (evex_table): Updated.
+	* i386-gen.c (cpu_flag_init): Add CPU_AVX512_VNNI,
+	CPU_ANY_AVX512_VNNI_FLAGS. Update CPU_ANY_AVX512F_FLAGS.
+	(cpu_flags): Add CpuAVX512_VNNI.
+	* i386-opc.h (enum): Add CpuAVX512_VNNI.
+	(i386_cpu_flags): Add cpuavx512_vnni.
+	* i386-opc.tbl Add Intel AVX512_VNNI instructions.
+	* i386-init.h: Regenerate.
+	* i386-tbl.h: Likewise.
+
+2017-10-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* i386-dis.c (enum): Add PREFIX_EVEX_0F3A44.
+	(enum): Remove VEX_LEN_0F3A44_P_2.
+	(vex_len_table): Ditto.
+	(enum): Remove VEX_W_0F3A44_P_2.
+	(vew_w_table): Ditto.
+	(prefix_table): Adjust instructions (see prefixes above).
+	* i386-dis-evex.h (evex_table):
+	Add new instructions (see prefixes above).
+	* i386-gen.c (cpu_flag_init): Add VPCLMULQDQ.
+	(bitfield_cpu_flags): Ditto.
+	* i386-opc.h (enum): Ditto.
+	(i386_cpu_flags): Ditto.
+	(CpuUnused): Comment out to avoid zero-width field problem.
+	* i386-opc.tbl (vpclmulqdq): New instruction.
+	* i386-init.h: Regenerate.
+	* i386-tbl.h: Ditto.
+
+2017-10-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* i386-dis.c (enum): Add PREFIX_EVEX_0F38DC, PREFIX_EVEX_0F38DD,
+	PREFIX_EVEX_0F38DE, PREFIX_EVEX_0F38DF.
+	(enum): Remove VEX_LEN_0F38DC_P_2, VEX_LEN_0F38DD_P_2,
+	VEX_LEN_0F38DE_P_2, VEX_LEN_0F38DF_P_2.
+	(vex_len_table): Ditto.
+	(enum): Remove VEX_W_0F38DC_P_2, VEX_W_0F38DD_P_2,
+	VEX_W_0F38DE_P_2, VEX_W_0F38DF_P_2.
+	(vew_w_table): Ditto.
+	(prefix_table): Adjust instructions (see prefixes above).
+	* i386-dis-evex.h (evex_table):
+	Add new instructions (see prefixes above).
+	* i386-gen.c (cpu_flag_init): Add VAES.
+	(bitfield_cpu_flags): Ditto.
+	* i386-opc.h (enum): Ditto.
+	(i386_cpu_flags): Ditto.
+	* i386-opc.tbl (vaes{enc,dec}{last,}): New instructions.
+	* i386-init.h: Regenerate.
+	* i386-tbl.h: Ditto.
+
+2017-10-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* i386-dis.c (enum): Add PREFIX_0F38CF, PREFIX_0F3ACE, PREFIX_0F3ACF,
+	PREFIX_VEX_0F38CF, PREFIX_VEX_0F3ACE, PREFIX_VEX_0F3ACF,
+	PREFIX_EVEX_0F38CF, PREFIX_EVEX_0F3ACE, PREFIX_EVEX_0F3ACF.
+	(enum): Add VEX_W_0F38CF_P_2, VEX_W_0F3ACE_P_2, VEX_W_0F3ACF_P_2,
+	EVEX_W_0F3ACE_P_2, EVEX_W_0F3ACF_P_2.
+	(prefix_table): Updated (see prefixes above).
+	(three_byte_table): Likewise.
+	(vex_w_table): Likewise.
+	* i386-dis-evex.h: Likewise.
+	* i386-gen.c (cpu_flag_init): Add CPU_GFNI_FLAGS, CpuGFNI.
+	(cpu_flags): Add CpuGFNI.
+	* i386-opc.h (enum): Add CpuGFNI.
+	(i386_cpu_flags): Add cpugfni.
+	* i386-opc.tbl: Add Intel GFNI instructions.
+	* i386-init.h: Regenerate.
+	* i386-tbl.h: Likewise.
+
+2017-10-23  Igor Tsimbalist  <igor.v.tsimbalist@intel.com>
+
+	* i386-dis.c (enum): Add b_scalar_mode, w_scalar_mode.
+	Define EXbScalar and EXwScalar for OP_EX.
+	(enum): Add PREFIX_EVEX_0F3862, PREFIX_EVEX_0F3863,
+	PREFIX_EVEX_0F3870, PREFIX_EVEX_0F3871, PREFIX_EVEX_0F3872,
+	PREFIX_EVEX_0F3873, PREFIX_EVEX_0F3A70, PREFIX_EVEX_0F3A71,
+	PREFIX_EVEX_0F3A72, PREFIX_EVEX_0F3A73.
+	(enum): Add EVEX_W_0F3862_P_2, EVEX_W_0F3863_P_2,
+	EVEX_W_0F3870_P_2, EVEX_W_0F3871_P_2, EVEX_W_0F3872_P_2,
+	EVEX_W_0F3873_P_2, EVEX_W_0F3A70_P_2, EVEX_W_0F3A71_P_2,
+	EVEX_W_0F3A72_P_2, EVEX_W_0F3A73_P_2.
+	(intel_operand_size): Handle b_scalar_mode and w_scalar_mode.
+	(OP_E_memory): Likewise.
+	* i386-dis-evex.h: Updated.
+	* i386-gen.c (cpu_flag_init): Add CPU_AVX512_VBMI2,
+	CPU_ANY_AVX512_VBMI2_FLAGS. Update CPU_ANY_AVX512F_FLAGS.
+	(cpu_flags): Add CpuAVX512_VBMI2.
+	* i386-opc.h (enum): Add CpuAVX512_VBMI2.
+	(i386_cpu_flags): Add cpuavx512_vbmi2.
+	* i386-opc.tbl: Add Intel AVX512_VBMI2 instructions.
+	* i386-init.h: Regenerate.
+	* i386-tbl.h: Likewise.
+
+2017-10-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* visium-dis.c (disassem_class1) <case 0>: Print the operands.
+
+2017-10-12  James Bowman  <james.bowman@ftdichip.com>
+
+	* ft32-dis.c (print_insn_ft32): Replace FT32_FLD_K8 with K15.
+	* ft32-opc.c (ft32_opc_info): Replace FT32_FLD_K8 with
+	K15. Add jmpix pattern.
+
+2017-10-09  Andreas Krebbel  <krebbel@linux.vnet.ibm.com>
+
+	* s390-opc.txt (prno, tpei, irbm): New instructions added.
+
+2017-10-09  Heiko Carstens  <heiko.carstens@de.ibm.com>
+
+	* s390-opc.c (INSTR_SI_RD): New macro.
+	(INSTR_S_RD): Adjust example instruction.
+	* s390-opc.txt (lpsw, ssm, ts): Change S_RD instruction format to
+	SI_RD.
+
+2017-10-01  Alexander Fedotov  <alfedotov@gmail.com>
+
+	* ppc-opc.c (vle_opcodes): Add e_lmvsprw, e_lmvgprw,
+	e_lmvsrrw, e_lmvcsrrw and e_lmvcsrrw as official mnemonics for
+	VLE multimple load/store instructions. Old e_ldm* variants are
+	kept as aliases.
+	Add missing e_lmvmcsrrw and e_stmvmcsrrw.
+
+2017-09-27  Nick Clifton  <nickc@redhat.com>
+
+	PR 22179
+	* riscv-opc.c (riscv_opcodes): Add fmv.x.w and fmv.w.x as the new
+	names for the fmv.x.s and fmv.s.x instructions respectively.
+
+2017-09-26  do  <do@nerilex.org>
+
+	PR 22123
+	* m68k-opc.c (m68k_opcodes): Allow macw and macl instructions to
+	be used on CPUs that have emacs support.
+
 2017-09-21  Sergio Durigan Junior  <sergiodj@redhat.com>
 
 	* aarch64-opc.c (expand_fp_imm): Initialize 'imm'.

@@ -279,7 +279,7 @@ fbsd_siginfo_size ()
   struct gdbarch *gdbarch = get_frame_arch (get_current_frame ());
 
   /* Is the inferior 32-bit?  If so, use the 32-bit siginfo size.  */
-  if (gdbarch_bfd_arch_info (gdbarch)->bits_per_word == 32)
+  if (gdbarch_long_bit (gdbarch) == 32)
     return sizeof (struct siginfo32);
 #endif
   return sizeof (siginfo_t);
@@ -296,7 +296,7 @@ fbsd_convert_siginfo (siginfo_t *si)
   struct gdbarch *gdbarch = get_frame_arch (get_current_frame ());
 
   /* Is the inferior 32-bit?  If not, nothing to do.  */
-  if (gdbarch_bfd_arch_info (gdbarch)->bits_per_word != 32)
+  if (gdbarch_long_bit (gdbarch) != 32)
     return;
 
   struct siginfo32 si32;
@@ -1163,8 +1163,9 @@ fbsd_remove_exec_catchpoint (struct target_ops *self, int pid)
 
 #ifdef HAVE_STRUCT_PTRACE_LWPINFO_PL_SYSCALL_CODE
 static int
-fbsd_set_syscall_catchpoint (struct target_ops *self, int pid, int needed,
-			     int any_count, int table_size, int *table)
+fbsd_set_syscall_catchpoint (struct target_ops *self, int pid, bool needed,
+			     int any_count,
+			     gdb::array_view<const int> syscall_counts)
 {
 
   /* Ignore the arguments.  inf-ptrace.c will use PT_SYSCALL which

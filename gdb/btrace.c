@@ -1636,7 +1636,6 @@ void
 btrace_disable (struct thread_info *tp)
 {
   struct btrace_thread_info *btp = &tp->btrace;
-  int errcode = 0;
 
   if (btp->target == NULL)
     return;
@@ -1656,7 +1655,6 @@ void
 btrace_teardown (struct thread_info *tp)
 {
   struct btrace_thread_info *btp = &tp->btrace;
-  int errcode = 0;
 
   if (btp->target == NULL)
     return;
@@ -3021,7 +3019,6 @@ btrace_maint_decode_pt (struct btrace_maint_info *maint,
 static void
 btrace_maint_update_pt_packets (struct btrace_thread_info *btinfo)
 {
-  volatile struct gdb_exception except;
   struct pt_packet_decoder *decoder;
   struct btrace_data_pt *pt;
   struct pt_config config;
@@ -3180,9 +3177,10 @@ btrace_maint_print_packets (struct btrace_thread_info *btinfo,
 /* Read a number from an argument string.  */
 
 static unsigned int
-get_uint (char **arg)
+get_uint (const char **arg)
 {
-  char *begin, *end, *pos;
+  const char *begin, *pos;
+  char *end;
   unsigned long number;
 
   begin = *arg;
@@ -3203,23 +3201,23 @@ get_uint (char **arg)
 /* Read a context size from an argument string.  */
 
 static int
-get_context_size (char **arg)
+get_context_size (const char **arg)
 {
-  char *pos;
-  int number;
-
-  pos = skip_spaces (*arg);
+  const char *pos = skip_spaces (*arg);
 
   if (!isdigit (*pos))
     error (_("Expected positive number, got: %s."), pos);
 
-  return strtol (pos, arg, 10);
+  char *end;
+  long result = strtol (pos, &end, 10);
+  *arg = end;
+  return result;
 }
 
 /* Complain about junk at the end of an argument string.  */
 
 static void
-no_chunk (char *arg)
+no_chunk (const char *arg)
 {
   if (*arg != 0)
     error (_("Junk after argument: %s."), arg);
@@ -3228,7 +3226,7 @@ no_chunk (char *arg)
 /* The "maintenance btrace packet-history" command.  */
 
 static void
-maint_btrace_packet_history_cmd (char *arg, int from_tty)
+maint_btrace_packet_history_cmd (const char *arg, int from_tty)
 {
   struct btrace_thread_info *btinfo;
   struct thread_info *tp;
@@ -3333,7 +3331,7 @@ maint_btrace_packet_history_cmd (char *arg, int from_tty)
 /* The "maintenance btrace clear-packet-history" command.  */
 
 static void
-maint_btrace_clear_packet_history_cmd (char *args, int from_tty)
+maint_btrace_clear_packet_history_cmd (const char *args, int from_tty)
 {
   struct btrace_thread_info *btinfo;
   struct thread_info *tp;
@@ -3355,9 +3353,8 @@ maint_btrace_clear_packet_history_cmd (char *args, int from_tty)
 /* The "maintenance btrace clear" command.  */
 
 static void
-maint_btrace_clear_cmd (char *args, int from_tty)
+maint_btrace_clear_cmd (const char *args, int from_tty)
 {
-  struct btrace_thread_info *btinfo;
   struct thread_info *tp;
 
   if (args != NULL && *args != 0)
@@ -3373,7 +3370,7 @@ maint_btrace_clear_cmd (char *args, int from_tty)
 /* The "maintenance btrace" command.  */
 
 static void
-maint_btrace_cmd (char *args, int from_tty)
+maint_btrace_cmd (const char *args, int from_tty)
 {
   help_list (maint_btrace_cmdlist, "maintenance btrace ", all_commands,
 	     gdb_stdout);
@@ -3382,7 +3379,7 @@ maint_btrace_cmd (char *args, int from_tty)
 /* The "maintenance set btrace" command.  */
 
 static void
-maint_btrace_set_cmd (char *args, int from_tty)
+maint_btrace_set_cmd (const char *args, int from_tty)
 {
   help_list (maint_btrace_set_cmdlist, "maintenance set btrace ", all_commands,
 	     gdb_stdout);
@@ -3391,7 +3388,7 @@ maint_btrace_set_cmd (char *args, int from_tty)
 /* The "maintenance show btrace" command.  */
 
 static void
-maint_btrace_show_cmd (char *args, int from_tty)
+maint_btrace_show_cmd (const char *args, int from_tty)
 {
   help_list (maint_btrace_show_cmdlist, "maintenance show btrace ",
 	     all_commands, gdb_stdout);
@@ -3400,7 +3397,7 @@ maint_btrace_show_cmd (char *args, int from_tty)
 /* The "maintenance set btrace pt" command.  */
 
 static void
-maint_btrace_pt_set_cmd (char *args, int from_tty)
+maint_btrace_pt_set_cmd (const char *args, int from_tty)
 {
   help_list (maint_btrace_pt_set_cmdlist, "maintenance set btrace pt ",
 	     all_commands, gdb_stdout);
@@ -3409,7 +3406,7 @@ maint_btrace_pt_set_cmd (char *args, int from_tty)
 /* The "maintenance show btrace pt" command.  */
 
 static void
-maint_btrace_pt_show_cmd (char *args, int from_tty)
+maint_btrace_pt_show_cmd (const char *args, int from_tty)
 {
   help_list (maint_btrace_pt_show_cmdlist, "maintenance show btrace pt ",
 	     all_commands, gdb_stdout);
@@ -3418,7 +3415,7 @@ maint_btrace_pt_show_cmd (char *args, int from_tty)
 /* The "maintenance info btrace" command.  */
 
 static void
-maint_info_btrace_cmd (char *args, int from_tty)
+maint_info_btrace_cmd (const char *args, int from_tty)
 {
   struct btrace_thread_info *btinfo;
   struct thread_info *tp;

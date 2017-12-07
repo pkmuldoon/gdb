@@ -305,11 +305,15 @@ setup_alternate_signal_stack (void)
 #endif
 }
 
-/* Call command_loop.  If it happens to return, pass that through as a
-   non-zero return status.  */
+/* Call command_loop.  */
 
-static int
-captured_command_loop (void *data)
+/* Prevent inlining this function for the benefit of GDB's selftests
+   in the testsuite.  Those tests want to run GDB under GDB and stop
+   here.  */
+static void captured_command_loop () __attribute__((noinline));
+
+static void
+captured_command_loop ()
 {
   struct ui *ui = current_ui;
 
@@ -333,11 +337,9 @@ captured_command_loop (void *data)
      check to detect bad FUNCs code.  */
   do_cleanups (all_cleanups ());
   /* If the command_loop returned, normally (rather than threw an
-     error) we try to quit.  If the quit is aborted, catch_errors()
-     which called this catch the signal and restart the command
-     loop.  */
+     error) we try to quit.  If the quit is aborted, our caller
+     catches the signal and restarts the command loop.  */
   quit_command (NULL, ui->instream == ui->stdin_stream);
-  return 1;
 }
 
 /* Handle command errors thrown from within catch_command_errors.  */
@@ -358,39 +360,12 @@ handle_command_errors (struct gdb_exception e)
   return 1;
 }
 
-/* Type of the command callback passed to catch_command_errors.  */
-
-typedef void (catch_command_errors_ftype) (char *, int);
-
-/* Wrap calls to commands run before the event loop is started.  */
-
-static int
-catch_command_errors (catch_command_errors_ftype *command,
-		      char *arg, int from_tty)
-{
-  TRY
-    {
-      int was_sync = current_ui->prompt_state == PROMPT_BLOCKED;
-
-      command (arg, from_tty);
-
-      maybe_wait_sync_command_done (was_sync);
-    }
-  CATCH (e, RETURN_MASK_ALL)
-    {
-      return handle_command_errors (e);
-    }
-  END_CATCH
-
-  return 1;
-}
-
 /* Type of the command callback passed to the const
    catch_command_errors.  */
 
 typedef void (catch_command_errors_const_ftype) (const char *, int);
 
-/* Const-correct catch_command_errors.  */
+/* Wrap calls to commands run before the event loop is started.  */
 
 static int
 catch_command_errors (catch_command_errors_const_ftype command,
@@ -425,6 +400,19 @@ symbol_file_add_main_adapter (const char *arg, int from_tty)
     add_flags |= SYMFILE_VERBOSE;
 
   symbol_file_add_main (arg, add_flags);
+}
+
+/* Perform validation of the '--readnow' and '--readnever' flags.  */
+
+static void
+validate_readnow_readnever ()
+{
+  if (readnever_symbol_files && readnow_symbol_files)
+    {
+      error (_("%s: '--readnow' and '--readnever' cannot be "
+	       "specified simultaneously"),
+	     gdb_program_name);
+    }
 }
 
 /* Type of this option.  */
@@ -498,8 +486,6 @@ captured_main_1 (struct captured_main_args *context)
   int save_auto_load;
   struct objfile *objfile;
 
-  struct cleanup *chain;
-
 #ifdef HAVE_SBRK
   /* Set this before constructing scoped_command_stats.  */
   lim_at_start = (char *) sbrk (0);
@@ -530,7 +516,7 @@ captured_main_1 (struct captured_main_args *context)
   setvbuf (stderr, NULL, _IONBF, BUFSIZ);
 #endif
 
-  main_ui = new_ui (stdin, stdout, stderr);
+  main_ui = new ui (stdin, stdout, stderr);
   current_ui = main_ui;
 
   gdb_stdtargerr = gdb_stderr;	/* for moment */
@@ -606,14 +592,17 @@ captured_main_1 (struct captured_main_args *context)
       OPT_NOWINDOWS,
       OPT_WINDOWS,
       OPT_IX,
-      OPT_IEX
+      OPT_IEX,
+      OPT_READNOW,
+      OPT_READNEVER
     };
     static struct option long_options[] =
     {
       {"tui", no_argument, 0, OPT_TUI},
       {"dbx", no_argument, &dbx_commands, 1},
-      {"readnow", no_argument, &readnow_symbol_files, 1},
-      {"r", no_argument, &readnow_symbol_files, 1},
+      {"readnow", no_argument, NULL, OPT_READNOW},
+      {"readnever", no_argument, NULL, OPT_READNEVER},
+      {"r", no_argument, NULL, OPT_READNOW},
       {"quiet", no_argument, &quiet, 1},
       {"q", no_argument, &quiet, 1},
       {"silent", no_argument, &quiet, 1},
@@ -833,6 +822,20 @@ captured_main_1 (struct captured_main_args *context)
 			 optarg);
 	      else
 		remote_timeout = i;
+	    }
+	    break;
+
+	  case OPT_READNOW:
+	    {
+	      readnow_symbol_files = 1;
+	      validate_readnow_readnever ();
+	    }
+	    break;
+
+	  case OPT_READNEVER:
+	    {
+	      readnever_symbol_files = 1;
+	      validate_readnow_readnever ();
 	    }
 	    break;
 
@@ -1147,7 +1150,15 @@ captured_main (void *data)
      change - SET_TOP_LEVEL() - has been eliminated.  */
   while (1)
     {
-      catch_errors (captured_command_loop, 0, "", RETURN_MASK_ALL);
+      TRY
+	{
+	  captured_command_loop ();
+	}
+      CATCH (ex, RETURN_MASK_ALL)
+	{
+	  exception_print (gdb_stderr, ex);
+	}
+      END_CATCH
     }
   /* No exit -- exit is through quit_command.  */
 }
@@ -1202,6 +1213,7 @@ Selection of debuggee and its files:\n\n\
   --se=FILE          Use FILE as symbol file and executable file.\n\
   --symbols=SYMFILE  Read symbols from SYMFILE.\n\
   --readnow          Fully read symbol files on first access.\n\
+  --readnever        Do not read symbol files.\n\
   --write            Set writing into executable and core files.\n\n\
 "), stream);
   fputs_unfiltered (_("\

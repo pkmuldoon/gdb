@@ -427,7 +427,7 @@ static void
 gdbsim_fetch_register (struct target_ops *ops,
 		       struct regcache *regcache, int regno)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   struct inferior *inf = find_inferior_ptid (regcache_get_ptid (regcache));
   struct sim_inferior_data *sim_data
     = get_sim_inferior_data (inf, SIM_INSTANCE_NEEDED);
@@ -497,7 +497,7 @@ static void
 gdbsim_store_register (struct target_ops *ops,
 		       struct regcache *regcache, int regno)
 {
-  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch *gdbarch = regcache->arch ();
   struct inferior *inf = find_inferior_ptid (regcache_get_ptid (regcache));
   struct sim_inferior_data *sim_data
     = get_sim_inferior_data (inf, SIM_INSTANCE_NEEDED);
@@ -1179,7 +1179,7 @@ gdbsim_mourn_inferior (struct target_ops *target)
    simulator must do any command interpretation work.  */
 
 void
-simulator_command (char *args, int from_tty)
+simulator_command (const char *args, int from_tty)
 {
   struct sim_inferior_data *sim_data;
 

@@ -18,17 +18,17 @@ Raw dump of debug contents of section .debug_line:
 
  Opcodes:
   Opcode 1 has 0 args
-  Opcode 2 has 1 args
-  Opcode 3 has 1 args
-  Opcode 4 has 1 args
-  Opcode 5 has 1 args
+  Opcode 2 has 1 arg
+  Opcode 3 has 1 arg
+  Opcode 4 has 1 arg
+  Opcode 5 has 1 arg
   Opcode 6 has 0 args
   Opcode 7 has 0 args
   Opcode 8 has 0 args
-  Opcode 9 has 1 args
+  Opcode 9 has 1 arg
   Opcode 10 has 0 args
   Opcode 11 has 0 args
-  Opcode 12 has 1 args
+  Opcode 12 has 1 arg
   Opcode 13 has 0 args
   Opcode 14 has 0 args
   Opcode 15 has 0 args
@@ -61,7 +61,7 @@ Raw dump of debug contents of section .debug_line:
   \[0x.*\]  Extended opcode 1: End of Sequence
 
 
-Decoded dump of debug contents of section \.debug_line:
+Contents of the \.debug_line section:
 
 CU: dwarf2-6\.c:
 File name  *Line number  *Starting address  *View

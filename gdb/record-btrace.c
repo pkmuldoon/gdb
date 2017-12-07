@@ -810,7 +810,6 @@ record_btrace_insn_history_range (struct target_ops *self,
 				  gdb_disassembly_flags flags)
 {
   struct btrace_thread_info *btinfo;
-  struct btrace_insn_history *history;
   struct btrace_insn_iterator begin, end;
   struct ui_out *uiout;
   unsigned int low, high;
@@ -1167,7 +1166,6 @@ record_btrace_call_history_range (struct target_ops *self,
 				  int int_flags)
 {
   struct btrace_thread_info *btinfo;
-  struct btrace_call_history *history;
   struct btrace_call_iterator begin, end;
   struct ui_out *uiout;
   unsigned int low, high;
@@ -1251,7 +1249,6 @@ record_btrace_call_history_from (struct target_ops *self,
 static enum record_method
 record_btrace_record_method (struct target_ops *self, ptid_t ptid)
 {
-  const struct btrace_config *config;
   struct thread_info * const tp = find_thread_ptid (ptid);
 
   if (tp == NULL)
@@ -1293,8 +1290,6 @@ record_btrace_xfer_partial (struct target_ops *ops, enum target_object object,
 			    const gdb_byte *writebuf, ULONGEST offset,
 			    ULONGEST len, ULONGEST *xfered_len)
 {
-  struct target_ops *t;
-
   /* Filter out requests that don't make sense during replay.  */
   if (replay_memory_access == replay_memory_access_read_only
       && !record_btrace_generating_corefile
@@ -1423,7 +1418,7 @@ record_btrace_fetch_registers (struct target_ops *ops,
       struct gdbarch *gdbarch;
       int pcreg;
 
-      gdbarch = get_regcache_arch (regcache);
+      gdbarch = regcache->arch ();
       pcreg = gdbarch_pc_regnum (gdbarch);
       if (pcreg < 0)
 	return;
@@ -1545,7 +1540,6 @@ static const struct btrace_function *
 btrace_get_frame_function (struct frame_info *frame)
 {
   const struct btrace_frame_cache *cache;
-  const struct btrace_function *bfun;
   struct btrace_frame_cache pattern;
   void **slot;
 
@@ -2883,7 +2877,7 @@ init_record_btrace_ops (void)
 /* Start recording in BTS format.  */
 
 static void
-cmd_record_btrace_bts_start (char *args, int from_tty)
+cmd_record_btrace_bts_start (const char *args, int from_tty)
 {
   if (args != NULL && *args != 0)
     error (_("Invalid argument."));
@@ -2892,7 +2886,7 @@ cmd_record_btrace_bts_start (char *args, int from_tty)
 
   TRY
     {
-      execute_command ((char *) "target record-btrace", from_tty);
+      execute_command ("target record-btrace", from_tty);
     }
   CATCH (exception, RETURN_MASK_ALL)
     {
@@ -2905,7 +2899,7 @@ cmd_record_btrace_bts_start (char *args, int from_tty)
 /* Start recording in Intel Processor Trace format.  */
 
 static void
-cmd_record_btrace_pt_start (char *args, int from_tty)
+cmd_record_btrace_pt_start (const char *args, int from_tty)
 {
   if (args != NULL && *args != 0)
     error (_("Invalid argument."));
@@ -2914,7 +2908,7 @@ cmd_record_btrace_pt_start (char *args, int from_tty)
 
   TRY
     {
-      execute_command ((char *) "target record-btrace", from_tty);
+      execute_command ("target record-btrace", from_tty);
     }
   CATCH (exception, RETURN_MASK_ALL)
     {
@@ -2927,7 +2921,7 @@ cmd_record_btrace_pt_start (char *args, int from_tty)
 /* Alias for "target record".  */
 
 static void
-cmd_record_btrace_start (char *args, int from_tty)
+cmd_record_btrace_start (const char *args, int from_tty)
 {
   if (args != NULL && *args != 0)
     error (_("Invalid argument."));
@@ -2936,7 +2930,7 @@ cmd_record_btrace_start (char *args, int from_tty)
 
   TRY
     {
-      execute_command ((char *) "target record-btrace", from_tty);
+      execute_command ("target record-btrace", from_tty);
     }
   CATCH (exception, RETURN_MASK_ALL)
     {
@@ -2944,7 +2938,7 @@ cmd_record_btrace_start (char *args, int from_tty)
 
       TRY
 	{
-	  execute_command ((char *) "target record-btrace", from_tty);
+	  execute_command ("target record-btrace", from_tty);
 	}
       CATCH (exception, RETURN_MASK_ALL)
 	{
@@ -2959,7 +2953,7 @@ cmd_record_btrace_start (char *args, int from_tty)
 /* The "set record btrace" command.  */
 
 static void
-cmd_set_record_btrace (char *args, int from_tty)
+cmd_set_record_btrace (const char *args, int from_tty)
 {
   cmd_show_list (set_record_btrace_cmdlist, from_tty, "");
 }
@@ -2967,7 +2961,7 @@ cmd_set_record_btrace (char *args, int from_tty)
 /* The "show record btrace" command.  */
 
 static void
-cmd_show_record_btrace (char *args, int from_tty)
+cmd_show_record_btrace (const char *args, int from_tty)
 {
   cmd_show_list (show_record_btrace_cmdlist, from_tty, "");
 }
@@ -2985,7 +2979,7 @@ cmd_show_replay_memory_access (struct ui_file *file, int from_tty,
 /* The "set record btrace bts" command.  */
 
 static void
-cmd_set_record_btrace_bts (char *args, int from_tty)
+cmd_set_record_btrace_bts (const char *args, int from_tty)
 {
   printf_unfiltered (_("\"set record btrace bts\" must be followed "
 		       "by an appropriate subcommand.\n"));
@@ -2996,7 +2990,7 @@ cmd_set_record_btrace_bts (char *args, int from_tty)
 /* The "show record btrace bts" command.  */
 
 static void
-cmd_show_record_btrace_bts (char *args, int from_tty)
+cmd_show_record_btrace_bts (const char *args, int from_tty)
 {
   cmd_show_list (show_record_btrace_bts_cmdlist, from_tty, "");
 }
@@ -3004,7 +2998,7 @@ cmd_show_record_btrace_bts (char *args, int from_tty)
 /* The "set record btrace pt" command.  */
 
 static void
-cmd_set_record_btrace_pt (char *args, int from_tty)
+cmd_set_record_btrace_pt (const char *args, int from_tty)
 {
   printf_unfiltered (_("\"set record btrace pt\" must be followed "
 		       "by an appropriate subcommand.\n"));
@@ -3015,7 +3009,7 @@ cmd_set_record_btrace_pt (char *args, int from_tty)
 /* The "show record btrace pt" command.  */
 
 static void
-cmd_show_record_btrace_pt (char *args, int from_tty)
+cmd_show_record_btrace_pt (const char *args, int from_tty)
 {
   cmd_show_list (show_record_btrace_pt_cmdlist, from_tty, "");
 }
