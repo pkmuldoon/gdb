@@ -634,32 +634,13 @@ bppy_get_ignore_count (PyObject *self, void *closure)
   return PyInt_FromLong (self_bp->bp->ignore_count);
 }
 
-/* Python function to create a new breakpoint.  */
+/* Internal function to validate the Python parameters/keywords
+   provided to bppy_init.  */
 static int
-bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
+bppy_init_validate_args (const char *spec, char *source,
+			 char *function, char *label,
+			 char *line, enum bptype type)
 {
-  static const char *keywords[] = { "spec", "type", "wp_class", "internal",
-				    "temporary","source", "function",
-				    "label", "line", NULL };
-  const char *spec = NULL;
-  int type = bp_breakpoint;
-  int access_type = hw_write;
-  PyObject *internal = NULL;
-  PyObject *temporary = NULL;
-  int internal_bp = 0;
-  int temporary_bp = 0;
-  char *line = NULL;
-  char *label = NULL;
-  char *source = NULL;
-  char *function = NULL;
-
-  if (!gdb_PyArg_ParseTupleAndKeywords (args, kwargs, "|siiOOssss", keywords,
-					&spec, &type, &access_type,
-					&internal,
-					&temporary, &source,
-					&function, &label, &line))
-    return -1;
-
   /* If spec is defined, ensure that none of the explicit location
      keywords are also defined.  */
   if (spec != NULL)
@@ -705,6 +686,50 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 	    }
 	}
     }
+  return 1;
+}
+
+/* Python function to create a new breakpoint.  */
+static int
+bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
+{
+  static const char *keywords[] = { "spec", "type", "wp_class", "internal",
+				    "temporary","source", "function",
+				    "label", "line", NULL };
+  const char *spec = NULL;
+  enum bptype type = bp_breakpoint;
+  int access_type = hw_write;
+  PyObject *internal = NULL;
+  PyObject *temporary = NULL;
+  PyObject *lineobj = NULL;;
+  int internal_bp = 0;
+  int temporary_bp = 0;
+  gdb::unique_xmalloc_ptr<char> line;
+  char *label = NULL;
+  char *source = NULL;
+  char *function = NULL;
+
+  if (!gdb_PyArg_ParseTupleAndKeywords (args, kwargs, "|siiOOsssO", keywords,
+					&spec, &type, &access_type,
+					&internal,
+					&temporary, &source,
+					&function, &label, &lineobj))
+    return -1;
+
+
+  if (lineobj != NULL)
+    {
+      if (PyInt_Check (lineobj))
+	line.reset (xstrprintf ("%ld", PyInt_AsLong (lineobj)));
+      else if (PyString_Check (lineobj))
+	line = python_string_to_host_string (lineobj);
+      else
+	{
+	  PyErr_SetString (PyExc_RuntimeError,
+			   _("Line keyword should be an integer or a string. "));
+	  return -1;
+	}
+    }
 
   if (internal)
     {
@@ -719,6 +744,10 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
       if (temporary_bp == -1)
 	return -1;
     }
+
+  if (bppy_init_validate_args (spec, source, function, label, line.get (),
+			       type) == -1)
+    return -1;
 
   bppy_pending_object = (gdbpy_breakpoint_object *) self;
   bppy_pending_object->number = -1;
@@ -752,7 +781,7 @@ bppy_init (PyObject *self, PyObject *args, PyObject *kwargs)
 
 		if (line != NULL)
 		  explicit_loc.line_offset =
-		    linespec_parse_line_offset (line);
+		    linespec_parse_line_offset (line.get ());
 
 		location = new_explicit_location (&explicit_loc);
 	      }

@@ -564,7 +564,7 @@ proc test_bkpt_explicit_loc {} {
 	set bp_location1 [gdb_get_line_number "Break at multiply."]
 	set bp_location2 [gdb_get_line_number "Break at add."]
 
-	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (line=\"$bp_location1\")" \
+	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (line=$bp_location1)" \
 	    "set explicit breakpoint by line" 0
 	gdb_continue_to_breakpoint "Break at multiply" \
 	    ".*Break at multiply.*"
@@ -581,6 +581,11 @@ proc test_bkpt_explicit_loc {} {
 	    ".*Break at multiply.*"
 
 	delete_breakpoints
+	gdb_test "python bp1 = gdb.Breakpoint (line=bp1)" \
+	    "RuntimeError: Line keyword should be an integer or a string.*" \
+	    "set explicit breakpoint by invalid line type"
+
+	delete_breakpoints
 	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (function=\"add\")" \
 	    "set explicit breakpoint by function" 0
 	gdb_continue_to_breakpoint "Break at function add" \
@@ -595,6 +600,12 @@ proc test_bkpt_explicit_loc {} {
 	delete_breakpoints
 	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (source=\"$srcfile\", line=\"$bp_location2\")" \
 	    "set explicit breakpoint by source file and line number" 0
+	gdb_continue_to_breakpoint "Break at add" \
+	    ".*Break at add.*"
+
+	delete_breakpoints
+	gdb_py_test_silent_cmd "python bp1 = gdb.Breakpoint (\"-source $srcfile -line $bp_location2\")" \
+	    "set explicit breakpoint by source file and line number in spec" 0
 	gdb_continue_to_breakpoint "Break at add" \
 	    ".*Break at add.*"
 
